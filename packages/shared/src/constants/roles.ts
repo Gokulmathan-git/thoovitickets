@@ -1,0 +1,37 @@
+export enum UserRole {
+  CUSTOMER = 'CUSTOMER',
+  ORGANISER = 'ORGANISER',
+  ADMIN = 'ADMIN',
+}
+
+export enum UserStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  REJECTED = 'REJECTED',
+}
+
+export enum EventStatus {
+  DRAFT = 'DRAFT',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  PUBLISHED = 'PUBLISHED',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}

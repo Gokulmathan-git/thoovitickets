@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ───────────────────────────────────────────
+
+enum UserRole {
+  CUSTOMER
+  ORGANISER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum ApprovalType {
+  USER_REGISTRATION
+  EVENT_PUBLISH
+}
+
+enum ApprovalAction {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─── MODELS ──────────────────────────────────────────
+
+model User {
+  id             String     @id @default(cuid())
+  email          String     @unique
+  passwordHash   String     @map("password_hash")
+  firstName      String     @map("first_name")
+  lastName       String     @map("last_name")
+  phone          String?
+  role           UserRole   @default(CUSTOMER)
+  status         UserStatus @default(ACTIVE)
+  emailVerified  Boolean    @default(false) @map("email_verified")
+  avatarUrl      String?    @map("avatar_url")
+  refreshToken   String?    @map("refresh_token")
+
+  orgName           String?    @map("org_name")
+  orgDescription    String?    @map("org_description")
+  resetToken        String?    @map("reset_token")
+  resetTokenExpiry  DateTime?  @map("reset_token_expiry")
+
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  events              Event[]
+  orders              Order[]
+  cart                Cart?
+  subscriptions       OrgSubscription[]
+  approvalsRequested  AdminApproval[] @relation("ApprovalRequester")
+  approvalsReviewed   AdminApproval[] @relation("ApprovalReviewer")
+
+  @@map("users")
+}
+
+model EventCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  imageUrl    String?  @map("image_url")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  events      Event[]
+
+  @@map("event_categories")
+}
+
+model Event {
+  id           String      @id @default(cuid())
+  title        String
+  slug         String      @unique
+  description  String
+  shortDesc    String?     @map("short_desc")
+  venue        String
+  address      String?
+  city         String
+  state        String?
+  country      String      @default("India")
+  latitude     Float?
+  longitude    Float?
+  startDate    DateTime    @map("start_date")
+  endDate      DateTime    @map("end_date")
+  imageUrl     String?     @map("image_url")
+  bannerUrl    String?     @map("banner_url")
+  status       EventStatus @default(DRAFT)
+  isFeatured   Boolean     @default(false) @map("is_featured")
+  maxAttendees Int?        @map("max_attendees")
+  tags         String[]    @default([])
+
+  organiserId  String      @map("organiser_id")
+  categoryId   String      @map("category_id")
+
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  organiser    User          @relation(fields: [organiserId], references: [id])
+  category     EventCategory @relation(fields: [categoryId], references: [id])
+  ticketTypes  TicketType[]
+  orderItems   OrderItem[]
+  approvals    AdminApproval[]
+
+  @@index([organiserId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([startDate])
+  @@index([city])
+  @@map("events")
+}
+
+model TicketType {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("INR")
+  totalQty    Int      @map("total_qty")
+  soldQty     Int      @default(0) @map("sold_qty")
+  maxPerOrder Int      @default(10) @map("max_per_order")
+  saleStart   DateTime? @map("sale_start")
+  saleEnd     DateTime? @map("sale_end")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  eventId     String   @map("event_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@index([eventId])
+  @@map("ticket_types")
+}
+
+model AdminApproval {
+  id           String         @id @default(cuid())
+  type         ApprovalType
+  action       ApprovalAction @default(PENDING)
+  reason       String?
+  notes        String?
+
+  requesterId  String         @map("requester_id")
+  reviewerId   String?        @map("reviewer_id")
+  eventId      String?        @map("event_id")
+
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  requester    User           @relation("ApprovalRequester", fields: [requesterId], references: [id])
+  reviewer     User?          @relation("ApprovalReviewer", fields: [reviewerId], references: [id])
+  event        Event?         @relation(fields: [eventId], references: [id])
+
+  @@index([type, action])
+  @@map("admin_approvals")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique @map("user_id")
+  expiresAt DateTime?  @map("expires_at")
+
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id           String     @id @default(cuid())
+  quantity     Int
+  cartId       String     @map("cart_id")
+  ticketTypeId String     @map("ticket_type_id")
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  cart         Cart       @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+
+  @@unique([cartId, ticketTypeId])
+  @@map("cart_items")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique @map("order_number")
+  status         OrderStatus @default(PENDING)
+  totalAmount    Decimal     @db.Decimal(10, 2) @map("total_amount")
+  currency       String      @default("INR")
+  guestEmail     String?     @map("guest_email")
+  guestName      String?     @map("guest_name")
+  guestPhone     String?     @map("guest_phone")
+
+  userId         String?     @map("user_id")
+
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  expiresAt      DateTime?   @map("expires_at")
+
+  user           User?       @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String     @id @default(cuid())
+  quantity     Int
+  unitPrice    Decimal    @db.Decimal(10, 2) @map("unit_price")
+  totalPrice   Decimal    @db.Decimal(10, 2) @map("total_price")
+
+  orderId      String     @map("order_id")
+  ticketTypeId String     @map("ticket_type_id")
+  eventId      String     @map("event_id")
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+  event        Event      @relation(fields: [eventId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  provider          String        @default("manual")
+  providerPaymentId String?       @map("provider_payment_id")
+  providerOrderId   String?       @map("provider_order_id")
+  metadata          Json?
+  failureReason     String?       @map("failure_reason")
+
+  orderId           String        @unique @map("order_id")
+
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  order             Order         @relation(fields: [orderId], references: [id])
+
+  @@index([providerPaymentId])
+  @@map("payments")
+}
+
+model OrgSubscription {
+  id          String             @id @default(cuid())
+  tier        SubscriptionTier   @default(FREE)
+  status      SubscriptionStatus @default(ACTIVE)
+  maxEvents   Int                @map("max_events")
+  maxTickets  Int                @map("max_tickets")
+  price       Decimal            @db.Decimal(10, 2) @default(0)
+  startDate   DateTime           @map("start_date")
+  endDate     DateTime?          @map("end_date")
+
+  userId      String             @map("user_id")
+
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  user        User               @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("org_subscriptions")
+}
