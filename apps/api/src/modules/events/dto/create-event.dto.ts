@@ -105,6 +105,20 @@ export class CreateEventDto {
   @IsString({ each: true })
   tags?: string[];
 
+  @IsOptional()
+  @IsString()
+  homeBannerUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  homeBannerTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  homeBannerDesc?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @ArrayMinSize(1)

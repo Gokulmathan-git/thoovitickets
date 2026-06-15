@@ -171,6 +171,38 @@ export class EventsService {
     return events;
   }
 
+  async getHomeBanners() {
+    return this.prisma.event.findMany({
+      where: {
+        status: EventStatus.PUBLISHED,
+        showOnHomeBanner: true,
+        homeBannerUrl: { not: null },
+        startDate: { gte: new Date() },
+      },
+      orderBy: [{ isFeatured: 'desc' }, { startDate: 'asc' }],
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        homeBannerUrl: true,
+        homeBannerTitle: true,
+        homeBannerDesc: true,
+        shortDesc: true,
+        startDate: true,
+        venue: true,
+        city: true,
+        category: { select: { name: true } },
+        ticketTypes: {
+          where: { isActive: true },
+          orderBy: { price: 'asc' },
+          take: 1,
+          select: { price: true },
+        },
+      },
+    });
+  }
+
   async getCities() {
     const cities = await this.prisma.event.findMany({
       where: { status: EventStatus.PUBLISHED },
@@ -268,6 +300,41 @@ export class EventsService {
         category: true,
         ticketTypes: { orderBy: { sortOrder: 'asc' } },
       },
+    });
+  }
+
+  async toggleHomeBanner(
+    id: string,
+    organiserId: string,
+    data: { showOnHomeBanner: boolean; homeBannerUrl?: string; homeBannerTitle?: string; homeBannerDesc?: string },
+  ) {
+    const event = await this.prisma.event.findUnique({ where: { id } });
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.organiserId !== organiserId) {
+      throw new ForbiddenException('You can only modify your own events');
+    }
+
+    if (data.showOnHomeBanner) {
+      const sub = await this.subscriptionsService.getActiveSubscription(organiserId);
+      if (sub.tier !== 'PREMIUM' && sub.tier !== 'ENTERPRISE') {
+        throw new BadRequestException(
+          'Homepage banner is available for PREMIUM and ENTERPRISE plans only. Upgrade your subscription.',
+        );
+      }
+      if (!data.homeBannerUrl && !event.homeBannerUrl) {
+        throw new BadRequestException('Please provide a banner image URL');
+      }
+    }
+
+    return this.prisma.event.update({
+      where: { id },
+      data: {
+        showOnHomeBanner: data.showOnHomeBanner,
+        ...(data.homeBannerUrl && { homeBannerUrl: data.homeBannerUrl }),
+        ...(data.homeBannerTitle !== undefined && { homeBannerTitle: data.homeBannerTitle }),
+        ...(data.homeBannerDesc !== undefined && { homeBannerDesc: data.homeBannerDesc }),
+      },
+      include: { category: true },
     });
   }
 

@@ -106,7 +106,7 @@ export default function CreateEventPage() {
                 <Select id="categoryId" error={errors.categoryId?.message} {...register('categoryId')}>
                   <option value="">Select a category</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.id} value={cat.id}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
                   ))}
                 </Select>
               </div>

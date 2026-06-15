@@ -231,4 +231,39 @@ export class AdminService {
 
     return { pendingOrganisers, pendingEvents };
   }
+
+  async getCategories() {
+    return this.prisma.eventCategory.findMany({
+      orderBy: { sortOrder: 'asc' },
+      include: { _count: { select: { events: true } } },
+    });
+  }
+
+  async createCategory(data: { name: string; slug: string; icon?: string; description?: string; sortOrder?: number }) {
+    return this.prisma.eventCategory.create({
+      data: {
+        name: data.name,
+        slug: data.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+        icon: data.icon || null,
+        description: data.description || null,
+        sortOrder: data.sortOrder || 0,
+      },
+    });
+  }
+
+  async updateCategory(id: string, data: { name?: string; icon?: string; description?: string; isActive?: boolean; sortOrder?: number }) {
+    return this.prisma.eventCategory.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async deleteCategory(id: string) {
+    const eventsCount = await this.prisma.event.count({ where: { categoryId: id } });
+    if (eventsCount > 0) {
+      throw new BadRequestException(`Cannot delete category — ${eventsCount} events are using it`);
+    }
+    await this.prisma.eventCategory.delete({ where: { id } });
+    return { message: 'Category deleted' };
+  }
 }

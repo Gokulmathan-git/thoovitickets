@@ -4,6 +4,7 @@ export interface EventCategoryResponse {
   id: string;
   name: string;
   slug: string;
+  icon: string | null;
   description: string | null;
   imageUrl: string | null;
   isActive: boolean;

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -81,5 +82,27 @@ export class AdminController {
   @Get('approvals')
   getPendingApprovals() {
     return this.adminService.getPendingApprovals();
+  }
+
+  @Get('categories')
+  getCategories() {
+    return this.adminService.getCategories();
+  }
+
+  @Post('categories')
+  createCategory(@Body() body: { name: string; slug: string; icon?: string; description?: string; sortOrder?: number }) {
+    return this.adminService.createCategory(body);
+  }
+
+  @Patch('categories/:id')
+  @HttpCode(HttpStatus.OK)
+  updateCategory(@Param('id') id: string, @Body() body: { name?: string; icon?: string; description?: string; isActive?: boolean; sortOrder?: number }) {
+    return this.adminService.updateCategory(id, body);
+  }
+
+  @Delete('categories/:id')
+  @HttpCode(HttpStatus.OK)
+  deleteCategory(@Param('id') id: string) {
+    return this.adminService.deleteCategory(id);
   }
 }

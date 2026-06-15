@@ -4,31 +4,43 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import apiClient from '@/lib/api-client';
 import { useCartStore } from '@/stores/cart-store';
+import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Trash2, Minus, Plus } from 'lucide-react';
 
 export default function CartPage() {
-  const { items, total, setCart, clearCart } = useCartStore();
+  const { items, total, setCart, clearCart, isGuest, updateGuestItem, removeGuestItem, loadGuestCart } = useCartStore();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    apiClient
-      .get('/cart')
-      .then((res) => {
+    if (user) {
+      apiClient
+        .get('/cart')
+        .then((res) => {
+          const data = res.data.data;
+          setCart(data.items, data.total, data.itemCount);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    } else {
+      loadGuestCart();
+      setLoading(false);
+    }
+  }, [user, setCart, loadGuestCart]);
+
+  const updateQuantity = async (item: typeof items[0], quantity: number) => {
+    setUpdating(item.id);
+    try {
+      if (user && !isGuest) {
+        const res = await apiClient.patch(`/cart/items/${item.id}`, { quantity });
         const data = res.data.data;
         setCart(data.items, data.total, data.itemCount);
-      })
-      .finally(() => setLoading(false));
-  }, [setCart]);
-
-  const updateQuantity = async (itemId: string, quantity: number) => {
-    setUpdating(itemId);
-    try {
-      const res = await apiClient.patch(`/cart/items/${itemId}`, { quantity });
-      const data = res.data.data;
-      setCart(data.items, data.total, data.itemCount);
+      } else {
+        updateGuestItem(item.ticketType.id, quantity);
+      }
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       alert(axiosError.response?.data?.error?.message || 'Failed to update');
@@ -37,21 +49,28 @@ export default function CartPage() {
     }
   };
 
-  const removeItem = async (itemId: string) => {
-    setUpdating(itemId);
+  const removeItem = async (item: typeof items[0]) => {
+    setUpdating(item.id);
     try {
-      const res = await apiClient.delete(`/cart/items/${itemId}`);
-      const data = res.data.data;
-      setCart(data.items, data.total, data.itemCount);
+      if (user && !isGuest) {
+        const res = await apiClient.delete(`/cart/items/${item.id}`);
+        const data = res.data.data;
+        setCart(data.items, data.total, data.itemCount);
+      } else {
+        removeGuestItem(item.ticketType.id);
+      }
     } finally {
       setUpdating(null);
     }
   };
 
-  const handleClearCart = async () => {
+  const handleClearCart = () => {
     if (!confirm('Clear all items from cart?')) return;
-    await apiClient.delete('/cart');
-    clearCart();
+    if (user && !isGuest) {
+      apiClient.delete('/cart').then(() => clearCart());
+    } else {
+      clearCart();
+    }
   };
 
   if (loading) {
@@ -81,7 +100,7 @@ export default function CartPage() {
             <p className="text-lg text-gray-500">Your cart is empty</p>
             <p className="mt-1 text-sm text-gray-400">Browse events and add tickets to get started</p>
             <Link href="/events">
-              <Button className="mt-4">Browse Events</Button>
+              <Button className="mt-4 bg-orange-500 hover:bg-orange-600">Browse Events</Button>
             </Link>
           </CardContent>
         </Card>
@@ -91,11 +110,11 @@ export default function CartPage() {
             <Card key={item.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
-                  <div className="h-16 w-16 flex-shrink-0 rounded-md bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-2xl">
-                    🎫
+                  <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
+                    <img src={item.event.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200&q=80'} alt="" className="h-full w-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/events/${item.event.slug}`} className="font-semibold text-gray-900 hover:text-blue-600">
+                    <Link href={`/events/${item.event.slug}`} className="font-semibold text-gray-900 hover:text-orange-600">
                       {item.event.title}
                     </Link>
                     <p className="text-sm text-gray-500">
@@ -120,7 +139,7 @@ export default function CartPage() {
                       <button
                         className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
                         disabled={item.quantity <= 1 || updating === item.id}
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => updateQuantity(item, item.quantity - 1)}
                       >
                         <Minus className="h-3 w-3" />
                       </button>
@@ -128,20 +147,14 @@ export default function CartPage() {
                       <button
                         className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
                         disabled={item.quantity >= Math.min(item.ticketType.maxPerOrder, item.ticketType.available) || updating === item.id}
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => updateQuantity(item, item.quantity + 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
-                    <span className="text-xs text-gray-400">
-                      {item.ticketType.available} left
-                    </span>
+                    <span className="text-xs text-gray-400">{item.ticketType.available} left</span>
                   </div>
-                  <button
-                    className="text-red-500 hover:text-red-700 disabled:opacity-30"
-                    onClick={() => removeItem(item.id)}
-                    disabled={updating === item.id}
-                  >
+                  <button className="text-red-500 hover:text-red-700 disabled:opacity-30" onClick={() => removeItem(item)} disabled={updating === item.id}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -149,7 +162,6 @@ export default function CartPage() {
             </Card>
           ))}
 
-          {/* Order Summary */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Order Summary</CardTitle>
@@ -166,7 +178,7 @@ export default function CartPage() {
                 </div>
               </div>
               <Link href="/checkout">
-                <Button className="w-full mt-4" size="lg">
+                <Button className="w-full mt-4 bg-orange-500 hover:bg-orange-600" size="lg">
                   Proceed to Checkout
                 </Button>
               </Link>

@@ -6,63 +6,111 @@ import apiClient from '@/lib/api-client';
 import { useCartStore } from '@/stores/cart-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ShieldCheck } from 'lucide-react';
 
-interface PaymentInfo {
-  providerOrderId: string;
-  amount: number;
-  currency: string;
-  provider: string;
-  keyId?: string;
-  orderNumber: string;
-  prefill: { name: string; email: string; contact: string };
-}
-
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, total, setCart } = useCartStore();
+  const { items, total, setCart, isGuest, clearCart, loadGuestCart } = useCartStore();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<'review' | 'paying'>('review');
 
+  const [guestInfo, setGuestInfo] = useState({ name: '', email: '', phone: '' });
+
+  const isGuestCheckout = !user;
+
   useEffect(() => {
-    apiClient
-      .get('/cart')
-      .then((res) => {
-        const data = res.data.data;
-        setCart(data.items, data.total, data.itemCount);
-        if (data.items.length === 0) router.push('/cart');
-      })
-      .finally(() => setLoading(false));
-  }, [setCart, router]);
+    if (user) {
+      apiClient
+        .get('/cart')
+        .then((res) => {
+          const data = res.data.data;
+          setCart(data.items, data.total, data.itemCount);
+          if (data.items.length === 0) router.push('/cart');
+        })
+        .catch(() => router.push('/cart'))
+        .finally(() => setLoading(false));
+    } else {
+      loadGuestCart();
+      setLoading(false);
+    }
+  }, [user, setCart, loadGuestCart, router]);
+
+  useEffect(() => {
+    if (!loading && items.length === 0) router.push('/cart');
+  }, [loading, items.length, router]);
 
   const handlePlaceOrder = async () => {
+    if (isGuestCheckout) {
+      if (!guestInfo.email || !guestInfo.name) {
+        setError('Please enter your name and email');
+        return;
+      }
+    }
+
     setPlacing(true);
     setError(null);
     setPaymentStep('paying');
 
     try {
-      // Step 1: Create order from cart
-      const orderRes = await apiClient.post('/orders', {});
-      const order = orderRes.data.data;
+      let orderId: string;
 
-      // Step 2: Initiate payment
-      const payRes = await apiClient.post(`/payments/initiate/${order.id}`);
-      const paymentInfo: PaymentInfo = payRes.data.data;
+      if (isGuestCheckout) {
+        // Guest checkout — create order directly from items
+        const orderRes = await apiClient.post('/orders/guest', {
+          guestEmail: guestInfo.email,
+          guestName: guestInfo.name,
+          guestPhone: guestInfo.phone || undefined,
+          items: items.map((item) => ({
+            ticketTypeId: item.ticketType.id,
+            quantity: item.quantity,
+          })),
+        });
+        const order = orderRes.data.data;
+        orderId = order.id;
 
-      if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
-        // Real Razorpay checkout
-        await openRazorpayCheckout(order.id, paymentInfo);
+        // Confirm guest order (simulated payment)
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await apiClient.post(`/orders/guest/${orderId}/confirm`, {
+          guestEmail: guestInfo.email,
+        });
       } else {
-        // Mock provider — simulate payment
-        await simulateMockPayment(order.id, paymentInfo);
+        // Logged-in checkout — create from server cart
+        const orderRes = await apiClient.post('/orders', {});
+        const order = orderRes.data.data;
+        orderId = order.id;
+
+        // Initiate payment
+        const payRes = await apiClient.post(`/payments/initiate/${orderId}`);
+        const paymentInfo = payRes.data.data;
+
+        if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
+          await openRazorpayCheckout(orderId, paymentInfo);
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await apiClient.post(`/payments/verify/${orderId}`, {
+            providerPaymentId: `mock_pay_${Date.now()}`,
+            providerOrderId: paymentInfo.providerOrderId,
+            providerSignature: 'mock_valid_signature',
+          });
+        }
       }
 
-      setCart([], 0, 0);
-      router.push(`/orders/${order.id}`);
+      clearCart();
+
+      if (isGuestCheckout) {
+        // Guest can't view /orders/:id (requires auth), show success inline
+        setPaymentStep('review');
+        setPlacing(false);
+        router.push(`/checkout/success?order=${orderId}&email=${encodeURIComponent(guestInfo.email)}`);
+      } else {
+        router.push(`/orders/${orderId}`);
+      }
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       setError(axiosError.response?.data?.error?.message || 'Payment failed. Please try again.');
@@ -71,26 +119,10 @@ export default function CheckoutPage() {
     }
   };
 
-  const simulateMockPayment = async (orderId: string, paymentInfo: PaymentInfo) => {
-    // Simulate a brief processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const mockPaymentId = `mock_pay_${Date.now()}`;
-    await apiClient.post(`/payments/verify/${orderId}`, {
-      providerPaymentId: mockPaymentId,
-      providerOrderId: paymentInfo.providerOrderId,
-      providerSignature: 'mock_valid_signature',
-    });
-  };
-
-  const openRazorpayCheckout = async (orderId: string, paymentInfo: PaymentInfo) => {
+  const openRazorpayCheckout = async (orderId: string, paymentInfo: { providerOrderId: string; amount: number; currency: string; keyId?: string; orderNumber: string; prefill: { name: string; email: string; contact: string } }) => {
     return new Promise<void>((resolve, reject) => {
       const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
-      if (!win.Razorpay) {
-        reject(new Error('Razorpay SDK not loaded. Add the script to your page.'));
-        return;
-      }
-
+      if (!win.Razorpay) { reject(new Error('Razorpay SDK not loaded')); return; }
       const rzp = new win.Razorpay({
         key: paymentInfo.keyId,
         amount: paymentInfo.amount * 100,
@@ -99,7 +131,7 @@ export default function CheckoutPage() {
         description: `Order #${paymentInfo.orderNumber}`,
         order_id: paymentInfo.providerOrderId,
         prefill: paymentInfo.prefill,
-        theme: { color: '#2563eb' },
+        theme: { color: '#f97316' },
         handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           try {
             await apiClient.post(`/payments/verify/${orderId}`, {
@@ -108,66 +140,89 @@ export default function CheckoutPage() {
               providerSignature: response.razorpay_signature,
             });
             resolve();
-          } catch (err) {
-            reject(err);
-          }
+          } catch (err) { reject(err); }
         },
-        modal: {
-          ondismiss: () => reject(new Error('Payment cancelled by user')),
-        },
+        modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
       });
-
       rzp.open();
     });
   };
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <div className="h-64 animate-pulse rounded-lg bg-gray-200" />
-      </div>
-    );
+    return <div className="mx-auto max-w-3xl px-4 py-8"><div className="h-64 animate-pulse rounded-lg bg-gray-200" /></div>;
   }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">Checkout</h1>
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
-      )}
+      {error && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
 
       {paymentStep === 'paying' && (
-        <div className="mb-4 rounded-md bg-blue-50 p-4 text-center">
-          <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
-          <p className="font-medium text-blue-700">Processing payment...</p>
-          <p className="text-sm text-blue-500">Please do not close this page</p>
+        <div className="mb-4 rounded-md bg-orange-50 p-4 text-center">
+          <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" />
+          <p className="font-medium text-orange-700">Processing payment...</p>
+          <p className="text-sm text-orange-500">Please do not close this page</p>
         </div>
       )}
 
       <div className="space-y-4">
-        {/* Customer Info */}
+        {/* Contact Details */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Contact Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Name</p>
-                <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Email</p>
-                <p className="font-medium text-gray-900">{user?.email}</p>
-              </div>
-              {user?.phone && (
-                <div>
-                  <p className="text-gray-500">Phone</p>
-                  <p className="font-medium text-gray-900">{user.phone}</p>
+            {isGuestCheckout ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">Enter your details to receive the tickets</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Full Name *</Label>
+                    <Input
+                      placeholder="John Doe"
+                      value={guestInfo.name}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email *</Label>
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={guestInfo.email}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+                <div className="space-y-2">
+                  <Label>Phone (Optional)</Label>
+                  <Input
+                    type="tel"
+                    placeholder="+91 9876543210"
+                    value={guestInfo.phone}
+                    onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Name</p>
+                  <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Email</p>
+                  <p className="font-medium text-gray-900">{user?.email}</p>
+                </div>
+                {user?.phone && (
+                  <div>
+                    <p className="text-gray-500">Phone</p>
+                    <p className="font-medium text-gray-900">{user.phone}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -182,20 +237,16 @@ export default function CheckoutPage() {
                 <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                   <div>
                     <p className="font-medium text-gray-900">{item.event.title}</p>
-                    <p className="text-sm text-gray-500">
-                      {item.ticketType.name} x {item.quantity}
-                    </p>
+                    <p className="text-sm text-gray-500">{item.ticketType.name} x {item.quantity}</p>
                   </div>
-                  <p className="font-medium text-gray-900">
-                    ₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}
-                  </p>
+                  <p className="font-medium text-gray-900">₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}</p>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Payment Summary */}
+        {/* Payment */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Payment Summary</CardTitle>
@@ -217,10 +268,10 @@ export default function CheckoutPage() {
             </div>
 
             <Button
-              className="w-full mt-4"
+              className="w-full mt-4 bg-orange-500 hover:bg-orange-600"
               size="lg"
               onClick={handlePlaceOrder}
-              disabled={placing}
+              disabled={placing || (isGuestCheckout && (!guestInfo.email || !guestInfo.name))}
             >
               {placing ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}`}
             </Button>

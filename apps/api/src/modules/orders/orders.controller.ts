@@ -9,7 +9,9 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateGuestOrderDto } from './dto/create-guest-order.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('orders')
 export class OrdersController {
@@ -18,6 +20,19 @@ export class OrdersController {
   @Post()
   createOrder(@CurrentUser('id') userId: string, @Body() dto: CreateOrderDto) {
     return this.ordersService.createFromCart(userId, dto);
+  }
+
+  @Public()
+  @Post('guest')
+  createGuestOrder(@Body() dto: CreateGuestOrderDto) {
+    return this.ordersService.createGuestOrder(dto);
+  }
+
+  @Public()
+  @Post('guest/:id/confirm')
+  @HttpCode(HttpStatus.OK)
+  confirmGuestOrder(@Param('id') orderId: string, @Body('guestEmail') guestEmail: string) {
+    return this.ordersService.confirmGuestOrder(orderId, guestEmail);
   }
 
   @Post(':id/confirm')

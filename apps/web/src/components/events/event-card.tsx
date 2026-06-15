@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 interface EventCardProps {
   event: {
@@ -12,6 +12,7 @@ interface EventCardProps {
     city: string;
     startDate: string;
     imageUrl: string | null;
+    isFeatured?: boolean;
     category: { name: string };
     ticketTypes: { price: number }[];
   };
@@ -22,48 +23,65 @@ export function EventCard({ event }: EventCardProps) {
     ? Math.min(...event.ticketTypes.map((t) => Number(t.price)))
     : null;
 
+  const startDate = new Date(event.startDate);
+  const dateStr = startDate.toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' });
+
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="group relative block overflow-hidden rounded-2xl shadow-md transition-all hover:shadow-xl hover:-translate-y-1"
     >
-      <div className="aspect-[16/9] bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-        {event.imageUrl ? (
-          <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover" />
-        ) : (
-          <span className="text-4xl">🎫</span>
-        )}
-      </div>
-      <div className="p-4">
-        <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-          {event.category.name}
-        </span>
-        <h3 className="mt-2 text-lg font-semibold text-gray-900 group-hover:text-blue-600 line-clamp-1">
-          {event.title}
-        </h3>
-        {event.shortDesc && (
-          <p className="mt-1 text-sm text-gray-500 line-clamp-2">{event.shortDesc}</p>
-        )}
-        <div className="mt-3 space-y-1">
-          <div className="flex items-center gap-1.5 text-sm text-gray-500">
-            <Calendar className="h-4 w-4" />
-            {new Date(event.startDate).toLocaleDateString('en-IN', {
-              day: 'numeric', month: 'short', year: 'numeric',
-            })}
+      {/* Full Card Image */}
+      <div className="relative aspect-square w-full overflow-hidden">
+        <img
+          src={event.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80'}
+          alt={event.title}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+        {/* Trending Badge */}
+        {event.isFeatured && (
+          <div className="absolute left-4 top-4">
+            <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-lg">
+              Trending
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 text-sm text-gray-500">
-            <MapPin className="h-4 w-4" />
-            {event.venue}, {event.city}
+        )}
+
+        {/* Content at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          {/* Category + Date */}
+          <div className="mb-2">
+            <span className="text-sm font-medium text-orange-400">
+              {event.category.name}
+            </span>
+            <span className="mx-2 text-gray-500">&bull;</span>
+            <span className="text-sm text-gray-300">
+              {dateStr}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-xl font-bold leading-tight text-white line-clamp-2">
+            {event.title}
+          </h3>
+
+          {/* Location + Price */}
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm text-gray-300">
+              <MapPin className="h-3.5 w-3.5" />
+              <span>{event.city}</span>
+            </div>
+            {lowestPrice !== null && (
+              <span className="text-base font-bold text-white">
+                {lowestPrice === 0 ? 'Free' : `From ₹${lowestPrice.toLocaleString('en-IN')}`}
+              </span>
+            )}
           </div>
         </div>
-        {lowestPrice !== null && (
-          <div className="mt-3 border-t border-gray-100 pt-3">
-            <span className="text-lg font-bold text-gray-900">
-              {lowestPrice === 0 ? 'Free' : `₹${lowestPrice.toLocaleString('en-IN')}`}
-            </span>
-            {lowestPrice > 0 && <span className="text-sm text-gray-500"> onwards</span>}
-          </div>
-        )}
       </div>
     </Link>
   );

@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag } from 'lucide-react';
 
 const sidebarLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/approvals', label: 'Approvals', icon: ShieldCheck },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/events', label: 'Events', icon: Calendar },
+  { href: '/admin/categories', label: 'Categories', icon: Tag },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

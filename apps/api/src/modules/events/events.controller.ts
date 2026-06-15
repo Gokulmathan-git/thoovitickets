@@ -36,6 +36,12 @@ export class EventsController {
   }
 
   @Public()
+  @Get('banners')
+  getHomeBanners() {
+    return this.eventsService.getHomeBanners();
+  }
+
+  @Public()
   @Get('cities')
   getCities() {
     return this.eventsService.getCities();
@@ -82,6 +88,17 @@ export class EventsController {
     @Body() dto: UpdateEventDto,
   ) {
     return this.eventsService.update(id, organiserId, dto);
+  }
+
+  @Roles(UserRole.ORGANISER)
+  @Patch(':id/banner')
+  @HttpCode(HttpStatus.OK)
+  toggleBanner(
+    @Param('id') id: string,
+    @CurrentUser('id') organiserId: string,
+    @Body() body: { showOnHomeBanner: boolean; homeBannerUrl?: string; homeBannerTitle?: string; homeBannerDesc?: string },
+  ) {
+    return this.eventsService.toggleHomeBanner(id, organiserId, body);
   }
 
   @Roles(UserRole.ORGANISER)

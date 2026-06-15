@@ -32,6 +32,10 @@ interface Event {
   endDate: string;
   status: string;
   tags: string[];
+  showOnHomeBanner: boolean;
+  homeBannerUrl: string | null;
+  homeBannerTitle: string | null;
+  homeBannerDesc: string | null;
   category: { name: string };
   ticketTypes: TicketType[];
 }
@@ -58,6 +62,9 @@ export default function OrganiserEventDetailPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [bannerForm, setBannerForm] = useState({ url: '', title: '', desc: '' });
+  const [bannerLoading, setBannerLoading] = useState(false);
+  const [bannerMsg, setBannerMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -231,6 +238,117 @@ export default function OrganiserEventDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Homepage Banner Management */}
+        {event.status === 'PUBLISHED' && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-lg">Homepage Banner</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {event.showOnHomeBanner ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 rounded-md bg-green-50 p-3 text-sm text-green-700">
+                    <span className="font-medium">Banner is ACTIVE</span> — Your event is showing on the homepage carousel
+                  </div>
+                  {event.homeBannerUrl && (
+                    <div className="rounded-md overflow-hidden border border-gray-200">
+                      <img src={event.homeBannerUrl} alt="Banner preview" className="w-full h-40 object-cover" />
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Title:</span> {event.homeBannerTitle || event.title}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Description:</span> {event.homeBannerDesc || event.shortDesc || '-'}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600"
+                    disabled={bannerLoading}
+                    onClick={async () => {
+                      setBannerLoading(true);
+                      try {
+                        const res = await apiClient.patch(`/events/${event.id}/banner`, { showOnHomeBanner: false });
+                        setEvent({ ...event, ...res.data.data });
+                        setBannerMsg('Banner removed from homepage');
+                      } catch { setBannerMsg('Failed to update'); }
+                      finally { setBannerLoading(false); }
+                    }}
+                  >
+                    Remove from Homepage
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Show this event on the homepage banner carousel. Available for <span className="font-medium text-orange-600">PREMIUM</span> and <span className="font-medium text-orange-600">ENTERPRISE</span> plans.
+                  </p>
+                  {bannerMsg && (
+                    <div className={`rounded-md p-2 text-sm ${bannerMsg.includes('Failed') || bannerMsg.includes('only') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                      {bannerMsg}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Banner Image URL *</label>
+                      <input
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="https://example.com/banner.jpg (1200x500 recommended)"
+                        value={bannerForm.url}
+                        onChange={(e) => setBannerForm({ ...bannerForm, url: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Banner Title (optional)</label>
+                      <input
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Custom title for the banner (defaults to event title)"
+                        value={bannerForm.title}
+                        onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Banner Description (optional)</label>
+                      <input
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Short tagline for the banner"
+                        value={bannerForm.desc}
+                        onChange={(e) => setBannerForm({ ...bannerForm, desc: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                    disabled={bannerLoading || !bannerForm.url}
+                    onClick={async () => {
+                      setBannerLoading(true);
+                      setBannerMsg(null);
+                      try {
+                        const res = await apiClient.patch(`/events/${event.id}/banner`, {
+                          showOnHomeBanner: true,
+                          homeBannerUrl: bannerForm.url,
+                          homeBannerTitle: bannerForm.title || undefined,
+                          homeBannerDesc: bannerForm.desc || undefined,
+                        });
+                        setEvent({ ...event, ...res.data.data, showOnHomeBanner: true });
+                        setBannerMsg('Banner enabled! Your event will appear on the homepage.');
+                      } catch (err: unknown) {
+                        const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+                        setBannerMsg(axiosError.response?.data?.error?.message || 'Failed to enable banner');
+                      } finally {
+                        setBannerLoading(false);
+                      }
+                    }}
+                  >
+                    {bannerLoading ? 'Enabling...' : 'Enable Homepage Banner'}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
