@@ -11,6 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { PricingService } from '../pricing/pricing.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@thoovitickets/shared';
@@ -20,7 +21,30 @@ import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 @Controller('admin')
 @Roles(UserRole.ADMIN)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly pricingService: PricingService,
+  ) {}
+
+  @Get('platform-config')
+  getPlatformConfig() {
+    return this.pricingService.getPlatformConfig();
+  }
+
+  @Patch('platform-config')
+  @HttpCode(HttpStatus.OK)
+  updatePlatformConfig(@Body() body: { platformFeePercent?: number; defaultOrgCommission?: number }) {
+    const updates: Promise<unknown>[] = [];
+    if (body.platformFeePercent !== undefined) updates.push(this.pricingService.updatePlatformFee(body.platformFeePercent));
+    if (body.defaultOrgCommission !== undefined) updates.push(this.pricingService.updateDefaultOrgCommission(body.defaultOrgCommission));
+    return Promise.all(updates).then(() => this.pricingService.getPlatformConfig());
+  }
+
+  @Patch('users/:id/commission')
+  @HttpCode(HttpStatus.OK)
+  updateOrgCommission(@Param('id') userId: string, @Body('commissionPercent') commissionPercent: number) {
+    return this.pricingService.updateOrgCommission(userId, commissionPercent);
+  }
 
   @Get('dashboard')
   getDashboardStats() {

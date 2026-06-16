@@ -16,6 +16,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PricingModule } from './modules/pricing/pricing.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -46,6 +47,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     PaymentsModule,
     SubscriptionsModule,
     AnalyticsModule,
+    PricingModule,
   ],
   providers: [
     {

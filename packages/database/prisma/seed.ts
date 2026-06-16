@@ -55,6 +55,15 @@ async function main() {
     });
   }
   console.log(`Seeded ${categories.length} event categories.`);
+
+  // Seed platform config
+  const configCount = await prisma.platformConfig.count();
+  if (configCount === 0) {
+    await prisma.platformConfig.create({
+      data: { platformFeePercent: 3.00, defaultOrgCommission: 2.00 },
+    });
+    console.log('Platform config created: 3% platform fee, 2% org commission.');
+  }
 }
 
 main()

@@ -6,8 +6,9 @@ import Link from 'next/link';
 import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
-import { useCartStore } from '@/stores/cart-store';
-import { Calendar, MapPin, Tag, Minus, Plus, Share2, Clock, ChevronRight } from 'lucide-react';
+import { useCartStore, type CartItem } from '@/stores/cart-store';
+import { Calendar, Tag, Minus, Plus, Share2, Clock } from 'lucide-react';
+import { AttendeeForm, type AttendeeInfo } from '@/components/events/attendee-form';
 
 interface TicketType {
   id: string;
@@ -34,6 +35,8 @@ interface EventDetail {
   startDate: string;
   endDate: string;
   imageUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   tags: string[];
   maxAttendees: number | null;
   category: { name: string; slug: string };
@@ -49,46 +52,72 @@ export default function EventDetailPage() {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [cartMessage, setCartMessage] = useState<string | null>(null);
+  const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [showAttendeeForm, setShowAttendeeForm] = useState(false);
   const { user } = useAuthStore();
-  const { setCart, addGuestItem } = useCartStore();
+  const { setCart } = useCartStore();
 
   useEffect(() => {
     apiClient
       .get(`/events/detail/${params.slug}`)
-      .then((res) => {
-        setEvent(res.data.data);
+      .then(async (res) => {
+        const ev = res.data.data;
+        setEvent(ev);
+        // If event has coordinates, use them; otherwise geocode from city
+        if (ev.latitude && ev.longitude) {
+          setMapCoords({ lat: ev.latitude, lng: ev.longitude });
+        } else {
+          try {
+            const query = [ev.venue, ev.city, ev.state].filter(Boolean).join(', ');
+            const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+            const data = await geo.json();
+            if (data.length > 0) {
+              setMapCoords({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+            }
+          } catch { /* ignore */ }
+        }
       })
       .catch(() => router.push('/events'))
       .finally(() => setLoading(false));
   }, [params.slug, router]);
 
-  const handleAddAllToCart = async () => {
+  const handleAfterAttendee = async (attendeeList: AttendeeInfo[]) => {
     const itemsToAdd = event!.ticketTypes.filter((tt) => (quantities[tt.id] || 0) > 0);
-    if (itemsToAdd.length === 0) {
-      setCartMessage('Select at least one ticket');
-      return;
-    }
+    if (itemsToAdd.length === 0) return;
+
     setAddingToCart('all');
     setCartMessage(null);
+
     try {
-      for (const tt of itemsToAdd) {
-        const qty = quantities[tt.id];
-        if (user) {
-          const res = await apiClient.post('/cart/items', { ticketTypeId: tt.id, quantity: qty });
-          setCart(res.data.data.items, res.data.data.total, res.data.data.itemCount);
-        } else {
-          addGuestItem({
-            id: `guest-${tt.id}`, quantity: qty,
-            ticketType: { id: tt.id, name: tt.name, price: Number(tt.price), currency: 'INR', maxPerOrder: tt.maxPerOrder, available: tt.totalQty - tt.soldQty },
-            event: { id: event!.id, title: event!.title, slug: event!.slug, startDate: event!.startDate, venue: event!.venue, city: event!.city, imageUrl: event!.imageUrl },
-          });
+      if (user) {
+        // Logged-in: clear previous cart if different event, then add to server cart
+        const currentCartEventId = useCartStore.getState().eventId;
+        if (currentCartEventId && currentCartEventId !== event!.id) {
+          await apiClient.delete('/cart');
         }
+        for (const tt of itemsToAdd) {
+          const res = await apiClient.post('/cart/items', { ticketTypeId: tt.id, quantity: quantities[tt.id] });
+          setCart(res.data.data.items, res.data.data.total, res.data.data.itemCount);
+        }
+        useCartStore.getState().setEventId(event!.id);
+        useCartStore.getState().setAttendees(attendeeList);
+        setShowAttendeeForm(false);
+        setCartMessage('Added to cart! Go to cart to checkout.');
+        const reset: Record<string, number> = {};
+        itemsToAdd.forEach((tt) => { reset[tt.id] = 0; });
+        setQuantities((q) => ({ ...q, ...reset }));
+      } else {
+        // Guest: store in localStorage and go straight to checkout
+        const guestItems: CartItem[] = itemsToAdd.map((tt) => ({
+          id: `guest-${tt.id}`,
+          quantity: quantities[tt.id],
+          ticketType: { id: tt.id, name: tt.name, price: Number(tt.price), currency: 'INR', maxPerOrder: tt.maxPerOrder, available: tt.totalQty - tt.soldQty },
+          event: { id: event!.id, title: event!.title, slug: event!.slug, startDate: event!.startDate, venue: event!.venue, city: event!.city, imageUrl: event!.imageUrl },
+        }));
+        useCartStore.getState().setGuestCheckout(guestItems, attendeeList, event!.id);
+        setShowAttendeeForm(false);
+        router.push('/checkout');
       }
-      const summary = itemsToAdd.map((tt) => `${quantities[tt.id]} ${tt.name}`).join(', ');
-      setCartMessage(`Added ${summary} to cart!`);
-      const reset: Record<string, number> = {};
-      itemsToAdd.forEach((tt) => { reset[tt.id] = 0; });
-      setQuantities((q) => ({ ...q, ...reset }));
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       setCartMessage(axiosError.response?.data?.error?.message || 'Failed to add');
@@ -161,49 +190,7 @@ export default function EventDetailPage() {
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* ── Left Column ── */}
           <div className="flex-1 min-w-0 space-y-10">
-            {/* About */}
-            <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-gray-900">About the Experience</h2>
-              <div className="mt-4 text-[15px] leading-relaxed text-gray-600 whitespace-pre-wrap">
-                {event.description}
-              </div>
-              {event.tags.length > 0 && (
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {event.tags.map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                      <Tag className="h-3 w-3 text-gray-400" /> {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* Venue & Location */}
-            <section className="rounded-2xl bg-white shadow-sm overflow-hidden">
-              <div className="p-6 sm:p-8">
-                <h2 className="text-2xl font-bold text-gray-900">Venue & Location</h2>
-              </div>
-              <div className="relative h-52 bg-gray-100">
-                <div className="flex h-full items-center justify-center">
-                  <div className="rounded-full bg-orange-500 p-3 shadow-lg">
-                    <MapPin className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-between border-t border-gray-100 p-5">
-                <div>
-                  <p className="font-bold text-gray-900">{event.venue}</p>
-                  <p className="mt-0.5 text-sm text-gray-500">
-                    {[event.address, event.city, event.state].filter(Boolean).join(', ')}
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" className="rounded-full text-xs">
-                  Open in Maps
-                </Button>
-              </div>
-            </section>
-
-            {/* Event Details Grid */}
+            {/* Date & Duration */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex items-start gap-4 rounded-2xl bg-white p-5 shadow-sm">
                 <div className="rounded-xl bg-orange-50 p-3">
@@ -232,6 +219,68 @@ export default function EventDetailPage() {
                 </div>
               </div>
             </section>
+
+            {/* About */}
+            <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-2xl font-bold text-gray-900">About the Experience</h2>
+              <div className="mt-4 text-[15px] leading-relaxed text-gray-600 whitespace-pre-wrap">
+                {event.description}
+              </div>
+              {event.tags.length > 0 && (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {event.tags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+                      <Tag className="h-3 w-3 text-gray-400" /> {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Venue & Location */}
+            <section className="rounded-2xl bg-white shadow-sm overflow-hidden">
+              <div className="p-6 sm:p-8">
+                <h2 className="text-2xl font-bold text-gray-900">Venue & Location</h2>
+              </div>
+              <div className="relative h-64 bg-gray-100">
+                {mapCoords ? (
+                  <iframe
+                    title="Event location"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCoords.lng - 0.008},${mapCoords.lat - 0.004},${mapCoords.lng + 0.008},${mapCoords.lat + 0.004}&layer=mapnik&marker=${mapCoords.lat},${mapCoords.lng}`}
+                    className="h-full w-full border-0"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                    <div className="animate-pulse text-center">
+                      <div className="mx-auto mb-2 h-8 w-8 rounded-full bg-orange-100" />
+                      <p>Loading map...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between border-t border-gray-100 p-5">
+                <div>
+                  <p className="font-bold text-gray-900">{event.venue}</p>
+                  <p className="mt-0.5 text-sm text-gray-500">
+                    {[event.address, event.city, event.state].filter(Boolean).join(', ')}
+                  </p>
+                </div>
+                <a
+                  href={mapCoords
+                    ? `https://www.google.com/maps?q=${mapCoords.lat},${mapCoords.lng}`
+                    : `https://www.google.com/maps/search/${encodeURIComponent([event.venue, event.city, event.state].filter(Boolean).join(', '))}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm" className="rounded-full text-xs">
+                    Open in Maps
+                  </Button>
+                </a>
+              </div>
+            </section>
+
           </div>
 
           {/* ── Right Column — Sticky ── */}
@@ -302,13 +351,13 @@ export default function EventDetailPage() {
                   </div>
                 )}
 
-                {/* CTA Button */}
+                {/* CTA Button — opens attendee form */}
                 <Button
                   className="mt-4 w-full rounded-xl bg-orange-500 py-6 text-base font-bold text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20"
                   disabled={totalSelected === 0 || addingToCart !== null}
-                  onClick={handleAddAllToCart}
+                  onClick={() => setShowAttendeeForm(true)}
                 >
-                  {addingToCart ? 'Adding...' : totalSelected > 0 ? `Get ${totalSelected} Ticket${totalSelected !== 1 ? 's' : ''} — ₹${totalPrice.toLocaleString('en-IN')}` : 'Select Tickets'}
+                  {totalSelected > 0 ? `Get ${totalSelected} Ticket${totalSelected !== 1 ? 's' : ''} — ₹${totalPrice.toLocaleString('en-IN')}` : 'Select Tickets'}
                 </Button>
                 <p className="mt-2.5 text-center text-[11px] text-gray-400">Non-refundable. T&Cs apply.</p>
               </div>
@@ -328,6 +377,23 @@ export default function EventDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Attendee Info Modal */}
+      {showAttendeeForm && event && (
+        <AttendeeForm
+          tickets={event.ticketTypes
+            .filter((tt) => (quantities[tt.id] || 0) > 0)
+            .map((tt) => ({
+              ticketTypeId: tt.id,
+              ticketName: tt.name,
+              price: Number(tt.price),
+              quantity: quantities[tt.id],
+            }))}
+          loading={addingToCart !== null}
+          onClose={() => setShowAttendeeForm(false)}
+          onSubmit={(attendees: AttendeeInfo[]) => handleAfterAttendee(attendees)}
+        />
+      )}
     </div>
   );
 }

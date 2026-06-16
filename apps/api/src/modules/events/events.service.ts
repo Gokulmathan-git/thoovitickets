@@ -66,7 +66,7 @@ export class EventsService {
             price: tt.price,
             currency: tt.currency || 'INR',
             totalQty: tt.totalQty,
-            maxPerOrder: tt.maxPerOrder || 10,
+            maxPerOrder: tt.maxPerOrder || 5,
             saleStart: tt.saleStart ? new Date(tt.saleStart) : null,
             saleEnd: tt.saleEnd ? new Date(tt.saleEnd) : null,
             sortOrder: index,

@@ -4,13 +4,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PricingService } from '../pricing/pricing.service';
 import { OrderStatus, PaymentStatus, Prisma } from '@thoovitickets/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateGuestOrderDto } from './dto/create-guest-order.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pricingService: PricingService,
+  ) {}
 
   async createFromCart(userId: string, dto: CreateOrderDto) {
     const cart = await this.prisma.cart.findUnique({
@@ -19,7 +23,7 @@ export class OrdersService {
         items: {
           include: {
             ticketType: {
-              include: { event: { select: { id: true, title: true, status: true } } },
+              include: { event: { select: { id: true, title: true, status: true, organiserId: true } } },
             },
           },
         },
@@ -42,37 +46,40 @@ export class OrdersService {
       }
     }
 
-    const orderNumber = this.generateOrderNumber();
-    const totalAmount = cart.items.reduce(
-      (sum, item) => sum + Number(item.ticketType.price) * item.quantity,
-      0,
+    // Get organiser ID from first event for commission calculation
+    const organiserId = cart.items[0]?.ticketType.event.organiserId || undefined;
+
+    // Calculate ALL amounts server-side from DB prices
+    const pricing = await this.pricingService.calculatePriceBreakdown(
+      cart.items.map((item) => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
+      organiserId,
     );
 
-    // Atomic transaction: create order + reserve tickets + clear cart
+    const orderNumber = this.generateOrderNumber();
+
     const order = await this.prisma.$transaction(async (tx) => {
-      // Re-check availability inside transaction to prevent race conditions
       for (const item of cart.items) {
-        const ticketType = await tx.ticketType.findUnique({
-          where: { id: item.ticketTypeId },
-        });
+        const ticketType = await tx.ticketType.findUnique({ where: { id: item.ticketTypeId } });
         if (!ticketType) throw new BadRequestException('Ticket type not found');
         const available = ticketType.totalQty - ticketType.soldQty;
-        if (item.quantity > available) {
-          throw new BadRequestException(
-            `Only ${available} "${ticketType.name}" tickets left`,
-          );
-        }
+        if (item.quantity > available) throw new BadRequestException(`Only ${available} "${ticketType.name}" tickets left`);
       }
 
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
           userId,
-          totalAmount,
+          subtotal: pricing.subtotal,
+          platformFee: pricing.platformFee,
+          platformFeePercent: pricing.platformFeePercent,
+          totalAmount: pricing.totalAmount,
+          orgCommission: pricing.orgCommission,
+          orgCommissionPercent: pricing.orgCommissionPercent,
+          orgPayout: pricing.orgPayout,
           guestEmail: dto.guestEmail,
           guestName: dto.guestName,
           guestPhone: dto.guestPhone,
-          expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 min expiry
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
           items: {
             create: cart.items.map((item) => ({
               ticketTypeId: item.ticketTypeId,
@@ -119,7 +126,7 @@ export class OrdersService {
       dto.items.map((item) =>
         this.prisma.ticketType.findUnique({
           where: { id: item.ticketTypeId },
-          include: { event: { select: { id: true, title: true, slug: true, venue: true, city: true, startDate: true, status: true } } },
+          include: { event: { select: { id: true, title: true, slug: true, venue: true, city: true, startDate: true, status: true, organiserId: true } } },
         }),
       ),
     );
@@ -134,10 +141,13 @@ export class OrdersService {
       if (item.quantity > tt.maxPerOrder) throw new BadRequestException(`Maximum ${tt.maxPerOrder} "${tt.name}" tickets per order`);
     }
 
-    const orderNumber = this.generateOrderNumber();
-    const totalAmount = dto.items.reduce(
-      (sum, item, i) => sum + Number(ticketTypes[i]!.price) * item.quantity, 0,
+    const organiserId = ticketTypes[0]?.event.organiserId || undefined;
+    const pricing = await this.pricingService.calculatePriceBreakdown(
+      dto.items.map((item) => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
+      organiserId,
     );
+
+    const orderNumber = this.generateOrderNumber();
 
     const order = await this.prisma.$transaction(async (tx) => {
       for (let i = 0; i < dto.items.length; i++) {
@@ -151,7 +161,13 @@ export class OrdersService {
         data: {
           orderNumber,
           userId: null,
-          totalAmount,
+          subtotal: pricing.subtotal,
+          platformFee: pricing.platformFee,
+          platformFeePercent: pricing.platformFeePercent,
+          totalAmount: pricing.totalAmount,
+          orgCommission: pricing.orgCommission,
+          orgCommissionPercent: pricing.orgCommissionPercent,
+          orgPayout: pricing.orgPayout,
           guestEmail: dto.guestEmail,
           guestName: dto.guestName,
           guestPhone: dto.guestPhone || null,

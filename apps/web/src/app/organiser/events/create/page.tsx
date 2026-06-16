@@ -12,17 +12,21 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Trash2, Plus } from 'lucide-react';
+import { MapPicker } from '@/components/events/map-picker';
 
 export default function CreateEventPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<EventCategoryResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<CreateEventFormValues>({
     resolver: zodResolver(createEventBaseSchema),
@@ -30,7 +34,7 @@ export default function CreateEventPage() {
       country: 'India',
       tags: [],
       ticketTypes: [
-        { name: 'General', price: 0, totalQty: 100, maxPerOrder: 10, currency: 'INR' },
+        { name: 'General', price: 0, totalQty: 100, maxPerOrder: 5, currency: 'INR' },
       ],
     },
   });
@@ -49,7 +53,8 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      const res = await apiClient.post('/events', data);
+      const payload = { ...data, latitude, longitude };
+      const res = await apiClient.post('/events', payload);
       const event = res.data.data;
       router.push(`/organiser/events/${event.id}`);
     } catch (err: unknown) {
@@ -166,6 +171,18 @@ export default function CreateEventPage() {
                 <Input id="maxAttendees" type="number" placeholder="Optional" {...register('maxAttendees', { valueAsNumber: true })} />
               </div>
             </div>
+
+            {/* Map Location Picker */}
+            <div className="space-y-2">
+              <Label>Event Location on Map</Label>
+              <MapPicker
+                latitude={latitude}
+                longitude={longitude}
+                onLocationSelect={(lat, lng) => { setLatitude(lat); setLongitude(lng); }}
+                address={watch('venue')}
+                city={watch('city')}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -178,7 +195,7 @@ export default function CreateEventPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ name: '', price: 0, totalQty: 50, maxPerOrder: 10, currency: 'INR' })}
+                onClick={() => append({ name: '', price: 0, totalQty: 50, maxPerOrder: 5, currency: 'INR' })}
               >
                 <Plus className="mr-1 h-4 w-4" /> Add Ticket
               </Button>

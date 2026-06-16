@@ -71,6 +71,18 @@ enum ApprovalAction {
   REJECTED
 }
 
+// ─── PLATFORM CONFIG ─────────────────────────────────
+
+model PlatformConfig {
+  id                    String  @id @default(cuid())
+  platformFeePercent    Decimal @db.Decimal(5, 2) @default(3.00) @map("platform_fee_percent")
+  defaultOrgCommission  Decimal @db.Decimal(5, 2) @default(2.00) @map("default_org_commission")
+
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_config")
+}
+
 // ─── MODELS ──────────────────────────────────────────
 
 model User {
@@ -86,10 +98,11 @@ model User {
   avatarUrl      String?    @map("avatar_url")
   refreshToken   String?    @map("refresh_token")
 
-  orgName           String?    @map("org_name")
-  orgDescription    String?    @map("org_description")
-  resetToken        String?    @map("reset_token")
-  resetTokenExpiry  DateTime?  @map("reset_token_expiry")
+  orgName              String?    @map("org_name")
+  orgDescription       String?    @map("org_description")
+  orgCommissionPercent Decimal?   @db.Decimal(5, 2) @map("org_commission_percent")
+  resetToken           String?    @map("reset_token")
+  resetTokenExpiry     DateTime?  @map("reset_token_expiry")
 
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
@@ -176,7 +189,7 @@ model TicketType {
   currency    String   @default("INR")
   totalQty    Int      @map("total_qty")
   soldQty     Int      @default(0) @map("sold_qty")
-  maxPerOrder Int      @default(10) @map("max_per_order")
+  maxPerOrder Int      @default(5) @map("max_per_order")
   saleStart   DateTime? @map("sale_start")
   saleEnd     DateTime? @map("sale_end")
   isActive    Boolean  @default(true) @map("is_active")
@@ -248,16 +261,22 @@ model CartItem {
 }
 
 model Order {
-  id             String      @id @default(cuid())
-  orderNumber    String      @unique @map("order_number")
-  status         OrderStatus @default(PENDING)
-  totalAmount    Decimal     @db.Decimal(10, 2) @map("total_amount")
-  currency       String      @default("INR")
-  guestEmail     String?     @map("guest_email")
-  guestName      String?     @map("guest_name")
-  guestPhone     String?     @map("guest_phone")
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique @map("order_number")
+  status            OrderStatus @default(PENDING)
+  subtotal          Decimal     @db.Decimal(10, 2) @default(0) @map("subtotal")
+  platformFee       Decimal     @db.Decimal(10, 2) @default(0) @map("platform_fee")
+  platformFeePercent Decimal    @db.Decimal(5, 2) @default(0) @map("platform_fee_percent")
+  totalAmount       Decimal     @db.Decimal(10, 2) @map("total_amount")
+  orgCommission     Decimal     @db.Decimal(10, 2) @default(0) @map("org_commission")
+  orgCommissionPercent Decimal  @db.Decimal(5, 2) @default(0) @map("org_commission_percent")
+  orgPayout         Decimal     @db.Decimal(10, 2) @default(0) @map("org_payout")
+  currency          String      @default("INR")
+  guestEmail        String?     @map("guest_email")
+  guestName         String?     @map("guest_name")
+  guestPhone        String?     @map("guest_phone")
 
-  userId         String?     @map("user_id")
+  userId            String?     @map("user_id")
 
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")

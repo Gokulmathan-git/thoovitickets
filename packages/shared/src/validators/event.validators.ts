@@ -6,7 +6,7 @@ const ticketTypeSchema = z.object({
   price: z.number().min(0, 'Price cannot be negative'),
   currency: z.string().default('INR'),
   totalQty: z.number().int().min(1, 'Must have at least 1 ticket'),
-  maxPerOrder: z.number().int().min(1).max(50).default(10),
+  maxPerOrder: z.number().int().min(1).max(50).default(5),
   saleStart: z.string().datetime().optional(),
   saleEnd: z.string().datetime().optional(),
 });

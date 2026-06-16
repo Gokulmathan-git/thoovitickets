@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
 import { useCartStore } from '@/stores/cart-store';
 import { useAuthStore } from '@/stores/auth-store';
+import type { AttendeeInfo } from '@/components/events/attendee-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,7 @@ import { ShieldCheck } from 'lucide-react';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, total, setCart, isGuest, clearCart, loadGuestCart } = useCartStore();
+  const { items, total, attendees, setCart, isGuest, clearCart, loadGuestCart } = useCartStore();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
@@ -245,6 +246,31 @@ export default function CheckoutPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Attendee Info */}
+        {attendees.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Attendee Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {attendees.map((att: AttendeeInfo, i: number) => (
+                  <div key={i} className="flex items-start gap-3 rounded-lg border border-gray-100 p-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-xs font-bold text-orange-600 shrink-0">
+                      {i + 1}
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">{att.name}</p>
+                      <p className="text-gray-500">{att.email} · {att.phone}</p>
+                      <p className="text-xs text-orange-500">{att.ticketName}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Payment */}
         <Card>

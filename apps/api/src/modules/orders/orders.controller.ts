@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
+import { PricingService } from '../pricing/pricing.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateGuestOrderDto } from './dto/create-guest-order.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -15,7 +16,17 @@ import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly pricingService: PricingService,
+  ) {}
+
+  @Public()
+  @Post('price-breakdown')
+  @HttpCode(HttpStatus.OK)
+  getPriceBreakdown(@Body() body: { items: { ticketTypeId: string; quantity: number }[] }) {
+    return this.pricingService.calculatePriceBreakdown(body.items);
+  }
 
   @Post()
   createOrder(@CurrentUser('id') userId: string, @Body() dto: CreateOrderDto) {

@@ -6,7 +6,7 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { EventCard } from '@/components/events/event-card';
 import { HeroCarousel } from '@/components/events/hero-carousel';
-import { ArrowRight, ShieldCheck, Zap, Gift } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, Headphones } from 'lucide-react';
 
 interface Banner {
   id: string;
@@ -146,7 +146,7 @@ export default function HomePage() {
             </div>
             <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow">
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
-                <Gift className="h-8 w-8 text-orange-500" />
+                <Headphones className="h-8 w-8 text-orange-500" />
               </div>
               <h3 className="text-lg font-bold text-gray-900">Easy Management</h3>
               <p className="mt-3 text-sm leading-relaxed text-gray-500">
@@ -199,7 +199,7 @@ export default function HomePage() {
               </div>
               <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-6 backdrop-blur-sm">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
-                  <Gift className="h-6 w-6 text-orange-400" />
+                  <Headphones className="h-6 w-6 text-orange-400" />
                 </div>
                 <p className="text-sm font-semibold text-white">24/7 Support</p>
               </div>
