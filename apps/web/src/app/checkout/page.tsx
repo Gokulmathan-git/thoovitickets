@@ -71,6 +71,12 @@ export default function CheckoutPage() {
             ticketTypeId: item.ticketType.id,
             quantity: item.quantity,
           })),
+          attendees: attendees.map((a) => ({
+            ticketTypeId: a.ticketTypeId,
+            name: a.name,
+            email: a.email,
+            phone: a.phone,
+          })),
         });
         const order = orderRes.data.data;
         orderId = order.id;
@@ -82,7 +88,14 @@ export default function CheckoutPage() {
         });
       } else {
         // Logged-in checkout — create from server cart
-        const orderRes = await apiClient.post('/orders', {});
+        const orderRes = await apiClient.post('/orders', {
+          attendees: attendees.map((a) => ({
+            ticketTypeId: a.ticketTypeId,
+            name: a.name,
+            email: a.email,
+            phone: a.phone,
+          })),
+        });
         const order = orderRes.data.data;
         orderId = order.id;
 

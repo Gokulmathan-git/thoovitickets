@@ -3,6 +3,7 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderStatus, PaymentStatus } from '@thoovitickets/database';
@@ -10,12 +11,16 @@ import {
   PaymentProvider,
   PAYMENT_PROVIDER,
 } from './providers/payment-provider.interface';
+import { TicketsService } from '../tickets/tickets.service';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly paymentProvider: PaymentProvider,
+    private readonly ticketsService: TicketsService,
   ) {}
 
   async initiatePayment(orderId: string, userId: string) {
@@ -149,12 +154,26 @@ export class PaymentsService {
       }),
     ]);
 
+    this.generateTicketsAsync(orderId);
+
     return {
       orderId: updatedOrder.id,
       orderNumber: updatedOrder.orderNumber,
       status: updatedOrder.status,
       paymentStatus: 'SUCCESS',
     };
+  }
+
+  private generateTicketsAsync(orderId: string) {
+    (async () => {
+      try {
+        await this.ticketsService.generateTicketsForOrder(orderId);
+        await this.ticketsService.generateAndStoreInvoice(orderId);
+        await this.ticketsService.sendTicketEmail(orderId);
+      } catch (error) {
+        this.logger.error(`Failed to generate tickets for order ${orderId}`, error);
+      }
+    })();
   }
 
   getProviderName(): string {

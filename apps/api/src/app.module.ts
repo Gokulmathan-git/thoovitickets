@@ -18,6 +18,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { EmailModule } from './modules/email/email.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
@@ -52,6 +53,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     SubscriptionsModule,
     AnalyticsModule,
     PricingModule,
+    TicketsModule,
   ],
   providers: [
     {

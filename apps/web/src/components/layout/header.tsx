@@ -18,7 +18,7 @@ export function Header() {
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.role !== 'ORGANISER') return;
+    if (user?.role !== 'ORGANISER' && user?.role !== 'ADMIN') return;
     apiClient.get('/subscriptions/my')
       .then((res) => setSubscriptionTier(res.data.data?.tier || 'FREE'))
       .catch(() => setSubscriptionTier('FREE'));
@@ -31,11 +31,11 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
-          <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
+          <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : user?.role === 'ADMIN' ? '/admin/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
             <span className="text-xl font-bold text-orange-500">ThooviTickets</span>
           </Link>
 
-          {user?.role !== 'ORGANISER' && (
+          {user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
             <nav className="hidden items-center gap-6 md:flex">
               <Link href="/events" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
                 Events
@@ -139,8 +139,8 @@ export function Header() {
             </>
           )}
 
-          {user?.role !== 'ORGANISER' && (
-            <Link href={'/register?role=organiser'}>
+          {user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
+            <Link href={'/become-organiser'}>
               <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
                 Create Event
               </Button>
@@ -172,7 +172,7 @@ export function Header() {
       {mobileOpen && (
         <div className="border-t border-gray-200 bg-white px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-1">
-            {user?.role !== 'ORGANISER' && (
+            {user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
               <>
                 <Link href="/events" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
                   Events
@@ -232,10 +232,10 @@ export function Header() {
               </>
             )}
 
-            {user?.role !== 'ORGANISER' && (
+            {user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
               <>
                 <div className="my-2 border-t border-gray-100" />
-                <Link href="/register?role=organiser" onClick={closeMobile}>
+                <Link href="/become-organiser" onClick={closeMobile}>
                   <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">Create Event</Button>
                 </Link>
               </>

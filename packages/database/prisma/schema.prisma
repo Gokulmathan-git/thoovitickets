@@ -71,6 +71,12 @@ enum ApprovalAction {
   REJECTED
 }
 
+enum TicketStatus {
+  ACTIVE
+  USED
+  CANCELLED
+}
+
 // ─── PLATFORM CONFIG ─────────────────────────────────
 
 model PlatformConfig {
@@ -287,8 +293,12 @@ model Order {
   updatedAt      DateTime    @updatedAt @map("updated_at")
   expiresAt      DateTime?   @map("expires_at")
 
+  attendeeData   Json?       @map("attendee_data")
+  invoiceUrl     String?     @map("invoice_url")
+
   user           User?       @relation(fields: [userId], references: [id])
   items          OrderItem[]
+  tickets        Ticket[]
   payment        Payment?
 
   @@index([userId])
@@ -312,6 +322,7 @@ model OrderItem {
   order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
   event        Event      @relation(fields: [eventId], references: [id])
+  tickets      Ticket[]
 
   @@map("order_items")
 }
@@ -336,6 +347,32 @@ model Payment {
 
   @@index([providerPaymentId])
   @@map("payments")
+}
+
+model Ticket {
+  id            String       @id @default(cuid())
+  ticketCode    String       @unique @map("ticket_code")
+  status        TicketStatus @default(ACTIVE)
+  attendeeName  String       @map("attendee_name")
+  attendeeEmail String       @map("attendee_email")
+  attendeePhone String       @map("attendee_phone")
+  qrData        String       @map("qr_data")
+  qrDataUrl     String?      @map("qr_data_url") @db.Text
+  checkedInAt   DateTime?    @map("checked_in_at")
+
+  orderItemId   String       @map("order_item_id")
+  orderId       String       @map("order_id")
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  orderItem     OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([ticketCode])
+  @@map("tickets")
 }
 
 model OrgSubscription {

@@ -5,8 +5,10 @@ import { PaymentsService } from './payments.service';
 import { PAYMENT_PROVIDER } from './providers/payment-provider.interface';
 import { MockPaymentProvider } from './providers/mock.provider';
 import { RazorpayProvider } from './providers/razorpay.provider';
+import { TicketsModule } from '../tickets/tickets.module';
 
 @Module({
+  imports: [TicketsModule],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,

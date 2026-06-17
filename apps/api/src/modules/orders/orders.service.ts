@@ -5,15 +5,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PricingService } from '../pricing/pricing.service';
+import { TicketsService } from '../tickets/tickets.service';
 import { OrderStatus, PaymentStatus, Prisma } from '@thoovitickets/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateGuestOrderDto } from './dto/create-guest-order.dto';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pricingService: PricingService,
+    private readonly ticketsService: TicketsService,
   ) {}
 
   async createFromCart(userId: string, dto: CreateOrderDto) {
@@ -59,7 +64,10 @@ export class OrdersService {
 
     const order = await this.prisma.$transaction(async (tx) => {
       for (const item of cart.items) {
-        const ticketType = await tx.ticketType.findUnique({ where: { id: item.ticketTypeId } });
+        const [ticketType] = await tx.$queryRaw<any[]>`
+          SELECT id, total_qty as "totalQty", sold_qty as "soldQty", name
+          FROM ticket_types WHERE id = ${item.ticketTypeId} FOR UPDATE
+        `;
         if (!ticketType) throw new BadRequestException('Ticket type not found');
         const available = ticketType.totalQty - ticketType.soldQty;
         if (item.quantity > available) throw new BadRequestException(`Only ${available} "${ticketType.name}" tickets left`);
@@ -79,6 +87,7 @@ export class OrdersService {
           guestEmail: dto.guestEmail,
           guestName: dto.guestName,
           guestPhone: dto.guestPhone,
+          attendeeData: (dto.attendees || []) as any,
           expiresAt: new Date(Date.now() + 15 * 60 * 1000),
           items: {
             create: cart.items.map((item) => ({
@@ -151,7 +160,10 @@ export class OrdersService {
 
     const order = await this.prisma.$transaction(async (tx) => {
       for (let i = 0; i < dto.items.length; i++) {
-        const tt = await tx.ticketType.findUnique({ where: { id: dto.items[i].ticketTypeId } });
+        const [tt] = await tx.$queryRaw<any[]>`
+          SELECT id, total_qty as "totalQty", sold_qty as "soldQty", name
+          FROM ticket_types WHERE id = ${dto.items[i].ticketTypeId} FOR UPDATE
+        `;
         if (!tt) throw new BadRequestException('Ticket type not found');
         const available = tt.totalQty - tt.soldQty;
         if (dto.items[i].quantity > available) throw new BadRequestException(`Only ${available} "${tt.name}" tickets left`);
@@ -171,6 +183,7 @@ export class OrdersService {
           guestEmail: dto.guestEmail,
           guestName: dto.guestName,
           guestPhone: dto.guestPhone || null,
+          attendeeData: (dto.attendees || []) as any,
           expiresAt: new Date(Date.now() + 15 * 60 * 1000),
           items: {
             create: dto.items.map((item, i) => ({
@@ -230,7 +243,21 @@ export class OrdersService {
       }),
     ]);
 
+    this.generateTicketsAsync(orderId);
+
     return updatedOrder;
+  }
+
+  private generateTicketsAsync(orderId: string) {
+    (async () => {
+      try {
+        await this.ticketsService.generateTicketsForOrder(orderId);
+        await this.ticketsService.generateAndStoreInvoice(orderId);
+        await this.ticketsService.sendTicketEmail(orderId);
+      } catch (error) {
+        this.logger.error(`Failed to generate tickets for order ${orderId}`, error);
+      }
+    })();
   }
 
   async confirmOrder(orderId: string, userId: string) {

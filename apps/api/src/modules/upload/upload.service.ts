@@ -71,6 +71,27 @@ export class UploadService {
     return data.signedUrl;
   }
 
+  async uploadBuffer(
+    bucket: BucketName,
+    buffer: Buffer,
+    contentType: string,
+    filePath: string,
+  ): Promise<string> {
+    const { error } = await this.supabase.storage
+      .from(bucket)
+      .upload(filePath, buffer, { contentType, upsert: true });
+
+    if (error) {
+      this.logger.error(`Buffer upload failed: ${error.message}`);
+      throw new BadRequestException('File upload failed');
+    }
+
+    if (bucket === 'documents') return filePath;
+
+    const { data } = this.supabase.storage.from(bucket).getPublicUrl(filePath);
+    return data.publicUrl;
+  }
+
   async delete(bucket: BucketName, path: string): Promise<void> {
     const filePath = bucket === 'documents'
       ? path

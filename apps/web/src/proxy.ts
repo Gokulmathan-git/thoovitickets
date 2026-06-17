@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/', '/login', '/register', '/events', '/forgot-password', '/reset-password', '/verify-email', '/about', '/pricing', '/cart', '/checkout', '/checkout/success'];
+const publicPaths = ['/', '/login', '/register', '/events', '/forgot-password', '/reset-password', '/verify-email', '/about', '/pricing', '/become-organiser', '/cart', '/checkout', '/checkout/success'];
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicPath = publicPaths.some(
     (path) => pathname === path || pathname.startsWith('/events/'),
-  ) || pathname.startsWith('/reset-password');
+  ) || pathname.startsWith('/reset-password') || pathname.startsWith('/verify/');
 
   if (isPublicPath) return NextResponse.next();
 
