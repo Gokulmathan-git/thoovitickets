@@ -14,4 +14,10 @@ export const envValidationSchema = Joi.object({
   RAZORPAY_KEY_ID: Joi.string().optional(),
   RAZORPAY_KEY_SECRET: Joi.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: Joi.string().optional(),
+  RESEND_API_KEY: Joi.string().required(),
+  RESEND_FROM_EMAIL: Joi.string().email().default('onboarding@resend.dev'),
+  GMAIL_USER: Joi.string().email().optional(),
+  GMAIL_APP_PASSWORD: Joi.string().optional(),
+  SUPABASE_URL: Joi.string().required(),
+  SUPABASE_SERVICE_ROLE_KEY: Joi.string().required(),
 });

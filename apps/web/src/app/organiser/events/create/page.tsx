@@ -11,16 +11,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Shield } from 'lucide-react';
 import { MapPicker } from '@/components/events/map-picker';
+import { useAuthStore } from '@/stores/auth-store';
+import Link from 'next/link';
 
 export default function CreateEventPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [categories, setCategories] = useState<EventCategoryResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
+  const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const {
     register,
@@ -53,7 +58,7 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      const payload = { ...data, latitude, longitude };
+      const payload = { ...data, latitude, longitude, imageUrl: eventImageUrl };
       const res = await apiClient.post('/events', payload);
       const event = res.data.data;
       router.push(`/organiser/events/${event.id}`);
@@ -67,6 +72,34 @@ export default function CreateEventPage() {
       setIsSubmitting(false);
     }
   };
+
+  const profileCompleted = (user as any)?.profileCompleted;
+
+  if (user && !profileCompleted) {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">Create New Event</h1>
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                <Shield className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900">Complete Your Profile First</h2>
+              <p className="max-w-md text-sm text-gray-600">
+                Before creating events, you need to complete your profile: upload a profile photo, verify your email, and submit your Aadhar or PAN card.
+              </p>
+              <Link href="/profile">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                  Go to Profile
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -122,6 +155,64 @@ export default function CreateEventPage() {
                 })} />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Event Image */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Event Image</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {eventImageUrl ? (
+              <div className="relative">
+                <img src={eventImageUrl} alt="Event" className="h-48 w-full rounded-lg object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setEventImageUrl(null)}
+                  className="absolute top-2 right-2 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 p-8 transition-colors hover:border-orange-400 hover:bg-orange-50">
+                <Plus className="h-8 w-8 text-gray-400" />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-700">
+                    {uploadingImage ? 'Uploading...' : 'Click to upload event image'}
+                  </p>
+                  <p className="text-xs text-gray-400">JPG, PNG or WebP. Max 5MB.</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  disabled={uploadingImage}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      setError('Image must be under 5MB');
+                      return;
+                    }
+                    setUploadingImage(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      const res = await apiClient.post('/upload/event', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                      });
+                      setEventImageUrl(res.data.data.url);
+                    } catch {
+                      setError('Failed to upload image');
+                    } finally {
+                      setUploadingImage(false);
+                    }
+                  }}
+                />
+              </label>
+            )}
           </CardContent>
         </Card>
 

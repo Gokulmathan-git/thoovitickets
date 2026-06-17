@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength, IsIn } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -25,4 +25,17 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   orgDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  idDocumentUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['AADHAR', 'PAN'])
+  idDocumentType?: string;
 }

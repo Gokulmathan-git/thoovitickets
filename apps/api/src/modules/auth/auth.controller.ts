@@ -18,12 +18,31 @@ export class AuthController {
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.register(dto);
 
-    this.setRefreshTokenCookie(response, result.refreshToken);
+    if (result.refreshToken) {
+      this.setRefreshTokenCookie(response, result.refreshToken);
+    }
 
     return {
+      message: result.message,
       user: result.user,
-      accessToken: result.accessToken,
+      ...(result.accessToken && { accessToken: result.accessToken }),
     };
+  }
+
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body('token') token: string, @Res({ passthrough: true }) response: Response) {
+    const result = await this.authService.verifyEmail(token);
+    this.setRefreshTokenCookie(response, result.refreshToken);
+    return { user: result.user, accessToken: result.accessToken, message: result.message };
+  }
+
+  @Public()
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@Body('email') email: string) {
+    return this.authService.resendVerificationEmail(email);
   }
 
   @Public()

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCartStore } from '@/stores/cart-store';
-import { ShoppingCart, Menu, X, Bell, User, ChevronDown } from 'lucide-react';
+import apiClient from '@/lib/api-client';
+import { ShoppingCart, Menu, X, Bell, User, ChevronDown, Crown } from 'lucide-react';
 
 export function Header() {
   const { logout } = useAuth();
@@ -14,6 +15,14 @@ export function Header() {
   const cartCount = useCartStore((s) => s.itemCount);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.role !== 'ORGANISER') return;
+    apiClient.get('/subscriptions/my')
+      .then((res) => setSubscriptionTier(res.data.data?.tier || 'FREE'))
+      .catch(() => setSubscriptionTier('FREE'));
+  }, [user]);
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -22,21 +31,23 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center" onClick={closeMobile}>
+          <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
             <span className="text-xl font-bold text-orange-500">ThooviTickets</span>
           </Link>
 
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link href="/events" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
-              Events
-            </Link>
-            <Link href="/about" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
-              About Us
-            </Link>
-            <Link href="/pricing" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
-              Pricing
-            </Link>
-          </nav>
+          {user?.role !== 'ORGANISER' && (
+            <nav className="hidden items-center gap-6 md:flex">
+              <Link href="/events" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
+                Events
+              </Link>
+              <Link href="/about" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
+                About Us
+              </Link>
+              <Link href="/pricing" className="text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors">
+                Pricing
+              </Link>
+            </nav>
+          )}
         </div>
 
         {/* Right: Actions */}
@@ -61,9 +72,15 @@ export function Header() {
 
               {/* Organiser/Admin links */}
               {user.role === 'ORGANISER' && (
-                <Link href="/organiser/dashboard">
-                  <Button variant="ghost" size="sm" className="text-gray-600">Dashboard</Button>
-                </Link>
+                <>
+                  <Link href="/organiser/dashboard">
+                    <Button variant="ghost" size="sm" className="text-gray-600">Dashboard</Button>
+                  </Link>
+                  <Link href="/organiser/subscriptions" className="flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold transition-colors hover:bg-gray-50">
+                    <Crown className="h-3.5 w-3.5 text-orange-500" />
+                    <span className="text-gray-700">{subscriptionTier || 'FREE'}</span>
+                  </Link>
+                </>
               )}
               {user.role === 'ADMIN' && (
                 <Link href="/admin/dashboard">
@@ -122,12 +139,13 @@ export function Header() {
             </>
           )}
 
-          {/* Create Event — always visible */}
-          <Link href={user?.role === 'ORGANISER' ? '/organiser/events/create' : '/register?role=organiser'}>
-            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
-              Create Event
-            </Button>
-          </Link>
+          {user?.role !== 'ORGANISER' && (
+            <Link href={'/register?role=organiser'}>
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                Create Event
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Mobile: Cart + Hamburger */}
@@ -154,15 +172,19 @@ export function Header() {
       {mobileOpen && (
         <div className="border-t border-gray-200 bg-white px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-1">
-            <Link href="/events" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
-              Events
-            </Link>
-            <Link href="/about" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
-              About Us
-            </Link>
-            <Link href="/pricing" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
-              Pricing
-            </Link>
+            {user?.role !== 'ORGANISER' && (
+              <>
+                <Link href="/events" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                  Events
+                </Link>
+                <Link href="/about" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                  About Us
+                </Link>
+                <Link href="/pricing" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                  Pricing
+                </Link>
+              </>
+            )}
 
             <div className="my-2 border-t border-gray-100" />
 
@@ -174,9 +196,15 @@ export function Header() {
                   </Link>
                 )}
                 {user.role === 'ORGANISER' && (
-                  <Link href="/organiser/dashboard" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                    Organiser Dashboard
-                  </Link>
+                  <>
+                    <Link href="/organiser/dashboard" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                      Organiser Dashboard
+                    </Link>
+                    <Link href="/organiser/subscriptions" onClick={closeMobile} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                      <Crown className="h-4 w-4 text-orange-500" />
+                      Plan: {subscriptionTier || 'FREE'}
+                    </Link>
+                  </>
                 )}
                 {user.role === 'ADMIN' && (
                   <Link href="/admin/dashboard" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100">
@@ -204,10 +232,14 @@ export function Header() {
               </>
             )}
 
-            <div className="my-2 border-t border-gray-100" />
-            <Link href={user?.role === 'ORGANISER' ? '/organiser/events/create' : '/register?role=organiser'} onClick={closeMobile}>
-              <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">Create Event</Button>
-            </Link>
+            {user?.role !== 'ORGANISER' && (
+              <>
+                <div className="my-2 border-t border-gray-100" />
+                <Link href="/register?role=organiser" onClick={closeMobile}>
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">Create Event</Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

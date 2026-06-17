@@ -19,6 +19,17 @@ export class EventsService {
   ) {}
 
   async create(organiserId: string, dto: CreateEventDto) {
+    const organiser = await this.prisma.user.findUnique({
+      where: { id: organiserId },
+      select: { profileCompleted: true, emailVerified: true },
+    });
+
+    if (!organiser?.profileCompleted) {
+      throw new ForbiddenException(
+        'Please complete your profile before creating events. Upload a profile photo, verify your email, and submit your ID document.',
+      );
+    }
+
     if (new Date(dto.endDate) <= new Date(dto.startDate)) {
       throw new BadRequestException('End date must be after start date');
     }

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/', '/login', '/register', '/events', '/forgot-password', '/reset-password', '/about', '/pricing', '/cart', '/checkout', '/checkout/success'];
+const publicPaths = ['/', '/login', '/register', '/events', '/forgot-password', '/reset-password', '/verify-email', '/about', '/pricing', '/cart', '/checkout', '/checkout/success'];
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicPath = publicPaths.some(

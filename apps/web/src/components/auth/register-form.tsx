@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
+import apiClient from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -23,8 +24,7 @@ const countryCodes = [
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { register: registerUser } = useAuth();
-
+  const { setAuth } = useAuthStore();
   const isOrganiser = searchParams.get('role') === 'organiser';
 
   const [form, setForm] = useState({
@@ -62,17 +62,24 @@ export function RegisterForm() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const user = await registerUser({
+      const response = await apiClient.post('/auth/register', {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
         confirmPassword: form.confirmPassword,
         phone: `${countryCode}${form.phone.replace(/\D/g, '')}`,
-        role: isOrganiser ? 'ORGANISER' : 'CUSTOMER' as any,
+        role: isOrganiser ? 'ORGANISER' : 'CUSTOMER',
         orgName: isOrganiser ? form.orgName.trim() : undefined,
       });
-      router.push(user.role === 'ORGANISER' ? '/organiser/dashboard' : '/');
+      const { user, accessToken } = response.data.data;
+
+      if (isOrganiser) {
+        router.push(`/verify-email?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+      } else {
+        setAuth(user, accessToken);
+        router.push('/');
+      }
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       setError(axiosError.response?.data?.error?.message || 'Registration failed.');

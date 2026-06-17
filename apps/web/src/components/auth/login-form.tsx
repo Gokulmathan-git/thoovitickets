@@ -13,6 +13,7 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isUnverified, setIsUnverified] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -34,7 +35,9 @@ export function LoginForm() {
       }
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
-      setError(axiosError.response?.data?.error?.message || 'Login failed. Please try again.');
+      const msg = axiosError.response?.data?.error?.message || 'Login failed. Please try again.';
+      setError(msg);
+      setIsUnverified(msg.toLowerCase().includes('verify your email'));
     } finally {
       setIsSubmitting(false);
     }
@@ -54,7 +57,17 @@ export function LoginForm() {
 
         <form onSubmit={onSubmit} className="space-y-5">
           {error && (
-            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">{error}</div>
+            <div className="rounded-xl bg-red-50 p-3 text-sm text-red-600">
+              {error}
+              {isUnverified && (
+                <Link
+                  href={`/verify-email?email=${encodeURIComponent(email)}`}
+                  className="mt-1 block font-semibold text-orange-500 hover:text-orange-600"
+                >
+                  Resend verification email
+                </Link>
+              )}
+            </div>
           )}
 
           {/* Email */}

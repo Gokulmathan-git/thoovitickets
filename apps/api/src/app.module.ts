@@ -17,6 +17,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+import { EmailModule } from './modules/email/email.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -36,6 +38,8 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
       },
     ]),
     PrismaModule,
+    EmailModule,
+    UploadModule,
     AuthModule,
     UsersModule,
     HealthModule,

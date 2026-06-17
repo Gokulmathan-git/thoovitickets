@@ -14,6 +14,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserRole, UserStatus } from '@thoovitickets/database';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -37,10 +39,17 @@ export class AuthService {
     });
 
     if (existingUser) {
+      if (existingUser.role !== dto.role) {
+        const registeredAs = existingUser.role === UserRole.ORGANISER ? 'an organiser' : 'a customer';
+        throw new ConflictException(`This email is already registered as ${registeredAs}. Please use a different email.`);
+      }
       throw new ConflictException('Email already registered');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
     const user = await this.prisma.user.create({
       data: {
@@ -53,16 +62,32 @@ export class AuthService {
         status: dto.role === 'ORGANISER' ? UserStatus.PENDING : UserStatus.ACTIVE,
         orgName: dto.orgName || null,
         orgDescription: dto.orgDescription || null,
+        emailVerificationToken: hashedVerificationToken,
+        emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      user.firstName,
+      verificationToken,
+    );
+
+    if (user.role === UserRole.CUSTOMER) {
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+      return {
+        message: 'Registration successful. A verification link has been sent to your email.',
+        user: this.sanitizeUser(user),
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      };
+    }
 
     return {
+      message: 'Registration successful. Please verify your email to complete registration.',
       user: this.sanitizeUser(user),
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
     };
   }
 
@@ -81,6 +106,10 @@ export class AuthService {
 
     if (user.status === UserStatus.REJECTED) {
       throw new ForbiddenException('Account registration was rejected.');
+    }
+
+    if (!user.emailVerified && user.role === UserRole.ORGANISER) {
+      throw new ForbiddenException('Please verify your email before logging in. Check your inbox for the verification link.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -144,6 +173,63 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
+  async verifyEmail(token: string) {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationToken: hashedToken,
+        emailVerificationTokenExpiry: { gte: new Date() },
+      },
+    });
+
+    if (!user) throw new BadRequestException('Invalid or expired verification link. Please request a new one.');
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationTokenExpiry: null,
+      },
+    });
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    return {
+      message: 'Email verified successfully.',
+      user: this.sanitizeUser({ ...user, emailVerified: true }),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
+  }
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (!user || user.emailVerified) {
+      return { message: 'If an unverified account exists with this email, a new verification link has been sent.' };
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationToken: hashedToken,
+        emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    await this.emailService.sendVerificationEmail(user.email, user.firstName, verificationToken);
+
+    return { message: 'If an unverified account exists with this email, a new verification link has been sent.' };
+  }
+
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
@@ -163,10 +249,7 @@ export class AuthService {
       },
     });
 
-    // In production, send email with reset link containing resetToken
-    // For now, log it (remove in production)
-    const frontendUrl = this.configService.get<string>('frontendUrl') || 'http://localhost:3000';
-    console.log(`Password reset link: ${frontendUrl}/reset-password?token=${resetToken}`);
+    await this.emailService.sendPasswordResetEmail(user.email, user.firstName, resetToken);
 
     return { message: 'If an account exists with this email, a reset link has been sent.' };
   }

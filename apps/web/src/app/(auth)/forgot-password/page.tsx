@@ -41,10 +41,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">Check Your Email</h1>
                 <p className="mt-3 text-sm text-gray-500">
-                  If an account exists with <strong className="text-gray-700">{email}</strong>, we&apos;ve sent a password reset link.
-                </p>
-                <p className="mt-2 text-xs text-gray-400">
-                  (In development, the reset link is logged to the API console)
+                  If an account exists with <strong className="text-gray-700">{email}</strong>, we&apos;ve sent a password reset link. Check your inbox and spam folder.
                 </p>
                 <Link href="/login">
                   <Button className="mt-6 w-full rounded-xl bg-orange-500 py-5 text-sm font-semibold text-white hover:bg-orange-600">

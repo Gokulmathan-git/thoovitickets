@@ -101,8 +101,13 @@ model User {
   orgName              String?    @map("org_name")
   orgDescription       String?    @map("org_description")
   orgCommissionPercent Decimal?   @db.Decimal(5, 2) @map("org_commission_percent")
+  idDocumentUrl        String?    @map("id_document_url")
+  idDocumentType       String?    @map("id_document_type")
+  profileCompleted     Boolean    @default(false) @map("profile_completed")
   resetToken           String?    @map("reset_token")
   resetTokenExpiry     DateTime?  @map("reset_token_expiry")
+  emailVerificationToken       String?    @map("email_verification_token")
+  emailVerificationTokenExpiry DateTime?  @map("email_verification_token_expiry")
 
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")

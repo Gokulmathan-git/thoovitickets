@@ -12,6 +12,9 @@ export interface UserResponse {
   avatarUrl: string | null;
   orgName: string | null;
   orgDescription: string | null;
+  idDocumentUrl: string | null;
+  idDocumentType: string | null;
+  profileCompleted: boolean;
   createdAt: string;
   updatedAt: string;
 }
