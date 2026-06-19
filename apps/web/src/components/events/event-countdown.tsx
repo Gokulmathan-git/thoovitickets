@@ -49,17 +49,17 @@ export function EventCountdown({ startDate, saleCutoffDate }: EventCountdownProp
 
   if (cutoffPassed) {
     return (
-      <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-        <div className="flex items-center gap-2 text-red-700">
+      <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+        <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
           <Ban className="h-5 w-5" />
           <span className="font-semibold">Ticket Sales Closed</span>
         </div>
-        <p className="mt-1 text-sm text-red-600">
+        <p className="mt-1 text-sm text-red-600 dark:text-red-400">
           Ticket sales ended on {cutoff.toLocaleDateString('en-IN', { dateStyle: 'medium' })} at {cutoff.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
         </p>
         {hoursToStart <= 10 && (
           <div className="mt-3">
-            <p className="text-xs text-gray-500 mb-1">Event starts in</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Event starts in</p>
             <CountdownDisplay timeLeft={getTimeLeft(start)} variant="muted" />
           </div>
         )}
@@ -71,16 +71,16 @@ export function EventCountdown({ startDate, saleCutoffDate }: EventCountdownProp
     const cutoffTimeLeft = getTimeLeft(cutoff);
     return (
       <div className="space-y-3">
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-          <div className="flex items-center gap-2 text-amber-700">
+        <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
             <Ticket className="h-5 w-5" />
             <span className="font-semibold">Ticket Sales Closing Soon!</span>
           </div>
-          <p className="mt-1 text-xs text-amber-600">Hurry! Sales close in</p>
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Hurry! Sales close in</p>
           <CountdownDisplay timeLeft={cutoffTimeLeft} variant="urgent" />
         </div>
         {hoursToStart <= 10 && (
-          <div className="rounded-xl bg-orange-50 border border-orange-200 p-4">
+          <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 p-4">
             <div className="flex items-center gap-2 text-orange-700">
               <Clock className="h-5 w-5" />
               <span className="font-semibold">Event Starts In</span>
@@ -94,7 +94,7 @@ export function EventCountdown({ startDate, saleCutoffDate }: EventCountdownProp
 
   if (eventSoon) {
     return (
-      <div className="rounded-xl bg-orange-50 border border-orange-200 p-4">
+      <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 p-4">
         <div className="flex items-center gap-2 text-orange-700">
           <Clock className="h-5 w-5" />
           <span className="font-semibold">Event Starts In</span>
@@ -109,9 +109,9 @@ export function EventCountdown({ startDate, saleCutoffDate }: EventCountdownProp
 
 function CountdownDisplay({ timeLeft, variant }: { timeLeft: TimeLeft; variant: 'default' | 'urgent' | 'muted' }) {
   const colors = {
-    default: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'text-orange-500' },
-    urgent: { bg: 'bg-amber-100', text: 'text-amber-800', label: 'text-amber-500' },
-    muted: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'text-gray-400' },
+    default: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-800 dark:text-orange-300', label: 'text-orange-500' },
+    urgent: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-800 dark:text-amber-300', label: 'text-amber-500' },
+    muted: { bg: 'bg-gray-100 dark:bg-gray-800', text: 'text-gray-700 dark:text-gray-200', label: 'text-gray-400 dark:text-gray-500' },
   }[variant];
 
   const units = [
@@ -122,9 +122,9 @@ function CountdownDisplay({ timeLeft, variant }: { timeLeft: TimeLeft; variant: 
   ].filter((u) => timeLeft.days > 0 || u.label !== 'Days');
 
   return (
-    <div className="mt-2 flex gap-2">
+    <div className="mt-2 flex flex-wrap gap-2">
       {units.map((u) => (
-        <div key={u.label} className={`flex flex-col items-center rounded-lg ${colors.bg} px-3 py-2 min-w-[48px]`}>
+        <div key={u.label} className={`flex flex-col items-center rounded-lg ${colors.bg} px-2 sm:px-3 py-2 min-w-11 sm:min-w-12`}>
           <span className={`text-lg font-bold ${colors.text}`}>{String(u.value).padStart(2, '0')}</span>
           <span className={`text-[10px] font-medium uppercase ${colors.label}`}>{u.label}</span>
         </div>

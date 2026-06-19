@@ -100,15 +100,15 @@ export default function AdminCategoriesPage() {
   };
 
   if (loading) {
-    return <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-200" />)}</div>;
+    return <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />)}</div>;
   }
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Categories ({categories.length})</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Categories ({categories.length})</h1>
         <Button
-          className="bg-orange-500 hover:bg-orange-600"
+          className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
           onClick={() => {
             setEditingId(null);
             setForm({ name: '', slug: '', icon: '', description: '', sortOrder: categories.length + 1 });
@@ -127,7 +127,7 @@ export default function AdminCategoriesPage() {
             <CardTitle className="text-lg">{editingId ? 'Edit Category' : 'New Category'}</CardTitle>
           </CardHeader>
           <CardContent>
-            {error && <div className="mb-3 rounded-md bg-red-50 p-2 text-sm text-red-600">{error}</div>}
+            {error && <div className="mb-3 rounded-md bg-red-50 dark:bg-red-900/20 p-2 text-sm text-red-600 dark:text-red-400">{error}</div>}
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -148,18 +148,18 @@ export default function AdminCategoriesPage() {
 
               <div className="space-y-2">
                 <Label>Icon</Label>
-                <div className="flex gap-4 mb-2">
+                <div className="flex flex-wrap gap-2 sm:gap-4 mb-2">
                   <button
                     type="button"
                     onClick={() => setIconMode('emoji')}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${iconMode === 'emoji' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${iconMode === 'emoji' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                   >
                     Emoji
                   </button>
                   <button
                     type="button"
                     onClick={() => setIconMode('upload')}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${iconMode === 'upload' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${iconMode === 'upload' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                   >
                     Upload Image
                   </button>
@@ -173,7 +173,7 @@ export default function AdminCategoriesPage() {
                           key={emoji}
                           type="button"
                           onClick={() => setForm({ ...form, icon: emoji })}
-                          className={`flex h-10 w-10 items-center justify-center rounded-lg border text-xl transition-all ${form.icon === emoji ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                          className={`flex h-10 w-10 items-center justify-center rounded-lg border text-xl transition-all ${form.icon === emoji ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 ring-2 ring-orange-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700'}`}
                         >
                           {emoji}
                         </button>
@@ -190,15 +190,15 @@ export default function AdminCategoriesPage() {
                   <div className="space-y-3">
                     {form.icon && form.icon.startsWith('http') && (
                       <div className="flex items-center gap-3">
-                        <img src={form.icon} alt="Icon" className="h-12 w-12 rounded-lg object-cover border border-gray-200" />
+                        <img src={form.icon} alt="Icon" className="h-12 w-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700" />
                         <button type="button" onClick={() => setForm({ ...form, icon: '' })} className="text-xs text-red-500 hover:text-red-700">Remove</button>
                       </div>
                     )}
-                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 p-4 transition-colors hover:border-orange-400 hover:bg-orange-50">
-                      <Plus className="h-5 w-5 text-gray-400" />
+                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-4 transition-colors hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                      <Plus className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                       <div>
-                        <p className="text-sm font-medium text-gray-700">{uploadingIcon ? 'Uploading...' : 'Click to upload icon'}</p>
-                        <p className="text-xs text-gray-400">PNG, SVG, JPG. Max 2MB. Recommended: 128x128px</p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{uploadingIcon ? 'Uploading...' : 'Click to upload icon'}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">PNG, SVG, JPG. Max 2MB. Recommended: 128x128px</p>
                       </div>
                       <input
                         type="file"
@@ -238,7 +238,7 @@ export default function AdminCategoriesPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={saving || !form.name} className="bg-orange-500 hover:bg-orange-600">
+                <Button onClick={handleSave} disabled={saving || !form.name} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700">
                   {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
                 </Button>
                 <Button variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</Button>
@@ -253,34 +253,34 @@ export default function AdminCategoriesPage() {
         {categories.map((cat) => (
           <div
             key={cat.id}
-            className={`flex items-center justify-between rounded-lg border bg-white p-4 transition-colors ${!cat.isActive ? 'border-gray-200 opacity-50' : 'border-gray-200'}`}
+            className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-white dark:bg-gray-800 p-4 transition-colors ${!cat.isActive ? 'border-gray-200 dark:border-gray-700 opacity-50' : 'border-gray-200 dark:border-gray-700'}`}
           >
-            <div className="flex items-center gap-4">
-              <GripVertical className="h-4 w-4 text-gray-300" />
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <GripVertical className="hidden h-4 w-4 shrink-0 text-gray-300 sm:block" />
               {cat.icon?.startsWith('http') ? (
-                <img src={cat.icon} alt={cat.name} className="h-10 w-10 rounded-lg object-cover" />
+                <img src={cat.icon} alt={cat.name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
               ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-xl">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-900/20 text-xl">
                   {cat.icon || '🎫'}
                 </span>
               )}
-              <div>
-                <p className="font-medium text-gray-900">{cat.name}</p>
-                <p className="text-xs text-gray-500">
+              <div className="min-w-0">
+                <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{cat.name}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   /{cat.slug} &middot; {cat._count.events} event{cat._count.events !== 1 ? 's' : ''}
                   {!cat.isActive && <span className="ml-2 text-red-500">(Hidden)</span>}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => handleToggleActive(cat)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${cat.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${cat.isActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}
               >
                 {cat.isActive ? 'Active' : 'Hidden'}
               </button>
               <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)}>
-                <Pencil className="h-4 w-4 text-gray-500" />
+                <Pencil className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               </Button>
               <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)}>
                 <Trash2 className="h-4 w-4 text-red-500" />

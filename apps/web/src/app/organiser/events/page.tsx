@@ -20,13 +20,13 @@ interface Event {
 }
 
 const statusColors: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
-  APPROVED: 'bg-blue-100 text-blue-700',
-  PUBLISHED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  COMPLETED: 'bg-purple-100 text-purple-700',
+  DRAFT: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
+  PENDING_APPROVAL: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+  APPROVED: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
+  PUBLISHED: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+  REJECTED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  CANCELLED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  COMPLETED: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
 };
 
 const statusLabels: Record<string, string> = {
@@ -61,8 +61,8 @@ export default function OrganiserEventsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">My Events</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">My Events</h1>
         <Link href="/organiser/events/create">
           <Button>Create Event</Button>
         </Link>
@@ -77,7 +77,7 @@ export default function OrganiserEventsPage() {
               'rounded-full px-3 py-1 text-sm font-medium transition-colors',
               filter === status
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700',
             )}
           >
             {status === '' ? 'All' : statusLabels[status]}
@@ -88,12 +88,12 @@ export default function OrganiserEventsPage() {
       {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-200" />
+            <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
           ))}
         </div>
       ) : events.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
-          <p className="text-gray-500">No events found.</p>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-12 text-center">
+          <p className="text-gray-500 dark:text-gray-400">No events found.</p>
           <Link href="/organiser/events/create">
             <Button className="mt-4">Create Your First Event</Button>
           </Link>
@@ -104,28 +104,28 @@ export default function OrganiserEventsPage() {
             <Link
               key={event.id}
               href={`/organiser/events/${event.id}`}
-              className="block rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md"
+              className="block rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 transition-shadow hover:shadow-md"
             >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                    <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', statusColors[event.status])}>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 wrap-break-word">{event.title}</h3>
+                    <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap', statusColors[event.status])}>
                       {statusLabels[event.status]}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     {event.venue}, {event.city} &middot; {event.category.name}
                   </p>
-                  <p className="mt-1 text-sm text-gray-400">
+                  <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
                     {new Date(event.startDate).toLocaleDateString('en-IN', {
                       day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
                     })}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   {event.ticketTypes.length > 0 && (
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       From ₹{Math.min(...event.ticketTypes.map((t) => Number(t.price)))}
                     </p>
                   )}

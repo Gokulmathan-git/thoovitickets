@@ -7,12 +7,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const buttonVariants = {
-  default: 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm',
-  destructive: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
-  outline: 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700',
-  secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
-  ghost: 'hover:bg-gray-100 text-gray-700',
-  link: 'text-blue-600 underline-offset-4 hover:underline',
+  default: 'bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-sm',
+  destructive: 'bg-linear-to-r from-red-500 to-red-700 text-white hover:from-red-600 hover:to-red-800 shadow-sm',
+  outline: 'border border-gray-300 dark:border-gray-600 bg-linear-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-800 text-gray-700 dark:text-gray-200',
+  secondary: 'bg-linear-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-900 dark:text-gray-100 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700',
+  ghost: 'hover:bg-linear-to-b hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-900 text-gray-700 dark:text-gray-300',
+  link: 'text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline',
 };
 
 const sizeVariants = {
@@ -27,7 +27,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 disabled:pointer-events-none disabled:opacity-50',
           buttonVariants[variant],
           sizeVariants[size],
           className,

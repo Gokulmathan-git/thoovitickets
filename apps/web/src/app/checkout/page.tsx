@@ -163,17 +163,17 @@ export default function CheckoutPage() {
   };
 
   if (loading) {
-    return <div className="mx-auto max-w-3xl px-4 py-8"><div className="h-64 animate-pulse rounded-lg bg-gray-200" /></div>;
+    return <div className="mx-auto max-w-3xl px-4 py-8"><div className="h-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" /></div>;
   }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Checkout</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Checkout</h1>
 
-      {error && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+      {error && <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
 
       {paymentStep === 'paying' && (
-        <div className="mb-4 rounded-md bg-orange-50 p-4 text-center">
+        <div className="mb-4 rounded-md bg-orange-50 dark:bg-orange-900/20 p-4 text-center">
           <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" />
           <p className="font-medium text-orange-700">Processing payment...</p>
           <p className="text-sm text-orange-500">Please do not close this page</p>
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
           <CardContent>
             {isGuestCheckout ? (
               <div className="space-y-4">
-                <p className="text-sm text-gray-500">Enter your details to receive the tickets</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Enter your details to receive the tickets</p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Full Name *</Label>
@@ -220,19 +220,19 @@ export default function CheckoutPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500">Name</p>
-                  <p className="font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-gray-500 dark:text-gray-400">Name</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{user?.firstName} {user?.lastName}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900">{user?.email}</p>
+                  <p className="text-gray-500 dark:text-gray-400">Email</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</p>
                 </div>
                 {user?.phone && (
                   <div>
-                    <p className="text-gray-500">Phone</p>
-                    <p className="font-medium text-gray-900">{user.phone}</p>
+                    <p className="text-gray-500 dark:text-gray-400">Phone</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{user.phone}</p>
                   </div>
                 )}
               </div>
@@ -248,12 +248,12 @@ export default function CheckoutPage() {
           <CardContent>
             <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                  <div>
-                    <p className="font-medium text-gray-900">{item.event.title}</p>
-                    <p className="text-sm text-gray-500">{item.ticketType.name} x {item.quantity}</p>
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.event.title}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.ticketType.name} x {item.quantity}</p>
                   </div>
-                  <p className="font-medium text-gray-900">₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100 shrink-0">₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}</p>
                 </div>
               ))}
             </div>
@@ -269,13 +269,13 @@ export default function CheckoutPage() {
             <CardContent>
               <div className="space-y-3">
                 {attendees.map((att: AttendeeInfo, i: number) => (
-                  <div key={i} className="flex items-start gap-3 rounded-lg border border-gray-100 p-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-xs font-bold text-orange-600 shrink-0">
+                  <div key={i} className="flex items-start gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/20 text-xs font-bold text-orange-600 shrink-0">
                       {i + 1}
                     </div>
                     <div className="text-sm">
-                      <p className="font-medium text-gray-900">{att.name}</p>
-                      <p className="text-gray-500">{att.email} · {att.phone}</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{att.name}</p>
+                      <p className="text-gray-500 dark:text-gray-400">{att.email} · {att.phone}</p>
                       <p className="text-xs text-orange-500">{att.ticketName}</p>
                     </div>
                   </div>
@@ -292,22 +292,22 @@ export default function CheckoutPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-gray-600 dark:text-gray-300">
                 <span>Subtotal</span>
                 <span>₹{total.toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-gray-600 dark:text-gray-300">
                 <span>Convenience Fee</span>
                 <span className="text-green-600">Free</span>
               </div>
-              <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-gray-900 text-lg">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-gray-100 text-lg">
                 <span>Total</span>
                 <span>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
             <Button
-              className="w-full mt-4 bg-orange-500 hover:bg-orange-600"
+              className="w-full mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
               size="lg"
               onClick={handlePlaceOrder}
               disabled={placing || (isGuestCheckout && (!guestInfo.email || !guestInfo.name))}
@@ -315,7 +315,7 @@ export default function CheckoutPage() {
               {placing ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}`}
             </Button>
 
-            <div className="mt-3 flex items-center justify-center gap-1 text-xs text-gray-400">
+            <div className="mt-3 flex items-center justify-center gap-1 text-xs text-gray-400 dark:text-gray-500">
               <ShieldCheck className="h-3 w-3" />
               Secure payment processing
             </div>

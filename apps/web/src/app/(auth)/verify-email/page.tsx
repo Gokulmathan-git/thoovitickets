@@ -63,11 +63,11 @@ export default function VerifyEmailPage() {
 
   if (status === 'verifying') {
     return (
-      <div className="mx-auto w-full max-w-md">
-        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-gray-200/50 text-center">
+      <div className="mx-auto w-full max-w-md px-4">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-orange-500" />
-          <h1 className="mt-4 text-xl font-bold text-gray-900">Verifying your email...</h1>
-          <p className="mt-2 text-sm text-gray-500">Please wait a moment.</p>
+          <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Verifying your email...</h1>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Please wait a moment.</p>
         </div>
       </div>
     );
@@ -75,14 +75,14 @@ export default function VerifyEmailPage() {
 
   if (status === 'success') {
     return (
-      <div className="mx-auto w-full max-w-md">
-        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-gray-200/50 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+      <div className="mx-auto w-full max-w-md px-4">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h1 className="mt-4 text-xl font-bold text-gray-900">Email Verified!</h1>
-          <p className="mt-2 text-sm text-gray-500">{message}</p>
-          <p className="mt-1 text-xs text-gray-400">Redirecting you now...</p>
+          <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Email Verified!</h1>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{message}</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Redirecting you now...</p>
         </div>
       </div>
     );
@@ -90,13 +90,13 @@ export default function VerifyEmailPage() {
 
   if (status === 'error') {
     return (
-      <div className="mx-auto w-full max-w-md">
-        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-gray-200/50 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+      <div className="mx-auto w-full max-w-md px-4">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
             <XCircle className="h-8 w-8 text-red-600" />
           </div>
-          <h1 className="mt-4 text-xl font-bold text-gray-900">Verification Failed</h1>
-          <p className="mt-2 text-sm text-gray-500">{message}</p>
+          <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Verification Failed</h1>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{message}</p>
           <div className="mt-6 space-y-3">
             {email && (
               <Button
@@ -118,18 +118,18 @@ export default function VerifyEmailPage() {
 
   // status === 'pending' — shown after registration
   return (
-    <div className="mx-auto w-full max-w-md">
-      <div className="rounded-2xl bg-white p-8 shadow-xl shadow-gray-200/50 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
+    <div className="mx-auto w-full max-w-md px-4">
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-xl shadow-gray-200/50 dark:shadow-gray-900/50 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
           <Mail className="h-8 w-8 text-orange-600" />
         </div>
-        <h1 className="mt-4 text-xl font-bold text-gray-900">Check your email</h1>
-        <p className="mt-2 text-sm text-gray-500">
+        <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Check your email</h1>
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           We&apos;ve sent a verification link to{' '}
-          {email ? <span className="font-semibold text-gray-700">{email}</span> : 'your email'}.
+          {email ? <span className="font-semibold text-gray-700 dark:text-gray-200">{email}</span> : 'your email'}.
           Click the link to verify your account.
         </p>
-        <div className="mt-6 rounded-xl bg-gray-50 p-4">
+        <div className="mt-6 rounded-xl bg-gray-50 dark:bg-gray-900 p-4">
           <p className="text-xs text-gray-500">
             Didn&apos;t receive the email? Check your spam folder or click below to resend.
           </p>
@@ -143,7 +143,7 @@ export default function VerifyEmailPage() {
               onClick={handleResend}
               disabled={resendCooldown > 0}
               variant="outline"
-              className="w-full rounded-xl border-gray-200 py-5"
+              className="w-full rounded-xl border-gray-200 dark:border-gray-700 py-5"
             >
               {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Verification Email'}
             </Button>

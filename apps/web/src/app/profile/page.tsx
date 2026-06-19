@@ -162,16 +162,16 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">My Profile</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">My Profile</h1>
 
       {/* Profile completion warning for organisers */}
       {isOrganiser && !profileCompleted && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+        <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
           <div className="flex items-start gap-3">
-            <Shield className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+            <Shield className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
             <div>
-              <h3 className="font-semibold text-red-800">Complete your profile</h3>
-              <p className="mt-1 text-sm text-red-700">
+              <h3 className="font-semibold text-red-800 dark:text-red-300">Complete your profile</h3>
+              <p className="mt-1 text-sm text-red-700 dark:text-red-400">
                 You must complete your profile before creating events. Upload a profile photo, verify your email, and submit an Aadhar or PAN card.
               </p>
             </div>
@@ -181,18 +181,18 @@ export default function ProfilePage() {
 
       {/* Email verification warning */}
       {!user.emailVerified && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-800">Email not verified</h3>
-              <p className="mt-1 text-sm text-amber-700">
+              <h3 className="font-semibold text-amber-800 dark:text-amber-300">Email not verified</h3>
+              <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
                 {isOrganiser
                   ? 'Please verify your email to complete your profile and create events.'
                   : 'Please verify your email to receive ticket confirmations and invoice emails after purchase.'}
               </p>
               {verificationSent ? (
-                <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
+                <div className="mt-3 flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
                   <CheckCircle className="h-4 w-4" />
                   Verification link sent! Check your inbox.
                 </div>
@@ -202,7 +202,7 @@ export default function ProfilePage() {
                   disabled={resendingVerification}
                   variant="outline"
                   size="sm"
-                  className="mt-3 border-amber-300 text-amber-800 hover:bg-amber-100"
+                  className="mt-3 border-amber-300 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   {resendingVerification ? 'Sending...' : 'Send Verification Email'}
@@ -214,7 +214,7 @@ export default function ProfilePage() {
       )}
 
       {message && (
-        <div className={`mb-4 rounded-md p-3 text-sm ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+        <div className={`mb-4 rounded-md p-3 text-sm ${message.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
           {message.text}
         </div>
       )}
@@ -226,7 +226,7 @@ export default function ProfilePage() {
             <CardTitle className="text-lg">Profile Photo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="relative">
                 {user.avatarUrl ? (
                   <Image
@@ -234,10 +234,10 @@ export default function ProfilePage() {
                     alt="Profile"
                     width={80}
                     height={80}
-                    className="h-20 w-20 rounded-full object-cover border-2 border-gray-200"
+                    className="h-20 w-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                   />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 text-2xl font-bold text-orange-600 border-2 border-gray-200">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30 text-2xl font-bold text-orange-600 border-2 border-gray-200 dark:border-gray-700">
                     {user.firstName[0]}
                   </div>
                 )}
@@ -257,9 +257,9 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-                <p className="text-xs text-gray-500">{uploadingAvatar ? 'Uploading...' : 'Click the camera icon to change photo'}</p>
-                <p className="mt-1 text-xs text-gray-400">JPG, PNG or WebP. Max 5MB.</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.firstName} {user.lastName}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{uploadingAvatar ? 'Uploading...' : 'Click the camera icon to change photo'}</p>
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">JPG, PNG or WebP. Max 5MB.</p>
               </div>
             </div>
           </CardContent>
@@ -278,7 +278,7 @@ export default function ProfilePage() {
           <CardContent>
             {editing ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>First Name</Label>
                     <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
@@ -290,8 +290,8 @@ export default function ProfilePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input value={user.email} disabled className="bg-gray-50 text-gray-500" />
-                  <p className="text-xs text-gray-400">Email cannot be changed</p>
+                  <Input value={user.email} disabled className="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400" />
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Email cannot be changed</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
@@ -309,7 +309,7 @@ export default function ProfilePage() {
                         value={form.orgDescription}
                         onChange={(e) => setForm({ ...form, orgDescription: e.target.value })}
                         placeholder="Tell us about your organisation..."
-                        className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                        className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:text-gray-100"
                         rows={3}
                       />
                     </div>
@@ -324,52 +324,52 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-gray-500">Name</p>
-                    <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                    <p className="text-gray-500 dark:text-gray-400">Name</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{user.firstName} {user.lastName}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Email</p>
+                    <p className="text-gray-500 dark:text-gray-400">Email</p>
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900">{user.email}</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{user.email}</p>
                       {user.emailVerified ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
                           <CheckCircle className="h-3 w-3" /> Verified
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                           <AlertTriangle className="h-3 w-3" /> Not verified
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-gray-500">Phone</p>
-                    <p className="font-medium text-gray-900">{user.phone || 'Not set'}</p>
+                    <p className="text-gray-500 dark:text-gray-400">Phone</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{user.phone || 'Not set'}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Role</p>
-                    <p className="font-medium text-gray-900">{user.role}</p>
+                    <p className="text-gray-500 dark:text-gray-400">Role</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{user.role}</p>
                   </div>
                 </div>
                 {isOrganiser && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-gray-500">Organisation</p>
-                      <p className="font-medium text-gray-900">{userAny.orgName || 'Not set'}</p>
+                      <p className="text-gray-500 dark:text-gray-400">Organisation</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{userAny.orgName || 'Not set'}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500">Description</p>
-                      <p className="font-medium text-gray-900">{userAny.orgDescription || 'Not set'}</p>
+                      <p className="text-gray-500 dark:text-gray-400">Description</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{userAny.orgDescription || 'Not set'}</p>
                     </div>
                   </div>
                 )}
                 <div>
-                  <p className="text-gray-500">Member since</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-gray-500 dark:text-gray-400">Member since</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
                     {new Date(user.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}
                   </p>
                 </div>
@@ -386,35 +386,35 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               {userAny.idDocumentUrl ? (
-                <div className="flex items-center gap-4 rounded-lg bg-green-50 p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
+                <div className="flex items-center gap-4 rounded-lg bg-green-50 dark:bg-green-900/20 p-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                    <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <p className="font-medium text-green-800">
+                    <p className="font-medium text-green-800 dark:text-green-300">
                       {userAny.idDocumentType === 'AADHAR' ? 'Aadhar Card' : 'PAN Card'} uploaded
                     </p>
-                    <p className="text-sm text-green-600">Your identity document has been submitted.</p>
+                    <p className="text-sm text-green-600 dark:text-green-400">Your identity document has been submitted.</p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     Upload your Aadhar Card or PAN Card for identity verification. Accepted formats: JPG, PNG, WebP, PDF (max 5MB).
                   </p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       onClick={() => {
                         docInputRef.current?.setAttribute('data-doc-type', 'AADHAR');
                         docInputRef.current?.click();
                       }}
                       disabled={uploadingDoc}
-                      className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 p-6 transition-colors hover:border-orange-400 hover:bg-orange-50 disabled:opacity-50"
+                      className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 transition-colors hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50"
                     >
-                      <Upload className="h-8 w-8 text-gray-400" />
+                      <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                       <div className="text-center">
-                        <p className="text-sm font-medium text-gray-700">Aadhar Card</p>
-                        <p className="text-xs text-gray-400">Image or PDF</p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Aadhar Card</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Image or PDF</p>
                       </div>
                     </button>
                     <button
@@ -423,12 +423,12 @@ export default function ProfilePage() {
                         docInputRef.current?.click();
                       }}
                       disabled={uploadingDoc}
-                      className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 p-6 transition-colors hover:border-orange-400 hover:bg-orange-50 disabled:opacity-50"
+                      className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 transition-colors hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 disabled:opacity-50"
                     >
-                      <FileText className="h-8 w-8 text-gray-400" />
+                      <FileText className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                       <div className="text-center">
-                        <p className="text-sm font-medium text-gray-700">PAN Card</p>
-                        <p className="text-xs text-gray-400">Image or PDF</p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">PAN Card</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Image or PDF</p>
                       </div>
                     </button>
                   </div>

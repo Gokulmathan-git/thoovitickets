@@ -31,7 +31,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[...Array(7)].map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-lg bg-gray-200" />
+          <div key={i} className="h-28 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
         ))}
       </div>
     );
@@ -40,22 +40,22 @@ export default function AdminDashboardPage() {
   if (!stats) return null;
 
   const statCards = [
-    { label: 'Total Users', value: stats.totalUsers, color: 'text-gray-900' },
+    { label: 'Total Users', value: stats.totalUsers, color: 'text-gray-900 dark:text-gray-100' },
     { label: 'Customers', value: stats.totalCustomers, color: 'text-blue-600' },
     { label: 'Organisers', value: stats.totalOrganisers, color: 'text-purple-600' },
     { label: 'Pending Organisers', value: stats.pendingOrganisers, color: 'text-amber-600', alert: stats.pendingOrganisers > 0 },
-    { label: 'Total Events', value: stats.totalEvents, color: 'text-gray-900' },
+    { label: 'Total Events', value: stats.totalEvents, color: 'text-gray-900 dark:text-gray-100' },
     { label: 'Pending Events', value: stats.pendingEvents, color: 'text-amber-600', alert: stats.pendingEvents > 0 },
     { label: 'Published Events', value: stats.publishedEvents, color: 'text-green-600' },
   ];
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Admin Dashboard</h1>
         {(stats.pendingOrganisers > 0 || stats.pendingEvents > 0) && (
           <Link href="/admin/approvals">
-            <Button>
+            <Button className="w-full sm:w-auto">
               Review Approvals ({stats.pendingOrganisers + stats.pendingEvents})
             </Button>
           </Link>
@@ -64,9 +64,9 @@ export default function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
-          <Card key={card.label} className={card.alert ? 'border-amber-200 bg-amber-50' : ''}>
+          <Card key={card.label} className={card.alert ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20' : ''}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-500">{card.label}</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">{card.label}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>

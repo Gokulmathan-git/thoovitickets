@@ -41,13 +41,13 @@ interface Event {
 }
 
 const statusColors: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-700',
-  PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
-  APPROVED: 'bg-blue-100 text-blue-700',
-  PUBLISHED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  POSTPONED: 'bg-orange-100 text-orange-700',
+  DRAFT: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
+  PENDING_APPROVAL: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
+  APPROVED: 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
+  PUBLISHED: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+  REJECTED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  CANCELLED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  POSTPONED: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700',
 };
 
 const statusLabels: Record<string, string> = {
@@ -150,7 +150,7 @@ export default function OrganiserEventDetailPage() {
   };
 
   if (loading) {
-    return <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-gray-200" />)}</div>;
+    return <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />)}</div>;
   }
 
   if (!event) return null;
@@ -162,17 +162,17 @@ export default function OrganiserEventDetailPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
-            <span className={cn('rounded-full px-3 py-1 text-xs font-medium', statusColors[event.status])}>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">{event.title}</h1>
+            <span className={cn('rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap', statusColors[event.status])}>
               {statusLabels[event.status]}
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-500">{event.category.name}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{event.category.name}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {canSubmit && (
             <Button onClick={handleSubmitForApproval} disabled={actionLoading}>
               {actionLoading ? 'Submitting...' : 'Submit for Approval'}
@@ -198,23 +198,23 @@ export default function OrganiserEventDetailPage() {
 
       {/* Rejection Reason */}
       {event.status === 'REJECTED' && (event as any).cancelReason && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+        <div className="mb-6 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
           <p className="font-semibold text-red-800">Rejection Reason:</p>
-          <p className="mt-1 text-sm text-red-700">{(event as any).cancelReason}</p>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-400">{(event as any).cancelReason}</p>
         </div>
       )}
 
       {/* Cancel Event Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900">Cancel Event</h2>
-            <p className="mt-2 text-sm text-gray-500">This will cancel all tickets and notify ticket holders. Refunds will be processed manually.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-4">
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-xl sm:p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Cancel Event</h2>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">This will cancel all tickets and notify ticket holders. Refunds will be processed manually.</p>
             <textarea
               placeholder="Reason for cancellation..."
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
-              className="mt-4 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none"
+              className="mt-4 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none dark:bg-gray-900 dark:text-gray-100"
               rows={3}
             />
             <div className="mt-4 flex gap-2 justify-end">
@@ -229,31 +229,31 @@ export default function OrganiserEventDetailPage() {
 
       {/* Postpone Event Modal */}
       {showPostponeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-bold text-gray-900">Postpone Event</h2>
-            <p className="mt-2 text-sm text-gray-500">Change the event dates. All ticket holders will be notified with your message.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-4">
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-xl sm:p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Postpone Event</h2>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Change the event dates. All ticket holders will be notified with your message.</p>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-700">New Start Date *</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-200">New Start Date *</label>
                 <input type="datetime-local" value={postponeForm.startDate} onChange={(e) => setPostponeForm({ ...postponeForm, startDate: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none dark:bg-gray-900 dark:text-gray-100" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">New End Date *</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-200">New End Date *</label>
                 <input type="datetime-local" value={postponeForm.endDate} onChange={(e) => setPostponeForm({ ...postponeForm, endDate: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none dark:bg-gray-900 dark:text-gray-100" />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Message to Ticket Holders *</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Message to Ticket Holders *</label>
                 <textarea value={postponeForm.message} onChange={(e) => setPostponeForm({ ...postponeForm, message: e.target.value })}
                   placeholder="Explain why the event is being rescheduled..."
-                  className="mt-1 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" rows={3} />
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none dark:bg-gray-900 dark:text-gray-100" rows={3} />
               </div>
             </div>
             <div className="mt-4 flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowPostponeModal(false)}>Back</Button>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handlePostponeEvent}
+              <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white" onClick={handlePostponeEvent}
                 disabled={actionLoading || !postponeForm.startDate || !postponeForm.endDate || !postponeForm.message.trim()}>
                 {actionLoading ? 'Updating...' : 'Confirm Postpone'}
               </Button>
@@ -269,21 +269,21 @@ export default function OrganiserEventDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <span className="font-medium text-gray-500">Description</span>
-              <p className="mt-1 text-gray-700 whitespace-pre-wrap">{event.description}</p>
+              <span className="font-medium text-gray-500 dark:text-gray-400">Description</span>
+              <p className="mt-1 text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{event.description}</p>
             </div>
             {event.shortDesc && (
               <div>
-                <span className="font-medium text-gray-500">Short Description</span>
-                <p className="mt-1 text-gray-700">{event.shortDesc}</p>
+                <span className="font-medium text-gray-500 dark:text-gray-400">Short Description</span>
+                <p className="mt-1 text-gray-700 dark:text-gray-200">{event.shortDesc}</p>
               </div>
             )}
             {event.tags.length > 0 && (
               <div>
-                <span className="font-medium text-gray-500">Tags</span>
+                <span className="font-medium text-gray-500 dark:text-gray-400">Tags</span>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {event.tags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+                    <span key={tag} className="rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-400">
                       {tag}
                     </span>
                   ))}
@@ -298,27 +298,27 @@ export default function OrganiserEventDetailPage() {
             <CardTitle className="text-lg">Date & Location</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <span className="font-medium text-gray-500">Start</span>
-                <p className="mt-1 text-gray-700">
+                <span className="font-medium text-gray-500 dark:text-gray-400">Start</span>
+                <p className="mt-1 text-gray-700 dark:text-gray-200">
                   {new Date(event.startDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>
               </div>
               <div>
-                <span className="font-medium text-gray-500">End</span>
-                <p className="mt-1 text-gray-700">
+                <span className="font-medium text-gray-500 dark:text-gray-400">End</span>
+                <p className="mt-1 text-gray-700 dark:text-gray-200">
                   {new Date(event.endDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
                 </p>
               </div>
             </div>
             <div>
-              <span className="font-medium text-gray-500">Venue</span>
-              <p className="mt-1 text-gray-700">{event.venue}</p>
+              <span className="font-medium text-gray-500 dark:text-gray-400">Venue</span>
+              <p className="mt-1 text-gray-700 dark:text-gray-200">{event.venue}</p>
             </div>
             <div>
-              <span className="font-medium text-gray-500">Location</span>
-              <p className="mt-1 text-gray-700">
+              <span className="font-medium text-gray-500 dark:text-gray-400">Location</span>
+              <p className="mt-1 text-gray-700 dark:text-gray-200">
                 {[event.address, event.city, event.state, event.country].filter(Boolean).join(', ')}
               </p>
             </div>
@@ -333,7 +333,7 @@ export default function OrganiserEventDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                  <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-gray-500 dark:text-gray-400">
                     <th className="pb-2 font-medium">Name</th>
                     <th className="pb-2 font-medium">Price</th>
                     <th className="pb-2 font-medium">Total</th>
@@ -344,8 +344,8 @@ export default function OrganiserEventDetailPage() {
                 </thead>
                 <tbody>
                   {event.ticketTypes.map((tt) => (
-                    <tr key={tt.id} className="border-b border-gray-100">
-                      <td className="py-3 font-medium text-gray-900">{tt.name}</td>
+                    <tr key={tt.id} className="border-b border-gray-100 dark:border-gray-800">
+                      <td className="py-3 font-medium text-gray-900 dark:text-gray-100">{tt.name}</td>
                       <td className="py-3">₹{Number(tt.price).toLocaleString('en-IN')}</td>
                       <td className="py-3">{tt.totalQty}</td>
                       <td className="py-3">{tt.soldQty}</td>
@@ -368,18 +368,18 @@ export default function OrganiserEventDetailPage() {
             <CardContent>
               {event.showOnHomeBanner ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 rounded-md bg-green-50 p-3 text-sm text-green-700">
+                  <div className="flex items-center gap-2 rounded-md bg-green-50 dark:bg-green-900/20 p-3 text-sm text-green-700 dark:text-green-400">
                     <span className="font-medium">Banner is ACTIVE</span> — Your event is showing on the homepage carousel
                   </div>
                   {event.homeBannerUrl && (
-                    <div className="rounded-md overflow-hidden border border-gray-200">
+                    <div className="rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
                       <img src={event.homeBannerUrl} alt="Banner preview" className="w-full h-40 object-cover" />
                     </div>
                   )}
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     <span className="font-medium">Title:</span> {event.homeBannerTitle || event.title}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
                     <span className="font-medium">Description:</span> {event.homeBannerDesc || event.shortDesc || '-'}
                   </p>
                   <Button
@@ -402,37 +402,37 @@ export default function OrganiserEventDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Show this event on the homepage banner carousel. Available for <span className="font-medium text-orange-600">PREMIUM</span> and <span className="font-medium text-orange-600">ENTERPRISE</span> plans.
                   </p>
                   {bannerMsg && (
-                    <div className={`rounded-md p-2 text-sm ${bannerMsg.includes('Failed') || bannerMsg.includes('only') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                    <div className={`rounded-md p-2 text-sm ${bannerMsg.includes('Failed') || bannerMsg.includes('only') ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'}`}>
                       {bannerMsg}
                     </div>
                   )}
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700">Banner Image URL *</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Banner Image URL *</label>
                       <input
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
                         placeholder="https://example.com/banner.jpg (1200x500 recommended)"
                         value={bannerForm.url}
                         onChange={(e) => setBannerForm({ ...bannerForm, url: e.target.value })}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700">Banner Title (optional)</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Banner Title (optional)</label>
                       <input
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
                         placeholder="Custom title for the banner (defaults to event title)"
                         value={bannerForm.title}
                         onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700">Banner Description (optional)</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Banner Description (optional)</label>
                       <input
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
                         placeholder="Short tagline for the banner"
                         value={bannerForm.desc}
                         onChange={(e) => setBannerForm({ ...bannerForm, desc: e.target.value })}
@@ -440,7 +440,7 @@ export default function OrganiserEventDetailPage() {
                     </div>
                   </div>
                   <Button
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                    className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
                     disabled={bannerLoading || !bannerForm.url}
                     onClick={async () => {
                       setBannerLoading(true);

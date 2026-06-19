@@ -77,7 +77,7 @@ export default function CartPage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="space-y-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-200" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />)}
         </div>
       </div>
     );
@@ -86,7 +86,7 @@ export default function CartPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Your Cart</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Your Cart</h1>
         {items.length > 0 && (
           <Button variant="ghost" size="sm" className="text-red-600" onClick={handleClearCart}>
             Clear Cart
@@ -97,10 +97,10 @@ export default function CartPage() {
       {items.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-lg text-gray-500">Your cart is empty</p>
-            <p className="mt-1 text-sm text-gray-400">Browse events and add tickets to get started</p>
+            <p className="text-lg text-gray-500 dark:text-gray-400">Your cart is empty</p>
+            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">Browse events and add tickets to get started</p>
             <Link href="/events">
-              <Button className="mt-4 bg-orange-500 hover:bg-orange-600">Browse Events</Button>
+              <Button className="mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700">Browse Events</Button>
             </Link>
           </CardContent>
         </Card>
@@ -109,35 +109,40 @@ export default function CartPage() {
           {items.map((item) => (
             <Card key={item.id}>
               <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <div className="h-16 w-16 flex-shrink-0 rounded-md overflow-hidden">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 flex-shrink-0 rounded-md overflow-hidden">
                     <img src={item.event.imageUrl || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=200&q=80'} alt="" className="h-full w-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/events/${item.event.slug}`} className="font-semibold text-gray-900 hover:text-orange-600">
+                    <Link href={`/events/${item.event.slug}`} className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 hover:text-orange-600 line-clamp-1">
                       {item.event.title}
                     </Link>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                       {item.ticketType.name} &middot; {item.event.venue}, {item.event.city}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(item.event.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                     </p>
+                    <div className="mt-1 sm:hidden">
+                      <p className="font-bold text-sm text-gray-900 dark:text-gray-100">
+                        ₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-gray-900">
+                  <div className="text-right hidden sm:block">
+                    <p className="font-bold text-gray-900 dark:text-gray-100">
                       ₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       ₹{item.ticketType.price.toLocaleString('en-IN')} each
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                <div className="mt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3">
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-md border border-gray-300">
+                    <div className="flex items-center rounded-md border border-gray-300 dark:border-gray-700">
                       <button
-                        className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                        className="px-2 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30"
                         disabled={item.quantity <= 1 || updating === item.id}
                         onClick={() => updateQuantity(item, item.quantity - 1)}
                       >
@@ -145,14 +150,14 @@ export default function CartPage() {
                       </button>
                       <span className="px-3 text-sm font-medium">{item.quantity}</span>
                       <button
-                        className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                        className="px-2 py-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30"
                         disabled={item.quantity >= Math.min(item.ticketType.maxPerOrder, item.ticketType.available) || updating === item.id}
                         onClick={() => updateQuantity(item, item.quantity + 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
-                    <span className="text-xs text-gray-400">{item.ticketType.available} left</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{item.ticketType.available} left</span>
                   </div>
                   <button className="text-red-500 hover:text-red-700 disabled:opacity-30" onClick={() => removeItem(item)} disabled={updating === item.id}>
                     <Trash2 className="h-4 w-4" />
@@ -168,17 +173,17 @@ export default function CartPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-gray-600 dark:text-gray-300">
                   <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} tickets)</span>
                   <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-gray-900 text-base">
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-gray-100 text-base">
                   <span>Total</span>
                   <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
               <Link href="/checkout">
-                <Button className="w-full mt-4 bg-orange-500 hover:bg-orange-600" size="lg">
+                <Button className="w-full mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700" size="lg">
                   Proceed to Checkout
                 </Button>
               </Link>

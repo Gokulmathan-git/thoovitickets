@@ -90,7 +90,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
           alt={slide.title}
           className="h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/40 to-black/20" />
 
         {/* Content */}
         <div className="absolute inset-0 flex items-end">
@@ -127,13 +127,13 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
               )}
               {slide.type === 'banner' && slide.slug ? (
                 <Link href={`/events/${slide.slug}`}>
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6">
+                  <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
                     Get Tickets
                   </Button>
                 </Link>
               ) : (
                 <Link href={slide.title.includes('Create') ? '/register?role=organiser' : '/events'}>
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-6">
+                  <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
                     {slide.title.includes('Create') ? 'Start Organising' : 'Find Tickets'}
                   </Button>
                 </Link>
@@ -146,10 +146,10 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
       {/* Navigation Arrows */}
       {totalSlides > 1 && (
         <>
-          <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-sm hover:bg-white/25 transition">
+          <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white dark:bg-gray-800/15 p-2.5 text-white backdrop-blur-sm hover:bg-white/25 transition">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/15 p-2.5 text-white backdrop-blur-sm hover:bg-white/25 transition">
+          <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white dark:bg-gray-800/15 p-2.5 text-white backdrop-blur-sm hover:bg-white/25 transition">
             <ChevronRight className="h-5 w-5" />
           </button>
         </>

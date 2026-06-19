@@ -78,19 +78,19 @@ export default function CreateEventPage() {
   if (user && !profileCompleted) {
     return (
       <div>
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Create New Event</h1>
+        <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Create New Event</h1>
         <Card>
           <CardContent className="py-12">
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
                 <Shield className="h-8 w-8 text-red-600" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-900">Complete Your Profile First</h2>
-              <p className="max-w-md text-sm text-gray-600">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Complete Your Profile First</h2>
+              <p className="max-w-md text-sm text-gray-600 dark:text-gray-300">
                 Before creating events, you need to complete your profile: upload a profile photo, verify your email, and submit your Aadhar or PAN card.
               </p>
               <Link href="/profile">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
                   Go to Profile
                 </Button>
               </Link>
@@ -103,11 +103,11 @@ export default function CreateEventPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Create New Event</h1>
+      <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Create New Event</h1>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>
+          <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>
         )}
 
         {/* Basic Info */}
@@ -127,10 +127,10 @@ export default function CreateEventPage() {
                 id="description"
                 rows={4}
                 placeholder="Describe your event in detail (min 20 characters)"
-                className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-gray-100"
                 {...register('description')}
               />
-              {errors.description && <p className="text-sm text-red-600">{errors.description.message}</p>}
+              {errors.description && <p className="text-sm text-red-600 dark:text-red-400">{errors.description.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -176,13 +176,13 @@ export default function CreateEventPage() {
                 </button>
               </div>
             ) : (
-              <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 p-8 transition-colors hover:border-orange-400 hover:bg-orange-50">
-                <Plus className="h-8 w-8 text-gray-400" />
+              <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 p-8 transition-colors hover:border-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                <Plus className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
                     {uploadingImage ? 'Uploading...' : 'Click to upload event image'}
                   </p>
-                  <p className="text-xs text-gray-400">JPG, PNG or WebP. Max 5MB.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">JPG, PNG or WebP. Max 5MB.</p>
                 </div>
                 <input
                   type="file"
@@ -222,7 +222,7 @@ export default function CreateEventPage() {
             <CardTitle className="text-lg">Date & Location</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date & Time *</Label>
                 <Input id="startDate" type="datetime-local" error={errors.startDate?.message} {...register('startDate', {
@@ -240,7 +240,7 @@ export default function CreateEventPage() {
                 <Input id="saleCutoffDate" type="datetime-local" {...register('saleCutoffDate' as any, {
                   setValueAs: (v: string) => v ? new Date(v).toISOString() : undefined,
                 })} />
-                <p className="text-xs text-gray-400">Sales stop at this time</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Sales stop at this time</p>
               </div>
             </div>
 
@@ -248,7 +248,7 @@ export default function CreateEventPage() {
               <Label htmlFor="timezone">Event Timezone</Label>
               <select
                 id="timezone"
-                className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-100"
                 {...register('timezone' as any)}
                 defaultValue="Asia/Kolkata"
               >
@@ -324,20 +324,20 @@ export default function CreateEventPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {errors.ticketTypes && typeof errors.ticketTypes.message === 'string' && (
-              <p className="text-sm text-red-600">{errors.ticketTypes.message}</p>
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.ticketTypes.message}</p>
             )}
 
             {fields.map((field, index) => (
-              <div key={field.id} className="rounded-md border border-gray-200 bg-gray-50 p-4">
+              <div key={field.id} className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Ticket #{index + 1}</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Ticket #{index + 1}</span>
                   {fields.length > 1 && (
                     <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="space-y-1">
                     <Label>Name *</Label>
                     <Input placeholder="e.g. General, VIP" error={errors.ticketTypes?.[index]?.name?.message} {...register(`ticketTypes.${index}.name`)} />

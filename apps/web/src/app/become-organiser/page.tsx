@@ -83,13 +83,13 @@ export default function BecomeOrganiserPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gray-900 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_#f97316_0%,_transparent_50%)] opacity-20" />
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+        <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-28 lg:px-8">
           <div className="max-w-2xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-500/20 px-4 py-1.5 text-sm font-medium text-orange-400">
               <Zap className="h-4 w-4" />
               Start organising events today
             </div>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               Bring Your Events to{' '}
               <span className="text-orange-500">Life</span>
             </h1>
@@ -98,18 +98,18 @@ export default function BecomeOrganiserPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link href="/register?role=organiser">
-                <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-base font-semibold rounded-xl">
+                <Button size="lg" className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-6 text-base font-semibold rounded-xl">
                   Register as Organiser
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <a href="#features">
-                <Button size="lg" className="border border-gray-500 bg-transparent text-white hover:bg-white/10 px-8 py-6 text-base rounded-xl">
+                <Button size="lg" className="border border-gray-500 bg-transparent text-white hover:bg-white dark:bg-gray-800/10 px-8 py-6 text-base rounded-xl">
                   Explore Features
                 </Button>
               </a>
             </div>
-            <div className="mt-8 flex items-center gap-6 text-sm text-gray-400">
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
               <div className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-green-500" /> Free to start
               </div>
@@ -125,26 +125,26 @@ export default function BecomeOrganiserPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="bg-white py-20">
+      <section id="features" className="bg-white dark:bg-gray-800 py-12 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl lg:text-4xl">
               Everything You Need to Succeed
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
               Powerful tools to help you create amazing events and grow your audience.
             </p>
           </div>
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => {
               const Icon = feature.icon;
               return (
-                <div key={feature.title} className="rounded-2xl border border-gray-200 p-6 transition-all hover:border-orange-200 hover:shadow-lg hover:shadow-orange-100/50">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
+                <div key={feature.title} className="rounded-2xl border border-gray-200 dark:border-gray-700 p-6 transition-all hover:border-orange-200 hover:shadow-lg hover:shadow-orange-100/50">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/30">
                     <Icon className="h-6 w-6 text-orange-600" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-gray-900">{feature.title}</h3>
-                  <p className="mt-2 text-sm text-gray-500">{feature.description}</p>
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{feature.title}</h3>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{feature.description}</p>
                 </div>
               );
             })}
@@ -153,24 +153,24 @@ export default function BecomeOrganiserPage() {
       </section>
 
       {/* How It Works */}
-      <section className="bg-gray-50 py-20">
+      <section className="bg-gray-50 dark:bg-gray-900 py-12 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl lg:text-4xl">
               How It Works
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
               Get started in 4 simple steps.
             </p>
           </div>
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 sm:mt-16 grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
             {howItWorks.map((item) => (
               <div key={item.step} className="text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500 text-2xl font-bold text-white shadow-lg shadow-orange-500/30">
                   {item.step}
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900">{item.title}</h3>
-                <p className="mt-2 text-sm text-gray-500">{item.description}</p>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{item.title}</h3>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
               </div>
             ))}
           </div>
@@ -178,24 +178,24 @@ export default function BecomeOrganiserPage() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="bg-white py-20">
+      <section className="bg-white dark:bg-gray-800 py-12 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl lg:text-4xl">
               Simple, Transparent Pricing
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
               Start for free, upgrade as you grow.
             </p>
           </div>
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
+          <div className="mt-10 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-3">
             {plans.map((plan) => (
               <div
                 key={plan.name}
                 className={`rounded-2xl border p-8 ${
                   plan.highlighted
-                    ? 'border-orange-500 bg-orange-50 shadow-lg shadow-orange-100/50 relative'
-                    : 'border-gray-200'
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg shadow-orange-100/50 relative'
+                    : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
                 {plan.highlighted && (
@@ -203,16 +203,16 @@ export default function BecomeOrganiserPage() {
                     <Star className="h-3 w-3" /> Popular
                   </div>
                 )}
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                 <div className="mt-2">
-                  <span className="text-3xl font-bold text-gray-900">
+                  <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {plan.price === 0 ? 'Free' : `₹${plan.price}`}
                   </span>
-                  {plan.price > 0 && <span className="text-sm text-gray-500">/month</span>}
+                  {plan.price > 0 && <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>}
                 </div>
                 <ul className="mt-6 space-y-3">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
+                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <Check className="h-4 w-4 text-green-500 shrink-0" />
                       {feature}
                     </li>
@@ -222,7 +222,7 @@ export default function BecomeOrganiserPage() {
                   <Button
                     className={`w-full rounded-xl py-5 ${
                       plan.highlighted
-                        ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                        ? 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
                         : 'bg-gray-900 hover:bg-gray-800 text-white'
                     }`}
                   >
@@ -236,23 +236,23 @@ export default function BecomeOrganiserPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gray-900 py-20">
+      <section className="bg-gray-900 py-12 sm:py-20">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+          <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             Ready to Start Organising?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-gray-400">
             Join thousands of organisers who trust ThooviTickets to power their events.
           </p>
-          <div className="mt-8 flex justify-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/register?role=organiser">
-              <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-6 text-base font-semibold rounded-xl">
+              <Button size="lg" className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8 py-6 text-base font-semibold rounded-xl w-full sm:w-auto">
                 Register Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="/events">
-              <Button size="lg" className="border border-gray-500 bg-transparent text-white hover:bg-white/10 px-8 py-6 text-base rounded-xl">
+              <Button size="lg" className="border border-gray-500 bg-transparent text-white hover:bg-white dark:bg-gray-800/10 px-8 py-6 text-base rounded-xl w-full sm:w-auto">
                 Browse Events
               </Button>
             </Link>

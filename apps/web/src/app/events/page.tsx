@@ -30,7 +30,7 @@ interface Event {
 
 export default function EventsPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8"><div className="h-96 animate-pulse rounded-lg bg-gray-200" /></div>}>
+    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-8"><div className="h-96 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" /></div>}>
       <EventsContent />
     </Suspense>
   );
@@ -126,7 +126,7 @@ function EventsContent() {
               placeholder="Search events..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-2.5 pl-10 pr-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
         </form>
@@ -134,12 +134,12 @@ function EventsContent() {
 
       {/* Date Filter */}
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-gray-900 uppercase tracking-wide">Date</h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Date</h3>
         <div className="space-y-2">
           {['Anytime', 'This Weekend', 'Next Week'].map((label) => (
             <label key={label} className="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="date" className="h-4 w-4 text-orange-500 accent-orange-500" defaultChecked={label === 'Anytime'} />
-              <span className="text-sm text-gray-600">{label}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">{label}</span>
             </label>
           ))}
         </div>
@@ -148,11 +148,11 @@ function EventsContent() {
       {/* City Filter */}
       {cities.length > 0 && (
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-gray-900 uppercase tracking-wide">Popular Cities</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Popular Cities</h3>
           <select
             value={currentCity}
             onChange={(e) => updateParams({ city: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">All Cities</option>
             {cities.map((city) => (
@@ -164,7 +164,7 @@ function EventsContent() {
 
       {/* Category Filter */}
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-gray-900 uppercase tracking-wide">Categories</h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Categories</h3>
         <div className="space-y-2">
           {categories.map((cat) => (
             <label key={cat.slug} className="flex items-center gap-2 cursor-pointer group">
@@ -174,7 +174,7 @@ function EventsContent() {
                 onChange={() => updateParams({ category: currentCategory === cat.slug ? '' : cat.slug })}
                 className="h-4 w-4 rounded border-gray-300 text-orange-500 accent-orange-500"
               />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900">
+              <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
                 {cat.icon && <span className="mr-1">{cat.icon}</span>}
                 {cat.name}
               </span>
@@ -187,7 +187,7 @@ function EventsContent() {
       {hasFilters && (
         <button
           onClick={resetFilters}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 transition"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Reset Filters
@@ -209,10 +209,10 @@ function EventsContent() {
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="mb-6 flex items-start justify-between">
+          <div className="mb-6 flex flex-col sm:flex-row items-start justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Experience the Extraordinary</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Experience the Extraordinary</h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {total > 0 ? `${total} event${total !== 1 ? 's' : ''} found` : 'Discover amazing events'}
                 {currentCategory && ` in ${currentCategory}`}
                 {currentCity && ` near ${currentCity}`}
@@ -222,7 +222,7 @@ function EventsContent() {
               {/* Mobile Filter Toggle */}
               <button
                 onClick={() => setMobileFilters(true)}
-                className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 lg:hidden"
+                className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 lg:hidden"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
@@ -232,7 +232,7 @@ function EventsContent() {
               <select
                 value={currentSort}
                 onChange={(e) => updateParams({ sort: e.target.value })}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               >
                 <option value="date_asc">Date: Soonest</option>
                 <option value="date_desc">Date: Latest</option>
@@ -245,14 +245,14 @@ function EventsContent() {
           {loading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-96 animate-pulse rounded-xl bg-gray-200" />
+                <div key={i} className="h-96 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
               ))}
             </div>
           ) : events.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white py-20 text-center">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-20 text-center">
               <Calendar className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-lg font-medium text-gray-500">No events found</p>
-              <p className="mt-1 text-sm text-gray-400">
+              <p className="mt-4 text-lg font-medium text-gray-500 dark:text-gray-400">No events found</p>
+              <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
                 {hasFilters ? 'Try adjusting your filters' : 'Check back later for upcoming events'}
               </p>
               {hasFilters && (
@@ -287,7 +287,7 @@ function EventsContent() {
                         onClick={() => updateParams({ page: String(p) })}
                         className={cn(
                           'h-9 w-9 rounded-lg text-sm font-medium transition',
-                          p === currentPage ? 'bg-orange-500 text-white' : 'text-gray-600 hover:bg-gray-100',
+                          p === currentPage ? 'bg-orange-500 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
                         )}
                       >
                         {p}
@@ -313,15 +313,15 @@ function EventsContent() {
       {mobileFilters && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/40" onClick={() => setMobileFilters(false)} />
-          <div className="fixed bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-6 shadow-xl">
+          <div className="fixed bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white dark:bg-gray-800 p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Filters</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Filters</h2>
               <button onClick={() => setMobileFilters(false)}>
-                <X className="h-5 w-5 text-gray-500" />
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             {filterContent}
-            <Button className="mt-6 w-full bg-orange-500 hover:bg-orange-600" onClick={() => setMobileFilters(false)}>
+            <Button className="mt-6 w-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700" onClick={() => setMobileFilters(false)}>
               Show Results
             </Button>
           </div>
@@ -342,7 +342,7 @@ function EventListCard({ event }: { event: Event }) {
   const timeStr = startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg">
+    <div className="group overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-all hover:shadow-lg">
       {/* Image */}
       <Link href={`/events/${event.slug}`} className="relative block aspect-[16/10] overflow-hidden">
         <img
@@ -350,7 +350,7 @@ function EventListCard({ event }: { event: Event }) {
           alt={event.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
 
         {/* Badge */}
         {event.isFeatured && (
@@ -370,30 +370,30 @@ function EventListCard({ event }: { event: Event }) {
       {/* Content */}
       <div className="p-4">
         <Link href={`/events/${event.slug}`}>
-          <h3 className="text-lg font-bold text-gray-900 line-clamp-2 group-hover:text-orange-600 transition-colors">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:text-orange-600 transition-colors">
             {event.title}
           </h3>
         </Link>
         {event.shortDesc && (
-          <p className="mt-1 text-sm text-gray-500 line-clamp-2">{event.shortDesc}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{event.shortDesc}</p>
         )}
-        <div className="mt-2 flex items-center gap-1 text-sm text-gray-400">
+        <div className="mt-2 flex items-center gap-1 text-sm text-gray-400 dark:text-gray-500">
           <MapPin className="h-3.5 w-3.5" />
           <span>{event.venue}, {event.city}</span>
         </div>
 
         {/* Price + CTA */}
-        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
               {lowestPrice === 0 ? 'Entry' : 'Starts from'}
             </p>
-            <p className="text-xl font-bold text-gray-900">
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
               {lowestPrice === null ? '-' : lowestPrice === 0 ? 'Free' : `₹${lowestPrice.toLocaleString('en-IN')}`}
             </p>
           </div>
           <Link href={`/events/${event.slug}`}>
-            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white rounded-full px-5">
+            <Button size="sm" className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-5">
               Get Tickets
             </Button>
           </Link>

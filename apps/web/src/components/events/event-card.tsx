@@ -40,7 +40,7 @@ export function EventCard({ event }: EventCardProps) {
         />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/30 to-transparent" />
 
         {/* Trending Badge */}
         {event.isFeatured && (

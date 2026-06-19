@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-[calc(100vh-4rem)] items-center justify-center"><div className="h-64 w-96 animate-pulse rounded-lg bg-gray-200" /></div>}>
+    <Suspense fallback={<div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4"><div className="h-64 w-full max-w-md animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" /></div>}>
       <ResetPasswordContent />
     </Suspense>
   );
@@ -32,7 +32,7 @@ function ResetPasswordContent() {
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
         <Card className="mx-auto w-full max-w-md">
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Invalid reset link</p>
+            <p className="text-gray-500 dark:text-gray-400">Invalid reset link</p>
             <Link href="/forgot-password">
               <Button className="mt-4">Request New Link</Button>
             </Link>
@@ -76,14 +76,14 @@ function ResetPasswordContent() {
         <CardContent>
           {success ? (
             <div className="space-y-4 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-3xl">
                 ✅
               </div>
-              <p className="text-sm text-gray-600">Password reset successfully! Redirecting to login...</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Password reset successfully! Redirecting to login...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">{error}</div>}
+              {error && <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
                 <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />

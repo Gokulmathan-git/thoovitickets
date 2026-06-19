@@ -61,21 +61,21 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="bg-white">
+    <div className="bg-white dark:bg-gray-800">
       {/* Hero Carousel */}
       <HeroCarousel banners={banners} />
 
       {/* Featured Experiences */}
       {featured.length > 0 && (
-        <section className="relative overflow-hidden py-20">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-50 via-white to-white" />
+        <section className="relative overflow-hidden py-10 sm:py-20">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-50 via-white to-white dark:from-orange-900/20 dark:via-gray-800 dark:to-gray-800" />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-10 flex items-center justify-between">
+            <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">Featured Experiences</h2>
-                <p className="mt-2 text-sm text-gray-500">Hand-picked premium events just for you</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Featured Experiences</h2>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Hand-picked premium events just for you</p>
               </div>
-              <Link href="/events" className="flex items-center gap-1 rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-100 transition">
+              <Link href="/events" className="flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-900/20 px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition">
                 View all <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -90,25 +90,25 @@ export default function HomePage() {
 
       {/* Explore by Interest */}
       {categories.length > 0 && (
-        <section className="relative overflow-hidden py-20">
-          <div className="absolute inset-0 bg-gray-50" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
+        <section className="relative overflow-hidden py-10 sm:py-20">
+          <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 bg-linear-to-r from-transparent via-orange-200 to-transparent" />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 text-center">
-              <h2 className="text-3xl font-bold text-gray-900">Explore by Interest</h2>
-              <p className="mt-2 text-gray-500">Find your next obsession through our curated categories</p>
+            <div className="mb-8 sm:mb-12 text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Explore by Interest</h2>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">Find your next obsession through our curated categories</p>
             </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
               {categories.slice(0, 10).map((cat) => (
                 <Link
                   key={cat.slug}
                   href={`/events?category=${cat.slug}`}
-                  className="group flex flex-col items-center gap-3 rounded-2xl border border-gray-200/80 bg-white p-6 text-center shadow-sm transition-all hover:border-orange-300 hover:shadow-lg hover:-translate-y-1"
+                  className="group flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-6 text-center shadow-sm transition-all hover:border-orange-300 hover:shadow-lg hover:-translate-y-1"
                 >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-2xl group-hover:bg-orange-100 group-hover:scale-110 transition-all">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 text-2xl group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 group-hover:scale-110 transition-all">
                     {cat.icon || '🎫'}
                   </span>
-                  <span className="text-sm font-semibold text-gray-700 group-hover:text-orange-600">{cat.name}</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-orange-600">{cat.name}</span>
                 </Link>
               ))}
             </div>
@@ -117,39 +117,39 @@ export default function HomePage() {
       )}
 
       {/* Why ThooviTickets */}
-      <section className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 bg-white" />
-        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-orange-50 blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-orange-50 blur-3xl" />
+      <section className="relative overflow-hidden py-10 sm:py-20">
+        <div className="absolute inset-0 bg-white dark:bg-gray-800" />
+        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-orange-50 dark:bg-orange-900/20 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-orange-50 dark:bg-orange-900/20 blur-3xl" />
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Why ThooviTickets?</h2>
+          <div className="mb-8 sm:mb-12 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Why ThooviTickets?</h2>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
-                <ShieldCheck className="h-8 w-8 text-orange-500" />
+            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 sm:p-8 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="mx-auto mb-4 sm:mb-5 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20">
+                <ShieldCheck className="h-7 w-7 sm:h-8 sm:w-8 text-orange-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Guaranteed Trust</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-500">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">Guaranteed Trust</h3>
+              <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                 Every ticket is verified through our secure platform, ensuring 100% authenticity and fraud protection.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
+            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20">
                 <Zap className="h-8 w-8 text-orange-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Speed of Access</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-500">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Speed of Access</h3>
+              <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                 Find, select, and buy your tickets in under 30 seconds. No waiting rooms, no hassle.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50">
+            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20">
                 <Headphones className="h-8 w-8 text-orange-500" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Easy Management</h3>
-              <p className="mt-3 text-sm leading-relaxed text-gray-500">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Easy Management</h3>
+              <p className="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                 Organisers get a powerful dashboard with analytics, ticket management, and real-time sales tracking.
               </p>
             </div>
@@ -158,13 +158,13 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative overflow-hidden bg-gray-900 py-20">
+      <section className="relative overflow-hidden bg-gray-900 py-10 sm:py-20">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-orange-900/20 via-transparent to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-500/30 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-orange-500/30 to-transparent" />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-10 lg:flex-row lg:justify-between">
             <div className="max-w-lg text-center lg:text-left">
-              <h2 className="text-3xl font-bold text-white sm:text-4xl">
+              <h2 className="text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
                 Your Passport to <span className="text-orange-400">Every Stage</span>.
               </h2>
               <p className="mt-4 text-gray-400 leading-relaxed">
@@ -173,35 +173,35 @@ export default function HomePage() {
               </p>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
                 <Link href="/events">
-                  <Button size="lg" className="rounded-full bg-orange-500 hover:bg-orange-600 text-white px-8">
+                  <Button size="lg" className="rounded-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-8">
                     Explore Events
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button size="lg" className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 px-8">
+                  <Button size="lg" className="rounded-full bg-linear-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0 px-8">
                     Start Organising
                   </Button>
                 </Link>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-6 backdrop-blur-sm">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 text-center">
+              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-3 sm:p-6 backdrop-blur-sm">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
                   <ShieldCheck className="h-6 w-6 text-orange-400" />
                 </div>
-                <p className="text-sm font-semibold text-white">Secure Payments</p>
+                <p className="text-xs sm:text-sm font-semibold text-white">Secure Payments</p>
               </div>
-              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-6 backdrop-blur-sm">
+              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-3 sm:p-6 backdrop-blur-sm">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
                   <Zap className="h-6 w-6 text-orange-400" />
                 </div>
-                <p className="text-sm font-semibold text-white">Instant Tickets</p>
+                <p className="text-xs sm:text-sm font-semibold text-white">Instant Tickets</p>
               </div>
-              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-6 backdrop-blur-sm">
+              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/50 p-3 sm:p-6 backdrop-blur-sm">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10">
                   <Headphones className="h-6 w-6 text-orange-400" />
                 </div>
-                <p className="text-sm font-semibold text-white">24/7 Support</p>
+                <p className="text-xs sm:text-sm font-semibold text-white">24/7 Support</p>
               </div>
             </div>
           </div>

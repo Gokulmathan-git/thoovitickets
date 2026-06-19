@@ -107,16 +107,16 @@ export default function AdminPlansPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Subscription Plans</h1>
-        <Button onClick={openCreate} className="bg-orange-500 hover:bg-orange-600 text-white">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Subscription Plans</h1>
+        <Button onClick={openCreate} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
           <Plus className="mr-2 h-4 w-4" /> Create Plan
         </Button>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-64 animate-pulse rounded-lg bg-gray-200" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -126,41 +126,41 @@ export default function AdminPlansPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                   <div className="flex gap-1">
-                    <button onClick={() => openEdit(plan)} className="p-1 text-gray-400 hover:text-blue-600">
+                    <button onClick={() => openEdit(plan)} className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600">
                       <Edit2 className="h-4 w-4" />
                     </button>
                     {plan.tier !== 'FREE' && (
-                      <button onClick={() => handleDelete(plan)} className="p-1 text-gray-400 hover:text-red-600">
+                      <button onClick={() => handleDelete(plan)} className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {Number(plan.price) === 0 ? 'Free' : `₹${Number(plan.price).toLocaleString('en-IN')}`}
-                  {Number(plan.price) > 0 && <span className="text-sm font-normal text-gray-500">/month</span>}
+                  {Number(plan.price) > 0 && <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span>}
                 </p>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded bg-gray-50 p-2">
-                    <p className="text-xs text-gray-500">Events/Month</p>
-                    <p className="font-bold text-gray-900">{plan.maxEventsPerMonth}</p>
+                  <div className="rounded bg-gray-50 dark:bg-gray-900 p-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Events/Month</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{plan.maxEventsPerMonth}</p>
                   </div>
-                  <div className="rounded bg-gray-50 p-2">
-                    <p className="text-xs text-gray-500">Ticket Tiers</p>
-                    <p className="font-bold text-gray-900">{plan.maxTicketTiers}</p>
+                  <div className="rounded bg-gray-50 dark:bg-gray-900 p-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Ticket Tiers</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{plan.maxTicketTiers}</p>
                   </div>
-                  <div className="rounded bg-gray-50 p-2">
-                    <p className="text-xs text-gray-500">Tickets/Event</p>
-                    <p className="font-bold text-gray-900">{plan.maxTicketsPerEvent.toLocaleString()}</p>
+                  <div className="rounded bg-gray-50 dark:bg-gray-900 p-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Tickets/Event</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{plan.maxTicketsPerEvent.toLocaleString()}</p>
                   </div>
-                  <div className="rounded bg-gray-50 p-2">
-                    <p className="text-xs text-gray-500">Staff</p>
-                    <p className="font-bold text-gray-900">{plan.maxStaffAccounts}</p>
+                  <div className="rounded bg-gray-50 dark:bg-gray-900 p-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Staff</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{plan.maxStaffAccounts}</p>
                   </div>
                 </div>
-                <div className="rounded bg-orange-50 p-2 text-center">
+                <div className="rounded bg-orange-50 dark:bg-orange-900/20 p-2 text-center">
                   <p className="text-xs text-orange-600">Commission</p>
                   <p className="text-lg font-bold text-orange-700">{Number(plan.commissionPercent)}%</p>
                 </div>
@@ -176,15 +176,15 @@ export default function AdminPlansPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">{editingPlan ? 'Edit Plan' : 'Create Plan'}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{editingPlan ? 'Edit Plan' : 'Create Plan'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Tier ID</Label>
                   <Input value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value.toUpperCase() })} placeholder="e.g. PRO" disabled={!!editingPlan} />
@@ -194,7 +194,7 @@ export default function AdminPlansPage() {
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Pro" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Price (INR/month)</Label>
                   <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
@@ -204,7 +204,7 @@ export default function AdminPlansPage() {
                   <Input type="number" step="0.5" value={form.commissionPercent} onChange={(e) => setForm({ ...form, commissionPercent: Number(e.target.value) })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Events/Month</Label>
                   <Input type="number" value={form.maxEventsPerMonth} onChange={(e) => setForm({ ...form, maxEventsPerMonth: Number(e.target.value) })} />
@@ -214,7 +214,7 @@ export default function AdminPlansPage() {
                   <Input type="number" value={form.maxTicketTiers} onChange={(e) => setForm({ ...form, maxTicketTiers: Number(e.target.value) })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Tickets/Event</Label>
                   <Input type="number" value={form.maxTicketsPerEvent} onChange={(e) => setForm({ ...form, maxTicketsPerEvent: Number(e.target.value) })} />
@@ -233,14 +233,14 @@ export default function AdminPlansPage() {
                 <textarea
                   value={form.features}
                   onChange={(e) => setForm({ ...form, features: e.target.value })}
-                  className="w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none"
                   rows={5}
                   placeholder="2 events per month&#10;2 ticket tiers per event&#10;300 tickets per event"
                 />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-                <Button onClick={handleSave} disabled={saving || !form.tier || !form.name} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={handleSave} disabled={saving || !form.tier || !form.name} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
                   {saving ? 'Saving...' : editingPlan ? 'Update Plan' : 'Create Plan'}
                 </Button>
               </div>

@@ -33,7 +33,7 @@ export default function PricingPage() {
     return (
       <div className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-80 animate-pulse rounded-xl bg-gray-200" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-80 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />)}
         </div>
       </div>
     );
@@ -42,9 +42,9 @@ export default function PricingPage() {
   return (
     <div>
       {/* Header */}
-      <div className="bg-gray-900 py-16">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <h1 className="text-4xl font-bold text-white">
+      <div className="bg-gray-900 py-10 sm:py-16">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+          <h1 className="text-2xl font-bold text-white sm:text-4xl">
             Simple, Transparent <span className="text-orange-400">Pricing</span>
           </h1>
           <p className="mt-4 text-lg text-gray-300">
@@ -54,7 +54,7 @@ export default function PricingPage() {
       </div>
 
       {/* Plans */}
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:py-16 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => {
             const isPopular = plan.tier === 'PRO';
@@ -74,11 +74,11 @@ export default function PricingPage() {
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                   <div className="mt-2">
                     {price === 0 ? (
-                      <span className="text-4xl font-bold text-gray-900">Free</span>
+                      <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">Free</span>
                     ) : (
                       <>
-                        <span className="text-4xl font-bold text-gray-900">₹{price.toLocaleString('en-IN')}</span>
-                        <span className="text-sm text-gray-500">/month</span>
+                        <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">₹{price.toLocaleString('en-IN')}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
                       </>
                     )}
                   </div>
@@ -88,13 +88,13 @@ export default function PricingPage() {
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-2">
                         <Check className="h-4 w-4 mt-0.5 text-orange-500 shrink-0" />
-                        <span className="text-gray-600">{feature}</span>
+                        <span className="text-gray-600 dark:text-gray-300">{feature}</span>
                       </li>
                     ))}
                   </ul>
                   <Link href="/become-organiser" className="mt-6 block">
                     <Button
-                      className={`w-full ${isPopular ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                      className={`w-full ${isPopular ? 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white' : ''}`}
                       variant={isPopular ? 'default' : 'outline'}
                     >
                       Get Started
@@ -108,7 +108,7 @@ export default function PricingPage() {
 
         {/* FAQ */}
         <div className="mx-auto mt-16 max-w-3xl">
-          <h2 className="mb-8 text-center text-2xl font-bold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="mb-8 text-center text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Frequently Asked Questions</h2>
           <div className="space-y-4">
             {[
               { q: 'Can I start for free?', a: 'Yes! The Free plan lets you create up to 2 events per month with 300 tickets. No credit card required.' },
@@ -116,9 +116,9 @@ export default function PricingPage() {
               { q: 'What payment methods do you accept?', a: 'We accept all major payment methods through Razorpay — credit cards, debit cards, UPI, net banking, and wallets.' },
               { q: 'Are there any hidden fees?', a: 'No hidden fees. A small platform service charge applies to ticket sales. Higher plans enjoy lower service charges.' },
             ].map((faq) => (
-              <div key={faq.q} className="rounded-lg border border-gray-200 bg-white p-5">
-                <p className="font-medium text-gray-900">{faq.q}</p>
-                <p className="mt-2 text-sm text-gray-500">{faq.a}</p>
+              <div key={faq.q} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+                <p className="font-medium text-gray-900 dark:text-gray-100">{faq.q}</p>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{faq.a}</p>
               </div>
             ))}
           </div>

@@ -68,8 +68,8 @@ export default function VerifyTicketPage() {
         <Card className="mx-auto w-full max-w-md">
           <CardContent className="py-12 text-center">
             <XCircle className="mx-auto h-16 w-16 text-red-500" />
-            <h1 className="mt-4 text-xl font-bold text-gray-900">Invalid Ticket</h1>
-            <p className="mt-2 text-sm text-gray-500">{error || 'This ticket could not be found.'}</p>
+            <h1 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">Invalid Ticket</h1>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{error || 'This ticket could not be found.'}</p>
           </CardContent>
         </Card>
       </div>
@@ -85,40 +85,40 @@ export default function VerifyTicketPage() {
     <div className="flex min-h-[60vh] items-center justify-center px-4 py-8">
       <Card className="mx-auto w-full max-w-md overflow-hidden">
         {/* Status Header */}
-        <div className={`p-6 text-center ${isActive ? 'bg-green-50' : isUsed ? 'bg-amber-50' : 'bg-red-50'}`}>
+        <div className={`p-6 text-center ${isActive ? 'bg-green-50 dark:bg-green-900/20' : isUsed ? 'bg-amber-50 dark:bg-amber-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
           {isActive && <CheckCircle className="mx-auto h-16 w-16 text-green-500" />}
           {isUsed && <UserCheck className="mx-auto h-16 w-16 text-amber-500" />}
           {isCancelled && <XCircle className="mx-auto h-16 w-16 text-red-500" />}
-          <h1 className={`mt-3 text-xl font-bold ${isActive ? 'text-green-700' : isUsed ? 'text-amber-700' : 'text-red-700'}`}>
+          <h1 className={`mt-3 text-xl font-bold ${isActive ? 'text-green-700 dark:text-green-400' : isUsed ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400'}`}>
             {isActive ? 'Valid Ticket' : isUsed ? 'Already Used' : 'Cancelled'}
           </h1>
-          <p className="mt-1 font-mono text-sm text-gray-500">{ticket.ticketCode}</p>
+          <p className="mt-1 font-mono text-sm text-gray-500 dark:text-gray-400">{ticket.ticketCode}</p>
         </div>
 
         <CardContent className="p-6">
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-gray-500">Attendee</p>
-              <p className="text-lg font-semibold text-gray-900">{ticket.attendeeName}</p>
-              <p className="text-sm text-gray-500">{ticket.attendeeEmail}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Attendee</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{ticket.attendeeName}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{ticket.attendeeEmail}</p>
             </div>
 
             <div>
-              <p className="text-xs text-gray-500">Event</p>
-              <p className="font-semibold text-gray-900">{ticket.orderItem.event.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Event</p>
+              <p className="font-semibold text-gray-900 dark:text-gray-100">{ticket.orderItem.event.title}</p>
             </div>
 
-            <div className="flex gap-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
               <div>
-                <p className="text-xs text-gray-500">Date</p>
-                <div className="flex items-center gap-1 text-sm text-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Date</p>
+                <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-200">
                   <Calendar className="h-3.5 w-3.5" />
                   {new Date(ticket.orderItem.event.startDate).toLocaleDateString('en-IN', { dateStyle: 'long' })}
                 </div>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Venue</p>
-                <div className="flex items-center gap-1 text-sm text-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Venue</p>
+                <div className="flex items-center gap-1 text-sm text-gray-700 dark:text-gray-200">
                   <MapPin className="h-3.5 w-3.5" />
                   {ticket.orderItem.event.venue}
                 </div>
@@ -126,12 +126,12 @@ export default function VerifyTicketPage() {
             </div>
 
             <div>
-              <p className="text-xs text-gray-500">Ticket Type</p>
-              <p className="text-sm font-medium text-gray-700">{ticket.orderItem.ticketType.name}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Ticket Type</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{ticket.orderItem.ticketType.name}</p>
             </div>
 
             {isUsed && ticket.checkedInAt && (
-              <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+              <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-700 dark:text-amber-400">
                 Checked in at {new Date(ticket.checkedInAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </div>
             )}

@@ -79,20 +79,20 @@ export default function ApprovalsPage() {
   };
 
   if (loading) {
-    return <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-gray-200" />)}</div>;
+    return <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />)}</div>;
   }
 
   const totalPending = organisers.length + events.length;
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">Pending Approvals</h1>
+      <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Pending Approvals</h1>
 
       {totalPending === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-lg text-gray-500">No pending approvals</p>
-            <p className="mt-1 text-sm text-gray-400">All caught up!</p>
+            <p className="text-lg text-gray-500 dark:text-gray-400">No pending approvals</p>
+            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">All caught up!</p>
           </CardContent>
         </Card>
       ) : (
@@ -100,37 +100,37 @@ export default function ApprovalsPage() {
           {/* Pending Organisers */}
           {organisers.length > 0 && (
             <div>
-              <h2 className="mb-4 text-lg font-semibold text-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100">
                 Organiser Registrations ({organisers.length})
               </h2>
               <div className="space-y-3">
                 {organisers.map((org) => (
                   <Card key={org.id}>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-gray-900">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">
                             {org.firstName} {org.lastName}
                           </p>
-                          <p className="text-sm text-gray-500">{org.email}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 break-all">{org.email}</p>
                           {org.phone && (
-                            <p className="text-sm text-gray-500">{org.phone}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{org.phone}</p>
                           )}
                           {org.orgName && (
-                            <p className="mt-1 text-sm text-gray-700">
+                            <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
                               <span className="font-medium">Org:</span> {org.orgName}
                             </p>
                           )}
                           {org.orgDescription && (
-                            <p className="mt-1 text-sm text-gray-500">{org.orgDescription}</p>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{org.orgDescription}</p>
                           )}
-                          <div className="mt-1 flex gap-3 text-xs text-gray-400">
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
                             <span>Registered: {new Date(org.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span>
                             {org.idDocumentType && <span>ID: {org.idDocumentType}</span>}
                             <span>{org.profileCompleted ? 'Profile complete' : 'Profile incomplete'}</span>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end">
+                        <div className="flex flex-col gap-2 sm:items-end">
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -151,7 +151,7 @@ export default function ApprovalsPage() {
                           <input
                             type="text"
                             placeholder="Rejection reason (optional)"
-                            className="w-56 rounded-md border border-gray-300 px-2 py-1 text-xs"
+                            className="w-full sm:w-56 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs"
                             value={rejectReason[org.id] || ''}
                             onChange={(e) => setRejectReason((prev) => ({ ...prev, [org.id]: e.target.value }))}
                           />
@@ -167,36 +167,36 @@ export default function ApprovalsPage() {
           {/* Pending Events */}
           {events.length > 0 && (
             <div>
-              <h2 className="mb-4 text-lg font-semibold text-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100">
                 Event Submissions ({events.length})
               </h2>
               <div className="space-y-3">
                 {events.map((event) => (
                   <Card key={event.id}>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{event.title}</p>
-                          <p className="text-sm text-gray-500">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {event.category.name} &middot; {event.venue}, {event.city}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {new Date(event.startDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                           </p>
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-1 text-sm text-gray-500 break-all">
                             <span className="font-medium">By:</span>{' '}
                             {event.organiser.orgName || `${event.organiser.firstName} ${event.organiser.lastName}`}{' '}
                             ({event.organiser.email})
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             {event.ticketTypes.map((tt) => (
-                              <span key={tt.name} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                              <span key={tt.name} className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
                                 {tt.name}: ₹{Number(tt.price)} x{tt.totalQty}
                               </span>
                             ))}
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end ml-4">
+                        <div className="flex flex-col gap-2 sm:items-end sm:ml-4">
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -217,7 +217,7 @@ export default function ApprovalsPage() {
                           <input
                             type="text"
                             placeholder="Rejection reason (optional)"
-                            className="w-56 rounded-md border border-gray-300 px-2 py-1 text-xs"
+                            className="w-full sm:w-56 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs"
                             value={rejectReason[event.id] || ''}
                             onChange={(e) => setRejectReason((prev) => ({ ...prev, [event.id]: e.target.value }))}
                           />
