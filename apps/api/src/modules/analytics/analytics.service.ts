@@ -23,6 +23,7 @@ export class AnalyticsService {
       staffCount,
       monthlyRevenue,
       lastMonthRevenue,
+      organiserUser,
     ] = await Promise.all([
       this.prisma.order.aggregate({
         where: { items: { some: { event: { organiserId } } }, status: OrderStatus.CONFIRMED },
@@ -65,6 +66,10 @@ export class AnalyticsService {
       this.prisma.order.aggregate({
         where: { items: { some: { event: { organiserId } } }, status: OrderStatus.CONFIRMED, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
         _sum: { orgPayout: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: organiserId },
+        select: { orgCommissionPercent: true },
       }),
     ]);
 
@@ -114,7 +119,11 @@ export class AnalyticsService {
         eventsMax: subscription?.maxEvents || 2,
         staffUsed: staffCount,
         staffMax: subscription?.maxStaffAccounts || 1,
-        commission: Number(subscription?.commissionPercent || 4),
+        commission: organiserUser?.orgCommissionPercent != null
+          ? Number(organiserUser.orgCommissionPercent)
+          : Number(subscription?.commissionPercent || 4),
+        commissionSource: organiserUser?.orgCommissionPercent != null ? 'custom' : 'plan',
+        planCommission: Number(subscription?.commissionPercent || 4),
         expiresAt: subscription?.endDate || null,
       },
       topSellingEvents: topEvents
@@ -124,6 +133,50 @@ export class AnalyticsService {
           ticketsSold: e.orderItems.reduce((sum, oi) => sum + oi.quantity, 0),
         }))
         .sort((a, b) => b.revenue - a.revenue),
+    };
+  }
+
+  async getEventMetrics(eventId: string) {
+    const [ticketStats, orderStats, ticketTypeStats] = await Promise.all([
+      this.prisma.ticket.groupBy({
+        by: ['status'],
+        where: { orderItem: { eventId } },
+        _count: true,
+      }),
+      this.prisma.order.aggregate({
+        where: { items: { some: { eventId } }, status: OrderStatus.CONFIRMED },
+        _count: true,
+        _sum: { totalAmount: true, orgPayout: true },
+      }),
+      this.prisma.ticketType.findMany({
+        where: { eventId },
+        select: { name: true, totalQty: true, soldQty: true, price: true },
+        orderBy: { sortOrder: 'asc' },
+      }),
+    ]);
+
+    const totalTickets = ticketStats.reduce((sum, t) => sum + t._count, 0);
+    const attended = ticketStats.find((t) => t.status === TicketStatus.USED)?._count || 0;
+    const activeTickets = ticketStats.find((t) => t.status === TicketStatus.ACTIVE)?._count || 0;
+    const cancelledTickets = ticketStats.find((t) => t.status === TicketStatus.CANCELLED)?._count || 0;
+    const notAttended = activeTickets;
+
+    return {
+      totalPurchased: totalTickets,
+      attended,
+      notAttended,
+      cancelledTickets,
+      attendanceRate: totalTickets > 0 ? Math.round((attended / (attended + notAttended)) * 100 * 10) / 10 : 0,
+      totalOrders: orderStats._count,
+      totalRevenue: Number(orderStats._sum.totalAmount || 0),
+      organiserPayout: Number(orderStats._sum.orgPayout || 0),
+      ticketTypes: ticketTypeStats.map((tt) => ({
+        name: tt.name,
+        totalQty: tt.totalQty,
+        soldQty: tt.soldQty,
+        available: tt.totalQty - tt.soldQty,
+        price: Number(tt.price),
+      })),
     };
   }
 

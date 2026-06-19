@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Search, Eye, X, Phone, Mail, Calendar, Shield, Building } from 'lucide-react';
+import { Search, Eye, X, Phone, Mail, Calendar, Shield, Building, Percent } from 'lucide-react';
 
 interface User {
   id: string;
@@ -23,6 +23,9 @@ interface User {
   emailVerified: boolean;
   idDocumentType: string | null;
   profileCompleted: boolean;
+  orgCommissionPercent: string | null;
+  planTier: string;
+  planCommissionPercent: number;
   createdAt: string;
   _count: { events: number };
 }
@@ -53,6 +56,8 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showSuspendModal, setShowSuspendModal] = useState<User | null>(null);
   const [statusReason, setSuspendReason] = useState('');
+  const [commissionInput, setCommissionInput] = useState('');
+  const [commissionLoading, setCommissionLoading] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -96,6 +101,33 @@ export default function AdminUsersPage() {
       setActionLoading(null);
     }
   };
+
+  const handleCommissionUpdate = async (userId: string, commissionPercent: number | null) => {
+    setCommissionLoading(true);
+    try {
+      await apiClient.patch(`/admin/users/${userId}/commission`, { commissionPercent });
+      await fetchUsers();
+      // Update selectedUser with refreshed data
+      setSelectedUser((prev) => {
+        if (!prev) return prev;
+        const updated = users.find((u) => u.id === userId);
+        return updated || prev;
+      });
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+      alert(axiosError.response?.data?.error?.message || 'Failed to update commission');
+    } finally {
+      setCommissionLoading(false);
+    }
+  };
+
+  // Sync selectedUser when users list refreshes
+  useEffect(() => {
+    if (selectedUser) {
+      const updated = users.find((u) => u.id === selectedUser.id);
+      if (updated) setSelectedUser(updated);
+    }
+  }, [users]);
 
   return (
     <div>
@@ -263,6 +295,67 @@ export default function AdminUsersPage() {
                       ID: {selectedUser.idDocumentType || 'Not uploaded'} | Profile: {selectedUser.profileCompleted ? 'Complete' : 'Incomplete'}
                     </div>
                     <div className="text-gray-600 dark:text-gray-300 pl-6">Events created: {selectedUser._count.events}</div>
+
+                    {/* Commission Override */}
+                    <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Percent className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Commission Override</span>
+                      </div>
+                      <div className="text-sm mb-3">
+                        {selectedUser.orgCommissionPercent !== null ? (
+                          <span className="text-orange-600 dark:text-orange-400 font-medium">
+                            {Number(selectedUser.orgCommissionPercent)}% (custom)
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Using plan commission ({selectedUser.planTier} plan = {selectedUser.planCommissionPercent}%)
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="100"
+                          placeholder="e.g. 3.5"
+                          value={commissionInput}
+                          onChange={(e) => setCommissionInput(e.target.value)}
+                          className="w-24 h-8 text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                          disabled={commissionLoading || !commissionInput}
+                          onClick={() => {
+                            const val = parseFloat(commissionInput);
+                            if (isNaN(val) || val < 0 || val > 100) {
+                              alert('Enter a valid commission between 0 and 100');
+                              return;
+                            }
+                            handleCommissionUpdate(selectedUser.id, val);
+                            setCommissionInput('');
+                          }}
+                        >
+                          {commissionLoading ? 'Saving...' : 'Set Custom Commission'}
+                        </Button>
+                        {selectedUser.orgCommissionPercent !== null && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            disabled={commissionLoading}
+                            onClick={() => {
+                              handleCommissionUpdate(selectedUser.id, null);
+                              setCommissionInput('');
+                            }}
+                          >
+                            Reset to Plan Default
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </>
                 )}
 

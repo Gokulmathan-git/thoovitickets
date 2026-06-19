@@ -22,6 +22,12 @@ export default function CheckoutPage() {
   const [paymentStep, setPaymentStep] = useState<'review' | 'paying'>('review');
 
   const [guestInfo, setGuestInfo] = useState({ name: '', email: '', phone: '' });
+  const [priceBreakdown, setPriceBreakdown] = useState<{
+    subtotal: number;
+    convenienceFee: number;
+    platformFee: number;
+    totalAmount: number;
+  } | null>(null);
 
   const isGuestCheckout = !user;
 
@@ -45,6 +51,22 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!loading && items.length === 0) router.push('/cart');
   }, [loading, items.length, router]);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    apiClient
+      .post('/orders/price-breakdown', {
+        items: items.map((item) => ({
+          ticketTypeId: item.ticketType.id,
+          quantity: item.quantity,
+        })),
+      })
+      .then((res) => setPriceBreakdown(res.data.data))
+      .catch(() => {
+        // Fallback: show subtotal as total with zero fees
+        setPriceBreakdown({ subtotal: total, convenienceFee: 0, platformFee: 0, totalAmount: total });
+      });
+  }, [items, total]);
 
   const handlePlaceOrder = async () => {
     if (isGuestCheckout) {
@@ -294,15 +316,19 @@ export default function CheckoutPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-gray-600 dark:text-gray-300">
                 <span>Subtotal</span>
-                <span>₹{total.toLocaleString('en-IN')}</span>
+                <span>₹{(priceBreakdown?.subtotal ?? total).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                <span>Convenience Fee</span>
-                <span className="text-green-600">Free</span>
+                <span>Platform Fee</span>
+                {priceBreakdown && priceBreakdown.platformFee > 0 ? (
+                  <span>₹{priceBreakdown.platformFee.toLocaleString('en-IN')}</span>
+                ) : (
+                  <span className="text-green-600">Free</span>
+                )}
               </div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-gray-100 text-lg">
                 <span>Total</span>
-                <span>₹{total.toLocaleString('en-IN')}</span>
+                <span>₹{(priceBreakdown?.totalAmount ?? total).toLocaleString('en-IN')}</span>
               </div>
             </div>
 
@@ -312,7 +338,7 @@ export default function CheckoutPage() {
               onClick={handlePlaceOrder}
               disabled={placing || (isGuestCheckout && (!guestInfo.email || !guestInfo.name))}
             >
-              {placing ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}`}
+              {placing ? 'Processing...' : `Pay ₹${(priceBreakdown?.totalAmount ?? total).toLocaleString('en-IN')}`}
             </Button>
 
             <div className="mt-3 flex items-center justify-center gap-1 text-xs text-gray-400 dark:text-gray-500">

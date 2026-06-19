@@ -120,6 +120,19 @@ async function main() {
     });
   }
   console.log(`Seeded ${contentPages.length} content pages.`);
+
+  // Seed convenience fee slabs
+  const slabCount = await prisma.convenienceFeeSlab.count();
+  if (slabCount === 0) {
+    await prisma.convenienceFeeSlab.createMany({
+      data: [
+        { minAmount: 1, maxAmount: 500, feeType: 'FIXED', feeValue: 5 },
+        { minAmount: 501, maxAmount: 1000, feeType: 'FIXED', feeValue: 10 },
+        { minAmount: 1001, maxAmount: null, feeType: 'PERCENTAGE', feeValue: 5 },
+      ],
+    });
+    console.log('Seeded 3 convenience fee slabs.');
+  }
 }
 
 main()

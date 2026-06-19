@@ -93,6 +93,10 @@ model PlatformConfig {
   id                    String  @id @default(cuid())
   platformFeePercent    Decimal @db.Decimal(5, 2) @default(3.00) @map("platform_fee_percent")
   defaultOrgCommission  Decimal @db.Decimal(5, 2) @default(2.00) @map("default_org_commission")
+  gstNumber             String? @map("gst_number")
+  panNumber             String? @map("pan_number")
+  companyName           String? @map("company_name")
+  companyAddress        String? @map("company_address")
 
   updatedAt             DateTime @updatedAt @map("updated_at")
 
@@ -119,6 +123,7 @@ model User {
   orgName              String?    @map("org_name")
   orgDescription       String?    @map("org_description")
   orgCommissionPercent Decimal?   @db.Decimal(5, 2) @map("org_commission_percent")
+  orgCommissionType    String?    @map("org_commission_type")
   idDocumentUrl        String?    @map("id_document_url")
   idDocumentType       String?    @map("id_document_type")
   profileCompleted     Boolean    @default(false) @map("profile_completed")
@@ -191,6 +196,8 @@ model Event {
   cancelReason String?     @map("cancel_reason")
   postponedFrom DateTime?  @map("postponed_from")
   postponeMessage String?  @map("postpone_message")
+  commissionPercent Decimal? @db.Decimal(5, 2) @map("commission_percent")
+  commissionType    String?  @map("commission_type")
 
   organiserId  String      @map("organiser_id")
   categoryId   String      @map("category_id")
@@ -302,7 +309,10 @@ model Order {
   totalAmount       Decimal     @db.Decimal(10, 2) @map("total_amount")
   orgCommission     Decimal     @db.Decimal(10, 2) @default(0) @map("org_commission")
   orgCommissionPercent Decimal  @db.Decimal(5, 2) @default(0) @map("org_commission_percent")
+  orgCommissionType String?     @map("org_commission_type")
   orgPayout         Decimal     @db.Decimal(10, 2) @default(0) @map("org_payout")
+  convenienceFee    Decimal     @db.Decimal(10, 2) @default(0) @map("convenience_fee")
+  convenienceFeeType String?    @map("convenience_fee_type")
   currency          String      @default("INR")
   guestEmail        String?     @map("guest_email")
   guestName         String?     @map("guest_name")
@@ -406,6 +416,7 @@ model Plan {
   maxTicketsPerEvent Int      @map("max_tickets_per_event")
   maxStaffAccounts   Int      @map("max_staff_accounts")
   commissionPercent  Decimal  @db.Decimal(5, 2) @map("commission_percent")
+  commissionType     String   @default("PERCENTAGE") @map("commission_type")
   features           String[] @default([])
   isActive           Boolean  @default(true) @map("is_active")
   sortOrder          Int      @default(0) @map("sort_order")
@@ -427,6 +438,7 @@ model OrgSubscription {
   maxTicketTiers     Int                @default(2) @map("max_ticket_tiers")
   maxStaffAccounts   Int                @default(1) @map("max_staff_accounts")
   commissionPercent  Decimal            @db.Decimal(5, 2) @default(4.00) @map("commission_percent")
+  commissionType     String             @default("PERCENTAGE") @map("commission_type")
   price              Decimal            @db.Decimal(10, 2) @default(0)
   startDate          DateTime           @map("start_date")
   endDate            DateTime?          @map("end_date")
@@ -480,4 +492,18 @@ model ContentPage {
 
   @@unique([slug, audience])
   @@map("content_pages")
+}
+
+model ConvenienceFeeSlab {
+  id        String   @id @default(cuid())
+  minAmount Decimal  @db.Decimal(10, 2) @map("min_amount")
+  maxAmount Decimal? @db.Decimal(10, 2) @map("max_amount")
+  feeType   String   @map("fee_type")
+  feeValue  Decimal  @db.Decimal(10, 2) @map("fee_value")
+  isActive  Boolean  @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("convenience_fee_slabs")
 }

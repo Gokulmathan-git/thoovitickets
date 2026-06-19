@@ -49,15 +49,25 @@ const statusColors: Record<string, string> = {
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [tier, setTier] = useState<string>('FREE');
+  const [commission, setCommission] = useState<number>(4);
+  const [commissionSource, setCommissionSource] = useState<string>('plan');
+  const [planCommission, setPlanCommission] = useState<number>(4);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       apiClient.get('/analytics/organiser'),
       apiClient.get('/subscriptions/my'),
-    ]).then(([analyticsRes, subRes]) => {
+      apiClient.get('/analytics/organiser/dashboard'),
+    ]).then(([analyticsRes, subRes, dashRes]) => {
       setData(analyticsRes.data.data);
       setTier(subRes.data.data?.tier || 'FREE');
+      const sub = dashRes.data.data?.subscription;
+      if (sub) {
+        setCommission(sub.commission);
+        setCommissionSource(sub.commissionSource || 'plan');
+        setPlanCommission(sub.planCommission || sub.commission);
+      }
     }).finally(() => setLoading(false));
   }, []);
 

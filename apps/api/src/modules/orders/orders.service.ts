@@ -51,13 +51,15 @@ export class OrdersService {
       }
     }
 
-    // Get organiser ID from first event for commission calculation
+    // Get organiser ID and event ID for commission calculation
     const organiserId = cart.items[0]?.ticketType.event.organiserId || undefined;
+    const eventId = cart.items[0]?.ticketType.event.id || undefined;
 
     // Calculate ALL amounts server-side from DB prices
     const pricing = await this.pricingService.calculatePriceBreakdown(
       cart.items.map((item) => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
       organiserId,
+      eventId,
     );
 
     const orderNumber = this.generateOrderNumber();
@@ -79,10 +81,13 @@ export class OrdersService {
           userId,
           subtotal: pricing.subtotal,
           platformFee: pricing.platformFee,
-          platformFeePercent: pricing.platformFeePercent,
+          platformFeePercent: 0,
+          convenienceFee: 0,
+          convenienceFeeType: pricing.platformFeeType,
           totalAmount: pricing.totalAmount,
           orgCommission: pricing.orgCommission,
           orgCommissionPercent: pricing.orgCommissionPercent,
+          orgCommissionType: pricing.orgCommissionType,
           orgPayout: pricing.orgPayout,
           guestEmail: dto.guestEmail,
           guestName: dto.guestName,
@@ -151,9 +156,11 @@ export class OrdersService {
     }
 
     const organiserId = ticketTypes[0]?.event.organiserId || undefined;
+    const eventId = ticketTypes[0]?.event.id || undefined;
     const pricing = await this.pricingService.calculatePriceBreakdown(
       dto.items.map((item) => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
       organiserId,
+      eventId,
     );
 
     const orderNumber = this.generateOrderNumber();
@@ -175,10 +182,13 @@ export class OrdersService {
           userId: null,
           subtotal: pricing.subtotal,
           platformFee: pricing.platformFee,
-          platformFeePercent: pricing.platformFeePercent,
+          platformFeePercent: 0,
+          convenienceFee: 0,
+          convenienceFeeType: pricing.platformFeeType,
           totalAmount: pricing.totalAmount,
           orgCommission: pricing.orgCommission,
           orgCommissionPercent: pricing.orgCommissionPercent,
+          orgCommissionType: pricing.orgCommissionType,
           orgPayout: pricing.orgPayout,
           guestEmail: dto.guestEmail,
           guestName: dto.guestName,

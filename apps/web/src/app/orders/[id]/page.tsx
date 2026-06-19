@@ -15,6 +15,8 @@ interface OrderDetail {
   orderNumber: string;
   status: string;
   totalAmount: number;
+  convenienceFee: number;
+  platformFee: number;
   currency: string;
   createdAt: string;
   expiresAt: string | null;
@@ -288,6 +290,22 @@ export default function OrderDetailPage() {
                   <span>₹{Number(item.totalPrice).toLocaleString('en-IN')}</span>
                 </div>
               ))}
+              <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                <span>Convenience Fee</span>
+                {Number(order.convenienceFee) > 0 ? (
+                  <span>₹{Number(order.convenienceFee).toLocaleString('en-IN')}</span>
+                ) : (
+                  <span className="text-green-600">Free</span>
+                )}
+              </div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                <span>Platform Fee</span>
+                {Number(order.platformFee) > 0 ? (
+                  <span>₹{Number(order.platformFee).toLocaleString('en-IN')}</span>
+                ) : (
+                  <span className="text-green-600">Free</span>
+                )}
+              </div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-gray-100 text-base">
                 <span>Total Paid</span>
                 <span>₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>

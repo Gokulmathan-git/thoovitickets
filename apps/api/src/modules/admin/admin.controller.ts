@@ -33,17 +33,44 @@ export class AdminController {
 
   @Patch('platform-config')
   @HttpCode(HttpStatus.OK)
-  updatePlatformConfig(@Body() body: { platformFeePercent?: number; defaultOrgCommission?: number }) {
+  updatePlatformConfig(@Body() body: { defaultOrgCommission?: number; gstNumber?: string; panNumber?: string; companyName?: string; companyAddress?: string }) {
     const updates: Promise<unknown>[] = [];
-    if (body.platformFeePercent !== undefined) updates.push(this.pricingService.updatePlatformFee(body.platformFeePercent));
     if (body.defaultOrgCommission !== undefined) updates.push(this.pricingService.updateDefaultOrgCommission(body.defaultOrgCommission));
-    return Promise.all(updates).then(() => this.pricingService.getPlatformConfig());
+    return Promise.all(updates).then(async () => {
+      const config = await this.pricingService.getPlatformConfig();
+      const updateData: Record<string, unknown> = {};
+      if (body.gstNumber !== undefined) updateData.gstNumber = body.gstNumber;
+      if (body.panNumber !== undefined) updateData.panNumber = body.panNumber;
+      if (body.companyName !== undefined) updateData.companyName = body.companyName;
+      if (body.companyAddress !== undefined) updateData.companyAddress = body.companyAddress;
+      if (Object.keys(updateData).length > 0) {
+        return this.adminService.updatePlatformConfig(config.id, updateData);
+      }
+      return config;
+    });
   }
 
   @Patch('users/:id/commission')
   @HttpCode(HttpStatus.OK)
-  updateOrgCommission(@Param('id') userId: string, @Body('commissionPercent') commissionPercent: number) {
-    return this.pricingService.updateOrgCommission(userId, commissionPercent);
+  updateOrgCommission(
+    @Param('id') userId: string,
+    @Body() body: { commissionPercent: number | null; commissionType?: string },
+  ) {
+    return this.pricingService.updateOrgCommission(userId, body.commissionPercent, body.commissionType || null);
+  }
+
+  @Patch('events/:id/commission')
+  @HttpCode(HttpStatus.OK)
+  async updateEventCommission(
+    @Param('id') eventId: string,
+    @Body() body: { commissionPercent: number | null; commissionType?: string },
+  ) {
+    return this.adminService.updateEventCommission(eventId, body.commissionPercent, body.commissionType || null);
+  }
+
+  @Get('events/:id/commission')
+  async getEventCommission(@Param('id') eventId: string) {
+    return this.adminService.getEventCommission(eventId);
   }
 
   @Get('dashboard')
@@ -182,5 +209,32 @@ export class AdminController {
     @Body() dto: { action: 'APPROVED' | 'REJECTED'; reason?: string; notes?: string },
   ) {
     return this.adminService.reviewEventAction(id, adminId, dto as any);
+  }
+
+  @Get('convenience-fees')
+  getConvenienceFeeSlabs() {
+    return this.adminService.getConvenienceFeeSlabs();
+  }
+
+  @Post('convenience-fees')
+  createConvenienceFeeSlab(
+    @Body() body: { minAmount: number; maxAmount?: number | null; feeType: string; feeValue: number; isActive?: boolean },
+  ) {
+    return this.adminService.createConvenienceFeeSlab(body);
+  }
+
+  @Patch('convenience-fees/:id')
+  @HttpCode(HttpStatus.OK)
+  updateConvenienceFeeSlab(
+    @Param('id') id: string,
+    @Body() body: { minAmount?: number; maxAmount?: number | null; feeType?: string; feeValue?: number; isActive?: boolean },
+  ) {
+    return this.adminService.updateConvenienceFeeSlab(id, body);
+  }
+
+  @Delete('convenience-fees/:id')
+  @HttpCode(HttpStatus.OK)
+  deleteConvenienceFeeSlab(@Param('id') id: string) {
+    return this.adminService.deleteConvenienceFeeSlab(id);
   }
 }

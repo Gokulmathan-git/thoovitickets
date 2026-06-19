@@ -22,7 +22,7 @@ export class TicketsService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        items: { include: { ticketType: true, event: true } },
+        items: { include: { ticketType: true, event: { include: { organiser: true } } } },
         user: true,
       },
     });
@@ -37,6 +37,8 @@ export class TicketsService {
 
     for (const item of order.items) {
       const itemAttendees = attendees.filter((a: any) => a.ticketTypeId === item.ticketTypeId);
+      const orgName = item.event.organiser?.orgName || `${item.event.organiser?.firstName || ''} ${item.event.organiser?.lastName || ''}`.trim() || 'TTX';
+      const eventDate = new Date(item.event.startDate);
 
       for (let i = 0; i < item.quantity; i++) {
         const attendee = itemAttendees[i] || {
@@ -45,7 +47,7 @@ export class TicketsService {
           phone: order.user?.phone || order.guestPhone || '',
         };
 
-        const ticketCode = this.qrService.generateTicketCode();
+        const ticketCode = this.qrService.generateTicketCode(orgName, eventDate);
         const { qrData, qrDataUrl } = await this.qrService.generateQrDataUrl(ticketCode);
 
         ticketsToCreate.push({
@@ -91,6 +93,7 @@ export class TicketsService {
         totalPrice: Number(item.totalPrice),
       })),
       subtotal: Number(order.subtotal),
+      convenienceFee: Number(order.convenienceFee),
       platformFee: Number(order.platformFee),
       totalAmount: Number(order.totalAmount),
       currency: order.currency,
@@ -132,6 +135,7 @@ export class TicketsService {
         totalPrice: Number(item.totalPrice),
       })),
       subtotal: Number(order.subtotal),
+      convenienceFee: Number(order.convenienceFee),
       platformFee: Number(order.platformFee),
       totalAmount: Number(order.totalAmount),
       currency: order.currency,

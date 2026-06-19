@@ -3,10 +3,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 export interface PriceBreakdown {
   subtotal: number;
-  platformFeePercent: number;
   platformFee: number;
+  platformFeeType: string | null;
   totalAmount: number;
   orgCommissionPercent: number;
+  orgCommissionType: string;
   orgCommission: number;
   orgPayout: number;
 }
@@ -19,20 +20,29 @@ export class PricingService {
     let config = await this.prisma.platformConfig.findFirst();
     if (!config) {
       config = await this.prisma.platformConfig.create({
-        data: { platformFeePercent: 3.0, defaultOrgCommission: 2.0 },
+        data: { platformFeePercent: 0, defaultOrgCommission: 2.0 },
       });
     }
     return config;
   }
 
-  async getOrgCommissionPercent(organiserId: string): Promise<number> {
+  async getCommission(organiserId: string, eventId?: string): Promise<{ value: number; type: string; source: string }> {
+    if (eventId) {
+      const event = await this.prisma.event.findUnique({
+        where: { id: eventId },
+        select: { commissionPercent: true, commissionType: true },
+      });
+      if (event?.commissionPercent !== null && event?.commissionPercent !== undefined) {
+        return { value: Number(event.commissionPercent), type: event.commissionType || 'PERCENTAGE', source: 'event' };
+      }
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: organiserId },
-      select: { orgCommissionPercent: true },
+      select: { orgCommissionPercent: true, orgCommissionType: true },
     });
-
     if (user?.orgCommissionPercent !== null && user?.orgCommissionPercent !== undefined) {
-      return Number(user.orgCommissionPercent);
+      return { value: Number(user.orgCommissionPercent), type: user.orgCommissionType || 'PERCENTAGE', source: 'organiser' };
     }
 
     const sub = await this.prisma.orgSubscription.findFirst({
@@ -43,23 +53,50 @@ export class PricingService {
       },
       orderBy: { createdAt: 'desc' },
     });
-
     if (sub) {
-      return Number(sub.commissionPercent);
+      return { value: Number(sub.commissionPercent), type: (sub as any).commissionType || 'PERCENTAGE', source: 'plan' };
     }
 
-    const config = await this.getPlatformConfig();
-    return Number(config.defaultOrgCommission);
+    return { value: 4, type: 'PERCENTAGE', source: 'plan' };
+  }
+
+  calculateCommissionAmount(subtotal: number, value: number, type: string): number {
+    if (type === 'FIXED') return value;
+    return Math.round(subtotal * value) / 100;
+  }
+
+  async calculatePlatformFee(subtotal: number): Promise<{ fee: number; type: string | null }> {
+    const slab = await this.prisma.convenienceFeeSlab.findFirst({
+      where: {
+        isActive: true,
+        minAmount: { lte: subtotal },
+        OR: [
+          { maxAmount: { gte: subtotal } },
+          { maxAmount: null },
+        ],
+      },
+    });
+
+    if (!slab) return { fee: 0, type: null };
+
+    const feeValue = Number(slab.feeValue);
+
+    if (slab.feeType === 'FIXED') {
+      return { fee: feeValue, type: 'FIXED' };
+    }
+
+    if (slab.feeType === 'PERCENTAGE') {
+      return { fee: Math.round(subtotal * feeValue) / 100, type: 'PERCENTAGE' };
+    }
+
+    return { fee: 0, type: null };
   }
 
   async calculatePriceBreakdown(
     items: { ticketTypeId: string; quantity: number }[],
     organiserId?: string,
+    eventId?: string,
   ): Promise<PriceBreakdown> {
-    const config = await this.getPlatformConfig();
-    const platformFeePercent = Number(config.platformFeePercent);
-
-    // Calculate subtotal from DB prices — NEVER trust frontend
     let subtotal = 0;
     for (const item of items) {
       const ticketType = await this.prisma.ticketType.findUnique({
@@ -71,34 +108,30 @@ export class PricingService {
       }
     }
 
-    const platformFee = Math.round(subtotal * platformFeePercent) / 100;
+    const { fee: platformFee, type: platformFeeType } = await this.calculatePlatformFee(subtotal);
     const totalAmount = subtotal + platformFee;
 
-    let orgCommissionPercent = Number(config.defaultOrgCommission);
+    let commissionValue = 4;
+    let commissionType = 'PERCENTAGE';
     if (organiserId) {
-      orgCommissionPercent = await this.getOrgCommissionPercent(organiserId);
+      const commission = await this.getCommission(organiserId, eventId);
+      commissionValue = commission.value;
+      commissionType = commission.type;
     }
 
-    const orgCommission = Math.round(subtotal * orgCommissionPercent) / 100;
+    const orgCommission = this.calculateCommissionAmount(subtotal, commissionValue, commissionType);
     const orgPayout = subtotal - orgCommission;
 
     return {
       subtotal: Math.round(subtotal * 100) / 100,
-      platformFeePercent,
       platformFee: Math.round(platformFee * 100) / 100,
+      platformFeeType,
       totalAmount: Math.round(totalAmount * 100) / 100,
-      orgCommissionPercent,
+      orgCommissionPercent: commissionValue,
+      orgCommissionType: commissionType,
       orgCommission: Math.round(orgCommission * 100) / 100,
       orgPayout: Math.round(orgPayout * 100) / 100,
     };
-  }
-
-  async updatePlatformFee(feePercent: number) {
-    const config = await this.getPlatformConfig();
-    return this.prisma.platformConfig.update({
-      where: { id: config.id },
-      data: { platformFeePercent: feePercent },
-    });
   }
 
   async updateDefaultOrgCommission(commissionPercent: number) {
@@ -109,10 +142,13 @@ export class PricingService {
     });
   }
 
-  async updateOrgCommission(organiserId: string, commissionPercent: number) {
+  async updateOrgCommission(organiserId: string, commissionPercent: number | null, commissionType?: string | null) {
     return this.prisma.user.update({
       where: { id: organiserId },
-      data: { orgCommissionPercent: commissionPercent },
+      data: {
+        orgCommissionPercent: commissionPercent,
+        orgCommissionType: commissionPercent !== null ? (commissionType || 'PERCENTAGE') : null,
+      },
     });
   }
 }

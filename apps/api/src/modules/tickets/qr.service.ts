@@ -11,10 +11,13 @@ export class QrService {
     this.frontendUrl = this.configService.get<string>('frontendUrl') || 'http://localhost:3000';
   }
 
-  generateTicketCode(): string {
-    const bytes = crypto.randomBytes(6);
-    const hex = bytes.toString('hex').toUpperCase();
-    return `TT-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}`;
+  generateTicketCode(orgName: string, eventDate: Date): string {
+    const org3 = orgName.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'TTX';
+    const dd = String(eventDate.getDate()).padStart(2, '0');
+    const mm = String(eventDate.getMonth() + 1).padStart(2, '0');
+    const yy = String(eventDate.getFullYear()).slice(-2);
+    const rand = crypto.randomBytes(2).toString('hex').toUpperCase();
+    return `TT-${org3}${dd}${mm}${yy}-${rand}`;
   }
 
   async generateQrDataUrl(ticketCode: string): Promise<{ qrData: string; qrDataUrl: string }> {

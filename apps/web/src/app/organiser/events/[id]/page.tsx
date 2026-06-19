@@ -7,6 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+interface EventMetrics {
+  totalPurchased: number;
+  attended: number;
+  notAttended: number;
+  cancelledTickets: number;
+  attendanceRate: number;
+  totalOrders: number;
+  totalRevenue: number;
+  organiserPayout: number;
+  ticketTypes: { name: string; totalQty: number; soldQty: number; available: number; price: number }[];
+}
+
 interface TicketType {
   id: string;
   name: string;
@@ -73,12 +85,19 @@ export default function OrganiserEventDetailPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [showPostponeModal, setShowPostponeModal] = useState(false);
   const [postponeForm, setPostponeForm] = useState({ startDate: '', endDate: '', message: '' });
+  const [metrics, setMetrics] = useState<EventMetrics | null>(null);
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
         const res = await apiClient.get(`/events/my/${params.id}`);
         setEvent(res.data.data);
+        try {
+          const metricsRes = await apiClient.get(`/analytics/event/${params.id}`);
+          setMetrics(metricsRes.data.data);
+        } catch {
+          // metrics may not be available for all events
+        }
       } catch {
         router.push('/organiser/events');
       } finally {
@@ -358,6 +377,73 @@ export default function OrganiserEventDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Event Metrics */}
+        {metrics && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-lg">Event Metrics</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Stat boxes */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Purchased</p>
+                  <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-300">{metrics.totalPurchased}</p>
+                </div>
+                <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4">
+                  <p className="text-sm font-medium text-green-600 dark:text-green-400">Attended</p>
+                  <p className="mt-1 text-2xl font-bold text-green-700 dark:text-green-300">{metrics.attended}</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Not Attended</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-700 dark:text-amber-300">{metrics.notAttended}</p>
+                </div>
+                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4">
+                  <p className="text-sm font-medium text-red-600 dark:text-red-400">Cancelled</p>
+                  <p className="mt-1 text-2xl font-bold text-red-700 dark:text-red-300">{metrics.cancelledTickets}</p>
+                </div>
+              </div>
+
+              {/* Attendance rate progress bar */}
+              <div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-gray-700 dark:text-gray-200">Attendance Rate</span>
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">{metrics.attendanceRate.toFixed(1)}%</span>
+                </div>
+                <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div
+                    className="h-full rounded-full bg-linear-to-r from-green-400 to-green-600 transition-all duration-500"
+                    style={{ width: `${Math.min(metrics.attendanceRate, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Revenue summary */}
+              <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Revenue Summary</h4>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Total Revenue</p>
+                    <p className="mt-0.5 text-lg font-bold text-gray-900 dark:text-gray-100">
+                      ₹{Number(metrics.totalRevenue).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Your Payout</p>
+                    <p className="mt-0.5 text-lg font-bold text-green-600 dark:text-green-400">
+                      ₹{Number(metrics.organiserPayout).toLocaleString('en-IN')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Total Orders</p>
+                    <p className="mt-0.5 text-lg font-bold text-gray-900 dark:text-gray-100">{metrics.totalOrders}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Homepage Banner Management */}
         {event.status === 'PUBLISHED' && (

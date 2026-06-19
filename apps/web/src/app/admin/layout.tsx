@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
-import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee } from 'lucide-react';
 
 const sidebarLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,6 +16,7 @@ const sidebarLinks = [
   { href: '/admin/content', label: 'Content', icon: FileText },
   { href: '/admin/plans', label: 'Plans', icon: CreditCard },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
+  { href: '/admin/fees', label: 'Fees', icon: IndianRupee },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

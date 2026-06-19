@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -14,13 +15,17 @@ import {
 } from '@thoovitickets/database';
 import { ApprovalActionDto } from './dto/approval-action.dto';
 import { EventsService } from '../events/events.service';
+import { EmailService } from '../email/email.service';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsService: EventsService,
+    private readonly emailService: EmailService,
   ) {}
 
   async getDashboardStats() {
@@ -51,6 +56,52 @@ export class AdminService {
       pendingEvents,
       publishedEvents,
     };
+  }
+
+  async updateEventCommission(eventId: string, commissionPercent: number | null, commissionType?: string | null) {
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) throw new NotFoundException('Event not found');
+    return this.prisma.event.update({
+      where: { id: eventId },
+      data: {
+        commissionPercent,
+        commissionType: commissionPercent !== null ? (commissionType || 'PERCENTAGE') : null,
+      },
+      select: { id: true, title: true, commissionPercent: true, commissionType: true },
+    });
+  }
+
+  async getEventCommission(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, title: true, commissionPercent: true, organiserId: true },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: event.organiserId },
+      select: { orgCommissionPercent: true, orgName: true, firstName: true, lastName: true },
+    });
+
+    const sub = await this.prisma.orgSubscription.findFirst({
+      where: { userId: event.organiserId, status: 'ACTIVE', OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+      orderBy: { createdAt: 'desc' },
+      select: { tier: true, commissionPercent: true },
+    });
+
+    return {
+      eventCommission: event.commissionPercent ? Number(event.commissionPercent) : null,
+      organiserCommission: user?.orgCommissionPercent ? Number(user.orgCommissionPercent) : null,
+      planCommission: sub ? Number(sub.commissionPercent) : 4,
+      planTier: sub?.tier || 'FREE',
+      organiserName: user?.orgName || `${user?.firstName} ${user?.lastName}`,
+      activeSource: event.commissionPercent !== null ? 'event' : user?.orgCommissionPercent !== null ? 'organiser' : 'plan',
+      activeRate: event.commissionPercent !== null ? Number(event.commissionPercent) : user?.orgCommissionPercent !== null ? Number(user!.orgCommissionPercent) : (sub ? Number(sub.commissionPercent) : 4),
+    };
+  }
+
+  async updatePlatformConfig(id: string, data: Record<string, unknown>) {
+    return this.prisma.platformConfig.update({ where: { id }, data });
   }
 
   async getUsers(query: { role?: string; status?: string; search?: string; page?: number; limit?: number }) {
@@ -92,14 +143,31 @@ export class AdminService {
           statusReason: true,
           idDocumentType: true,
           profileCompleted: true,
+          orgCommissionPercent: true,
           createdAt: true,
+          subscriptions: {
+            where: { status: 'ACTIVE', OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { tier: true, commissionPercent: true },
+          },
           _count: { select: { events: true } },
         },
       }),
       this.prisma.user.count({ where }),
     ]);
 
-    return { users, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const usersWithSub = users.map((u) => {
+      const sub = u.subscriptions[0] || null;
+      const { subscriptions, ...rest } = u;
+      return {
+        ...rest,
+        planTier: sub?.tier || 'FREE',
+        planCommissionPercent: sub ? Number(sub.commissionPercent) : 4,
+      };
+    });
+
+    return { users: usersWithSub, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async updateUserStatus(userId: string, adminId: string, dto: UpdateUserStatusDto) {
@@ -153,6 +221,28 @@ export class AdminService {
           reviewerId: adminId,
         },
       });
+    }
+
+    // Send status change email notifications
+    try {
+      if (dto.status === 'SUSPENDED') {
+        await this.emailService.sendAccountSuspendedEmail(user.email, {
+          firstName: user.firstName,
+          reason: dto.reason || 'Account suspended by admin',
+        });
+      } else if (dto.status === 'REJECTED') {
+        await this.emailService.sendAccountRejectedEmail(user.email, {
+          firstName: user.firstName,
+          reason: dto.reason || 'Registration rejected by admin',
+        });
+      } else if (dto.status === 'ACTIVE' && user.status === UserStatus.SUSPENDED) {
+        await this.emailService.sendAccountReactivatedEmail(user.email, {
+          firstName: user.firstName,
+        });
+      }
+    } catch (emailError) {
+      // Log but don't fail the status update if email fails
+      this.logger.warn(`Failed to send status change email to ${user.email}: ${emailError}`);
     }
 
     return updated;
@@ -425,5 +515,48 @@ export class AdminService {
         ? `${typeLabels[approval.type] || 'Request'} approved and executed`
         : 'Request rejected',
     };
+  }
+
+  async getConvenienceFeeSlabs() {
+    return this.prisma.convenienceFeeSlab.findMany({
+      orderBy: { minAmount: 'asc' },
+    });
+  }
+
+  async createConvenienceFeeSlab(data: {
+    minAmount: number;
+    maxAmount?: number | null;
+    feeType: string;
+    feeValue: number;
+    isActive?: boolean;
+  }) {
+    return this.prisma.convenienceFeeSlab.create({
+      data: {
+        minAmount: data.minAmount,
+        maxAmount: data.maxAmount ?? null,
+        feeType: data.feeType,
+        feeValue: data.feeValue,
+        isActive: data.isActive ?? true,
+      },
+    });
+  }
+
+  async updateConvenienceFeeSlab(id: string, data: {
+    minAmount?: number;
+    maxAmount?: number | null;
+    feeType?: string;
+    feeValue?: number;
+    isActive?: boolean;
+  }) {
+    const slab = await this.prisma.convenienceFeeSlab.findUnique({ where: { id } });
+    if (!slab) throw new NotFoundException('Convenience fee slab not found');
+    return this.prisma.convenienceFeeSlab.update({ where: { id }, data });
+  }
+
+  async deleteConvenienceFeeSlab(id: string) {
+    const slab = await this.prisma.convenienceFeeSlab.findUnique({ where: { id } });
+    if (!slab) throw new NotFoundException('Convenience fee slab not found');
+    await this.prisma.convenienceFeeSlab.delete({ where: { id } });
+    return { message: 'Convenience fee slab deleted' };
   }
 }

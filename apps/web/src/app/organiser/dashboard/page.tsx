@@ -32,7 +32,9 @@ interface DashboardData {
   }[];
   subscription: {
     tier: string; eventsUsed: number; eventsMax: number;
-    staffUsed: number; staffMax: number; commission: number; expiresAt: string | null;
+    staffUsed: number; staffMax: number; commission: number;
+    commissionSource: 'plan' | 'custom'; planCommission: number;
+    expiresAt: string | null;
   };
   topSellingEvents: { title: string; revenue: number; ticketsSold: number }[];
 }
@@ -320,7 +322,17 @@ export default function OrganiserDashboard() {
                 <UsageBar label="Staff accounts" used={data.subscription.staffUsed} max={data.subscription.staffMax} />
                 <div className="flex items-center justify-between rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3">
                   <span className="text-sm text-gray-600 dark:text-gray-300">Commission rate</span>
-                  <span className="text-lg font-bold text-orange-600">{data.subscription.commission}%</span>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-orange-600">{data.subscription.commission}%</span>
+                    <span className="ml-1.5 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:text-orange-300">
+                      {data.subscription.commissionSource === 'custom' ? 'Custom' : 'Plan'}
+                    </span>
+                    {data.subscription.commissionSource === 'custom' && (
+                      <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">
+                        Plan default: {data.subscription.planCommission}%
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {data.subscription.expiresAt && (
                   <p className="text-xs text-gray-400 dark:text-gray-500 text-center">

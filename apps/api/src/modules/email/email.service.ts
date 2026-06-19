@@ -320,4 +320,83 @@ export class EmailService {
     `;
     await this.sendEmail(to, subject, html);
   }
+
+  async sendAccountSuspendedEmail(to: string, data: { firstName: string; reason: string }) {
+    const subject = 'Account Suspended - ThooviTickets';
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+        </div>
+        <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
+          Account Suspended
+        </h1>
+        <p style="color: #6b7280; font-size: 15px; text-align: center; margin-bottom: 24px;">
+          Hi ${data.firstName}, your ThooviTickets account has been suspended.
+        </p>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0; font-size: 13px; color: #dc2626;"><strong>Reason:</strong> ${data.reason}</p>
+        </div>
+        <p style="color: #6b7280; font-size: 14px; text-align: center;">
+          Contact support for assistance at <a href="mailto:support@thoovitickets.com" style="color: #f97316;">support@thoovitickets.com</a>
+        </p>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  async sendAccountReactivatedEmail(to: string, data: { firstName: string }) {
+    const subject = 'Account Reactivated - ThooviTickets';
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+        </div>
+        <h1 style="color: #16a34a; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
+          Account Reactivated
+        </h1>
+        <p style="color: #6b7280; font-size: 15px; text-align: center; margin-bottom: 24px;">
+          Hi ${data.firstName}, your ThooviTickets account has been reactivated.
+        </p>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+          <p style="margin: 0; font-size: 15px; color: #16a34a; font-weight: 600;">You can now access all features</p>
+        </div>
+        <div style="text-align: center;">
+          <a href="${this.frontendUrl}/login" style="display: inline-block; background: #f97316; color: white; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 600;">
+            Login to Your Account
+          </a>
+        </div>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
+
+  async sendAccountRejectedEmail(to: string, data: { firstName: string; reason: string }) {
+    const subject = 'Registration Update - ThooviTickets';
+    const html = `
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+        </div>
+        <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
+          Registration Update
+        </h1>
+        <p style="color: #6b7280; font-size: 15px; text-align: center; margin-bottom: 24px;">
+          Hi ${data.firstName}, we have an update regarding your registration.
+        </p>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0; font-size: 13px; color: #dc2626;"><strong>Reason:</strong> ${data.reason}</p>
+        </div>
+        <p style="color: #6b7280; font-size: 14px; text-align: center; margin-bottom: 24px;">
+          Login to your account to request re-approval.
+        </p>
+        <div style="text-align: center;">
+          <a href="${this.frontendUrl}/login" style="display: inline-block; background: #f97316; color: white; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 600;">
+            Login to Your Account
+          </a>
+        </div>
+      </div>
+    `;
+    await this.sendEmail(to, subject, html);
+  }
 }
