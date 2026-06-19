@@ -101,6 +101,25 @@ async function main() {
     });
   }
   console.log(`Seeded ${plans.length} plans.`);
+
+  // Seed content pages
+  const contentPages = [
+    { slug: 'privacy-policy', audience: 'customer', title: 'Privacy Policy — Customers', content: '<h2>Privacy Policy for Customers</h2><p>This privacy policy describes how ThooviTickets collects and uses your personal information when you purchase tickets.</p>' },
+    { slug: 'privacy-policy', audience: 'organiser', title: 'Privacy Policy — Organisers', content: '<h2>Privacy Policy for Organisers</h2><p>This privacy policy describes how ThooviTickets collects and uses your personal and business information when you use our platform to organise events.</p>' },
+    { slug: 'terms-of-service', audience: 'customer', title: 'Terms of Service — Customers', content: '<h2>Terms of Service for Customers</h2><p>By using ThooviTickets to purchase tickets, you agree to these terms and conditions.</p>' },
+    { slug: 'terms-of-service', audience: 'organiser', title: 'Terms of Service — Organisers', content: '<h2>Terms of Service for Organisers</h2><p>By using ThooviTickets to create and manage events, you agree to these terms and conditions.</p>' },
+    { slug: 'contact-support', audience: 'all', title: 'Contact Support', content: '<h2>Contact Support</h2><p>Need help? Reach out to us.</p><ul><li>Email: support@thoovitickets.com</li><li>Phone: +91 98765 43210</li></ul>' },
+    { slug: 'refund-policy', audience: 'all', title: 'Refund Policy', content: '<h2>Refund Policy</h2><p>Refunds are processed within 5-7 business days after an event is cancelled by the organiser.</p>' },
+  ];
+
+  for (const page of contentPages) {
+    await prisma.contentPage.upsert({
+      where: { slug_audience: { slug: page.slug, audience: page.audience } },
+      update: {},
+      create: page,
+    });
+  }
+  console.log(`Seeded ${contentPages.length} content pages.`);
 }
 
 main()

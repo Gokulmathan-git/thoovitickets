@@ -130,6 +130,22 @@ export class AdminController {
     return this.adminService.deleteCategory(id);
   }
 
+  @Get('content-pages')
+  getContentPages() {
+    return this.adminService.getContentPages();
+  }
+
+  @Get('content-pages/:id')
+  getContentPage(@Param('id') id: string) {
+    return this.adminService.getContentPage(id);
+  }
+
+  @Patch('content-pages/:id')
+  @HttpCode(HttpStatus.OK)
+  updateContentPage(@Param('id') id: string, @CurrentUser('id') adminId: string, @Body() body: { title?: string; content?: string }) {
+    return this.adminService.updateContentPage(id, adminId, body);
+  }
+
   @Get('plans')
   getPlans() {
     return this.adminService.getPlans();

@@ -341,6 +341,25 @@ export class AdminService {
     return { message: 'Category deleted' };
   }
 
+  async getContentPages() {
+    return this.prisma.contentPage.findMany({ orderBy: [{ slug: 'asc' }, { audience: 'asc' }] });
+  }
+
+  async getContentPage(id: string) {
+    const page = await this.prisma.contentPage.findUnique({ where: { id } });
+    if (!page) throw new NotFoundException('Content page not found');
+    return page;
+  }
+
+  async updateContentPage(id: string, adminId: string, data: { title?: string; content?: string }) {
+    const page = await this.prisma.contentPage.findUnique({ where: { id } });
+    if (!page) throw new NotFoundException('Content page not found');
+    return this.prisma.contentPage.update({
+      where: { id },
+      data: { ...data, updatedBy: adminId },
+    });
+  }
+
   async markPaymentRefunded(paymentId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },

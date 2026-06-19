@@ -465,3 +465,19 @@ model StaffAccount {
   @@index([userId])
   @@map("staff_accounts")
 }
+
+model ContentPage {
+  id        String   @id @default(cuid())
+  slug      String
+  audience  String
+  title     String
+  content   String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([slug, audience])
+  @@map("content_pages")
+}
