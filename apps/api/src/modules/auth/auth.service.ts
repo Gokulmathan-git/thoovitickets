@@ -292,16 +292,21 @@ export class AuthService {
 
   private getRefreshExpiryByRole(role: string): string {
     switch (role) {
-      case 'ADMIN': return '5h';
-      case 'ORGANISER': return '12h';
-      default: return '24h';
+      case 'ADMIN': return this.configService.get<string>('jwt.refreshExpiryAdmin') ?? '5h';
+      case 'ORGANISER': return this.configService.get<string>('jwt.refreshExpiryOrganiser') ?? '12h';
+      default: return this.configService.get<string>('jwt.refreshExpiryCustomer') ?? '24h';
     }
   }
 
   getRefreshMaxAgeByRole(role: string): number {
-    switch (role) {
-      case 'ADMIN': return 5 * 60 * 60 * 1000;
-      case 'ORGANISER': return 12 * 60 * 60 * 1000;
+    const expiry = this.getRefreshExpiryByRole(role);
+    const match = expiry.match(/^(\d+)(h|m|d)$/);
+    if (!match) return 24 * 60 * 60 * 1000;
+    const value = parseInt(match[1]);
+    switch (match[2]) {
+      case 'h': return value * 60 * 60 * 1000;
+      case 'm': return value * 60 * 1000;
+      case 'd': return value * 24 * 60 * 60 * 1000;
       default: return 24 * 60 * 60 * 1000;
     }
   }

@@ -5,7 +5,9 @@ export default () => ({
     accessSecret: process.env.JWT_ACCESS_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
-    refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
+    refreshExpiryAdmin: process.env.JWT_REFRESH_EXPIRY_ADMIN || '5h',
+    refreshExpiryOrganiser: process.env.JWT_REFRESH_EXPIRY_ORGANISER || '12h',
+    refreshExpiryCustomer: process.env.JWT_REFRESH_EXPIRY_CUSTOMER || '24h',
   },
   database: {
     url: process.env.DATABASE_URL,
