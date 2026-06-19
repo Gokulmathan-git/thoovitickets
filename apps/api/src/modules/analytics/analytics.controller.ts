@@ -9,6 +9,12 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Roles(UserRole.ORGANISER)
+  @Get('organiser/dashboard')
+  getOrganiserDashboard(@CurrentUser('id') organiserId: string) {
+    return this.analyticsService.getOrganiserDashboard(organiserId);
+  }
+
+  @Roles(UserRole.ORGANISER)
   @Get('organiser')
   getOrganiserAnalytics(@CurrentUser('id') organiserId: string) {
     return this.analyticsService.getOrganiserAnalytics(organiserId);

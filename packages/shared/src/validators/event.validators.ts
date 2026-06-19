@@ -25,6 +25,8 @@ export const createEventBaseSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   maxAttendees: z.number().int().min(1).optional(),
   tags: z.array(z.string()).default([]),
+  timezone: z.string().default('Asia/Kolkata'),
+  saleCutoffDate: z.string().datetime().optional(),
   ticketTypes: z.array(ticketTypeSchema).min(1, 'At least one ticket type is required'),
 });
 

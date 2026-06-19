@@ -222,7 +222,7 @@ export default function CreateEventPage() {
             <CardTitle className="text-lg">Date & Location</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date & Time *</Label>
                 <Input id="startDate" type="datetime-local" error={errors.startDate?.message} {...register('startDate', {
@@ -235,6 +235,36 @@ export default function CreateEventPage() {
                   setValueAs: (v: string) => v ? new Date(v).toISOString() : '',
                 })} />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="saleCutoffDate">Ticket Sale Cutoff</Label>
+                <Input id="saleCutoffDate" type="datetime-local" {...register('saleCutoffDate' as any, {
+                  setValueAs: (v: string) => v ? new Date(v).toISOString() : undefined,
+                })} />
+                <p className="text-xs text-gray-400">Sales stop at this time</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timezone">Event Timezone</Label>
+              <select
+                id="timezone"
+                className="flex w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                {...register('timezone' as any)}
+                defaultValue="Asia/Kolkata"
+              >
+                <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                <option value="America/New_York">America/New_York (EST)</option>
+                <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
+                <option value="America/Chicago">America/Chicago (CST)</option>
+                <option value="Europe/London">Europe/London (GMT)</option>
+                <option value="Europe/Paris">Europe/Paris (CET)</option>
+                <option value="Europe/Berlin">Europe/Berlin (CET)</option>
+                <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+                <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+                <option value="Australia/Sydney">Australia/Sydney (AEST)</option>
+                <option value="Pacific/Auckland">Pacific/Auckland (NZST)</option>
+              </select>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

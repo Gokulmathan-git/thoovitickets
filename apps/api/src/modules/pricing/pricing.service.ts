@@ -35,6 +35,19 @@ export class PricingService {
       return Number(user.orgCommissionPercent);
     }
 
+    const sub = await this.prisma.orgSubscription.findFirst({
+      where: {
+        userId: organiserId,
+        status: 'ACTIVE',
+        OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (sub) {
+      return Number(sub.commissionPercent);
+    }
+
     const config = await this.getPlatformConfig();
     return Number(config.defaultOrgCommission);
   }

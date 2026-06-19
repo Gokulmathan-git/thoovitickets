@@ -129,4 +129,42 @@ export class AdminController {
   deleteCategory(@Param('id') id: string) {
     return this.adminService.deleteCategory(id);
   }
+
+  @Get('plans')
+  getPlans() {
+    return this.adminService.getPlans();
+  }
+
+  @Post('plans')
+  createPlan(@Body() body: any) {
+    return this.adminService.createPlan(body);
+  }
+
+  @Patch('plans/:id')
+  @HttpCode(HttpStatus.OK)
+  updatePlan(@Param('id') id: string, @Body() body: any) {
+    return this.adminService.updatePlan(id, body);
+  }
+
+  @Delete('plans/:id')
+  @HttpCode(HttpStatus.OK)
+  deletePlan(@Param('id') id: string) {
+    return this.adminService.deletePlan(id);
+  }
+
+  @Post('payments/:id/mark-refunded')
+  @HttpCode(HttpStatus.OK)
+  markPaymentRefunded(@Param('id') id: string) {
+    return this.adminService.markPaymentRefunded(id);
+  }
+
+  @Post('approvals/:id/review')
+  @HttpCode(HttpStatus.OK)
+  reviewEventAction(
+    @Param('id') id: string,
+    @CurrentUser('id') adminId: string,
+    @Body() dto: { action: 'APPROVED' | 'REJECTED'; reason?: string; notes?: string },
+  ) {
+    return this.adminService.reviewEventAction(id, adminId, dto as any);
+  }
 }

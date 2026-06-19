@@ -18,6 +18,7 @@ const USER_SELECT = {
   idDocumentUrl: true,
   idDocumentType: true,
   profileCompleted: true,
+  statusReason: true,
   createdAt: true,
   updatedAt: true,
 };

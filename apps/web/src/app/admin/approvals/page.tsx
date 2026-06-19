@@ -113,6 +113,9 @@ export default function ApprovalsPage() {
                             {org.firstName} {org.lastName}
                           </p>
                           <p className="text-sm text-gray-500">{org.email}</p>
+                          {org.phone && (
+                            <p className="text-sm text-gray-500">{org.phone}</p>
+                          )}
                           {org.orgName && (
                             <p className="mt-1 text-sm text-gray-700">
                               <span className="font-medium">Org:</span> {org.orgName}
@@ -121,9 +124,11 @@ export default function ApprovalsPage() {
                           {org.orgDescription && (
                             <p className="mt-1 text-sm text-gray-500">{org.orgDescription}</p>
                           )}
-                          <p className="mt-1 text-xs text-gray-400">
-                            Registered: {new Date(org.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
-                          </p>
+                          <div className="mt-1 flex gap-3 text-xs text-gray-400">
+                            <span>Registered: {new Date(org.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span>
+                            {org.idDocumentType && <span>ID: {org.idDocumentType}</span>}
+                            <span>{org.profileCompleted ? 'Profile complete' : 'Profile incomplete'}</span>
+                          </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
                           <div className="flex gap-2">

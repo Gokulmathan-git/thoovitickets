@@ -46,6 +46,8 @@ const statusColors: Record<string, string> = {
   APPROVED: 'bg-blue-100 text-blue-700',
   PUBLISHED: 'bg-green-100 text-green-700',
   REJECTED: 'bg-red-100 text-red-700',
+  CANCELLED: 'bg-red-100 text-red-700',
+  POSTPONED: 'bg-orange-100 text-orange-700',
 };
 
 const statusLabels: Record<string, string> = {
@@ -54,6 +56,8 @@ const statusLabels: Record<string, string> = {
   APPROVED: 'Approved',
   PUBLISHED: 'Published',
   REJECTED: 'Rejected',
+  CANCELLED: 'Cancelled',
+  POSTPONED: 'Postponed',
 };
 
 export default function OrganiserEventDetailPage() {
@@ -65,6 +69,10 @@ export default function OrganiserEventDetailPage() {
   const [bannerForm, setBannerForm] = useState({ url: '', title: '', desc: '' });
   const [bannerLoading, setBannerLoading] = useState(false);
   const [bannerMsg, setBannerMsg] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [showPostponeModal, setShowPostponeModal] = useState(false);
+  const [postponeForm, setPostponeForm] = useState({ startDate: '', endDate: '', message: '' });
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -107,6 +115,40 @@ export default function OrganiserEventDetailPage() {
     }
   };
 
+  const handleCancelEvent = async () => {
+    if (!event || !cancelReason.trim()) return;
+    setActionLoading(true);
+    try {
+      await apiClient.post(`/events/${event.id}/request-cancel`, { reason: cancelReason });
+      alert('Cancellation request submitted. Admin will review it.');
+      setShowCancelModal(false);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+      alert(axiosError.response?.data?.error?.message || 'Failed to cancel event');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePostponeEvent = async () => {
+    if (!event || !postponeForm.startDate || !postponeForm.endDate || !postponeForm.message.trim()) return;
+    setActionLoading(true);
+    try {
+      await apiClient.post(`/events/${event.id}/request-postpone`, {
+        startDate: new Date(postponeForm.startDate).toISOString(),
+        endDate: new Date(postponeForm.endDate).toISOString(),
+        message: postponeForm.message,
+      });
+      alert('Postponement request submitted. Admin will review it.');
+      setShowPostponeModal(false);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+      alert(axiosError.response?.data?.error?.message || 'Failed to postpone event');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-gray-200" />)}</div>;
   }
@@ -115,6 +157,8 @@ export default function OrganiserEventDetailPage() {
 
   const canSubmit = event.status === 'DRAFT' || event.status === 'REJECTED';
   const canDelete = event.status === 'DRAFT';
+  const canCancel = event.status === 'PUBLISHED' || event.status === 'APPROVED';
+  const canPostpone = event.status === 'PUBLISHED';
 
   return (
     <div>
@@ -134,6 +178,16 @@ export default function OrganiserEventDetailPage() {
               {actionLoading ? 'Submitting...' : 'Submit for Approval'}
             </Button>
           )}
+          {canPostpone && (
+            <Button variant="outline" onClick={() => setShowPostponeModal(true)} disabled={actionLoading}>
+              Request Postpone
+            </Button>
+          )}
+          {canCancel && (
+            <Button variant="destructive" onClick={() => setShowCancelModal(true)} disabled={actionLoading}>
+              Request Cancel
+            </Button>
+          )}
           {canDelete && (
             <Button variant="destructive" onClick={handleDelete} disabled={actionLoading}>
               Delete
@@ -141,6 +195,72 @@ export default function OrganiserEventDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Rejection Reason */}
+      {event.status === 'REJECTED' && (event as any).cancelReason && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="font-semibold text-red-800">Rejection Reason:</p>
+          <p className="mt-1 text-sm text-red-700">{(event as any).cancelReason}</p>
+        </div>
+      )}
+
+      {/* Cancel Event Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-gray-900">Cancel Event</h2>
+            <p className="mt-2 text-sm text-gray-500">This will cancel all tickets and notify ticket holders. Refunds will be processed manually.</p>
+            <textarea
+              placeholder="Reason for cancellation..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="mt-4 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none"
+              rows={3}
+            />
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowCancelModal(false)}>Back</Button>
+              <Button variant="destructive" onClick={handleCancelEvent} disabled={actionLoading || !cancelReason.trim()}>
+                {actionLoading ? 'Cancelling...' : 'Confirm Cancel'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Postpone Event Modal */}
+      {showPostponeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-gray-900">Postpone Event</h2>
+            <p className="mt-2 text-sm text-gray-500">Change the event dates. All ticket holders will be notified with your message.</p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">New Start Date *</label>
+                <input type="datetime-local" value={postponeForm.startDate} onChange={(e) => setPostponeForm({ ...postponeForm, startDate: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">New End Date *</label>
+                <input type="datetime-local" value={postponeForm.endDate} onChange={(e) => setPostponeForm({ ...postponeForm, endDate: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-200 p-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Message to Ticket Holders *</label>
+                <textarea value={postponeForm.message} onChange={(e) => setPostponeForm({ ...postponeForm, message: e.target.value })}
+                  placeholder="Explain why the event is being rescheduled..."
+                  className="mt-1 w-full rounded-lg border border-gray-200 p-3 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none" rows={3} />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowPostponeModal(false)}>Back</Button>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={handlePostponeEvent}
+                disabled={actionLoading || !postponeForm.startDate || !postponeForm.endDate || !postponeForm.message.trim()}>
+                {actionLoading ? 'Updating...' : 'Confirm Postpone'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>

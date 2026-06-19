@@ -120,4 +120,26 @@ export class EventsController {
   ) {
     return this.eventsService.delete(id, organiserId);
   }
+
+  @Roles(UserRole.ORGANISER)
+  @Post(':id/request-cancel')
+  @HttpCode(HttpStatus.OK)
+  requestCancelEvent(
+    @Param('id') id: string,
+    @CurrentUser('id') organiserId: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.eventsService.requestCancelEvent(id, organiserId, reason);
+  }
+
+  @Roles(UserRole.ORGANISER)
+  @Post(':id/request-postpone')
+  @HttpCode(HttpStatus.OK)
+  requestPostponeEvent(
+    @Param('id') id: string,
+    @CurrentUser('id') organiserId: string,
+    @Body() body: { startDate: string; endDate: string; saleCutoffDate?: string; message: string },
+  ) {
+    return this.eventsService.requestPostponeEvent(id, organiserId, body);
+  }
 }

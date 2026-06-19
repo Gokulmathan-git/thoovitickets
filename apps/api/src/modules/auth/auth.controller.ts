@@ -19,7 +19,8 @@ export class AuthController {
     const result = await this.authService.register(dto);
 
     if (result.refreshToken) {
-      this.setRefreshTokenCookie(response, result.refreshToken);
+      const role = (result.user as any)?.role || 'CUSTOMER';
+      this.setRefreshTokenCookie(response, result.refreshToken, role);
     }
 
     return {
@@ -34,7 +35,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body('token') token: string, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.verifyEmail(token);
-    this.setRefreshTokenCookie(response, result.refreshToken);
+    const role = (result.user as any)?.role || 'CUSTOMER';
+    this.setRefreshTokenCookie(response, result.refreshToken, role);
     return { user: result.user, accessToken: result.accessToken, message: result.message };
   }
 
@@ -50,8 +52,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.login(dto);
-
-    this.setRefreshTokenCookie(response, result.refreshToken);
+    const role = (result.user as any)?.role || 'CUSTOMER';
+    this.setRefreshTokenCookie(response, result.refreshToken, role);
 
     return {
       user: result.user,
@@ -68,8 +70,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.authService.refreshTokens(user.sub, user.refreshToken);
-
-    this.setRefreshTokenCookie(response, result.refreshToken);
+    this.setRefreshTokenCookie(response, result.refreshToken, result.role);
 
     return { accessToken: result.accessToken };
   }
@@ -121,13 +122,14 @@ export class AuthController {
     return this.authService.changePassword(userId, currentPassword, newPassword);
   }
 
-  private setRefreshTokenCookie(response: Response, refreshToken: string) {
+  private setRefreshTokenCookie(response: Response, refreshToken: string, role?: string) {
+    const maxAge = this.authService.getRefreshMaxAgeByRole(role || 'CUSTOMER');
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge,
     });
   }
 }

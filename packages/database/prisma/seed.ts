@@ -64,6 +64,43 @@ async function main() {
     });
     console.log('Platform config created: 3% platform fee, 2% org commission.');
   }
+
+  // Seed plans
+  const plans = [
+    {
+      tier: 'FREE', name: 'Free', price: 0,
+      maxEventsPerMonth: 2, maxTicketTiers: 2, maxTicketsPerEvent: 300, maxStaffAccounts: 1,
+      commissionPercent: 4.00, sortOrder: 1,
+      features: ['2 events per month', '2 ticket tiers per event', '300 tickets per event', '1 staff account', 'Basic analytics'],
+    },
+    {
+      tier: 'PRO', name: 'Pro', price: 999,
+      maxEventsPerMonth: 10, maxTicketTiers: 5, maxTicketsPerEvent: 1000, maxStaffAccounts: 3,
+      commissionPercent: 3.00, sortOrder: 2,
+      features: ['10 events per month', '5 ticket tiers per event', '1,000 tickets per event', '3 staff accounts', 'Priority support', 'Detailed analytics'],
+    },
+    {
+      tier: 'ADVANCE', name: 'Advance', price: 2999,
+      maxEventsPerMonth: 50, maxTicketTiers: 10, maxTicketsPerEvent: 5000, maxStaffAccounts: 10,
+      commissionPercent: 2.00, sortOrder: 3,
+      features: ['50 events per month', '10 ticket tiers per event', '5,000 tickets per event', '10 staff accounts', 'Advanced analytics', 'Featured events', 'Priority support'],
+    },
+    {
+      tier: 'ENTERPRISE', name: 'Enterprise', price: 9999,
+      maxEventsPerMonth: 999, maxTicketTiers: 50, maxTicketsPerEvent: 50000, maxStaffAccounts: 50,
+      commissionPercent: 1.00, sortOrder: 4,
+      features: ['Unlimited events', 'Unlimited ticket tiers', '50,000 tickets per event', '50 staff accounts', 'Dedicated support', 'Custom branding', 'Full analytics suite'],
+    },
+  ];
+
+  for (const plan of plans) {
+    await prisma.plan.upsert({
+      where: { tier: plan.tier },
+      update: plan,
+      create: plan,
+    });
+  }
+  console.log(`Seeded ${plans.length} plans.`);
 }
 
 main()

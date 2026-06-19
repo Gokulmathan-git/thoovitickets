@@ -1,20 +1,38 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
+import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard } from 'lucide-react';
 
 const sidebarLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/approvals', label: 'Approvals', icon: ShieldCheck },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/events', label: 'Events', icon: Calendar },
+  { href: '/admin/plans', label: 'Plans', icon: CreditCard },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'ADMIN')) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" /></div>;
+  }
+
+  if (!user || user.role !== 'ADMIN') return null;
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">

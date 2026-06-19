@@ -73,12 +73,15 @@ export class CartService {
   async addItem(userId: string, dto: AddToCartDto) {
     const ticketType = await this.prisma.ticketType.findUnique({
       where: { id: dto.ticketTypeId },
-      include: { event: { select: { status: true } } },
+      include: { event: { select: { status: true, saleCutoffDate: true } } },
     });
 
     if (!ticketType) throw new NotFoundException('Ticket type not found');
     if (ticketType.event.status !== EventStatus.PUBLISHED) {
       throw new BadRequestException('Event is not available for booking');
+    }
+    if (ticketType.event.saleCutoffDate && new Date() > ticketType.event.saleCutoffDate) {
+      throw new BadRequestException('Ticket sales have ended for this event');
     }
     if (!ticketType.isActive) throw new BadRequestException('This ticket type is not available');
 

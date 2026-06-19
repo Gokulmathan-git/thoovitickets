@@ -107,6 +107,18 @@ export class CreateEventDto {
 
   @IsOptional()
   @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  @IsDateString()
+  saleCutoffDate?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   homeBannerUrl?: string;
 
   @IsOptional()

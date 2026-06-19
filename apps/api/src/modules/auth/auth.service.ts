@@ -100,14 +100,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (user.status === UserStatus.SUSPENDED) {
-      throw new ForbiddenException('Account is suspended. Contact support.');
-    }
-
-    if (user.status === UserStatus.REJECTED) {
-      throw new ForbiddenException('Account registration was rejected.');
-    }
-
     if (!user.emailVerified && user.role === UserRole.ORGANISER) {
       throw new ForbiddenException('Please verify your email before logging in. Check your inbox for the verification link.');
     }
@@ -153,6 +145,7 @@ export class AuthService {
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      role: user.role,
     };
   }
 
@@ -297,13 +290,29 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
+  private getRefreshExpiryByRole(role: string): string {
+    switch (role) {
+      case 'ADMIN': return '5h';
+      case 'ORGANISER': return '12h';
+      default: return '24h';
+    }
+  }
+
+  getRefreshMaxAgeByRole(role: string): number {
+    switch (role) {
+      case 'ADMIN': return 5 * 60 * 60 * 1000;
+      case 'ORGANISER': return 12 * 60 * 60 * 1000;
+      default: return 24 * 60 * 60 * 1000;
+    }
+  }
+
   private async generateTokens(userId: string, email: string, role: string) {
     const payload = { sub: userId, email, role };
 
     const accessSecret = this.configService.getOrThrow<string>('jwt.accessSecret');
     const refreshSecret = this.configService.getOrThrow<string>('jwt.refreshSecret');
     const accessExpiry = this.configService.get<string>('jwt.accessExpiry') ?? '15m';
-    const refreshExpiry = this.configService.get<string>('jwt.refreshExpiry') ?? '7d';
+    const refreshExpiry = this.getRefreshExpiryByRole(role);
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {

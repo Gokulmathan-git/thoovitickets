@@ -28,6 +28,7 @@ enum EventStatus {
   APPROVED
   REJECTED
   PUBLISHED
+  POSTPONED
   CANCELLED
   COMPLETED
 }
@@ -49,9 +50,15 @@ enum PaymentStatus {
 
 enum SubscriptionTier {
   FREE
-  BASIC
-  PREMIUM
+  PRO
+  ADVANCE
   ENTERPRISE
+}
+
+enum StaffAccessLevel {
+  SCANNER
+  SUB_ADMIN
+  FULL_ACCESS
 }
 
 enum SubscriptionStatus {
@@ -62,7 +69,10 @@ enum SubscriptionStatus {
 
 enum ApprovalType {
   USER_REGISTRATION
+  USER_REACTIVATION
   EVENT_PUBLISH
+  EVENT_CANCEL
+  EVENT_POSTPONE
 }
 
 enum ApprovalAction {
@@ -104,6 +114,8 @@ model User {
   avatarUrl      String?    @map("avatar_url")
   refreshToken   String?    @map("refresh_token")
 
+  statusReason   String?    @map("status_reason")
+
   orgName              String?    @map("org_name")
   orgDescription       String?    @map("org_description")
   orgCommissionPercent Decimal?   @db.Decimal(5, 2) @map("org_commission_percent")
@@ -124,6 +136,8 @@ model User {
   subscriptions       OrgSubscription[]
   approvalsRequested  AdminApproval[] @relation("ApprovalRequester")
   approvalsReviewed   AdminApproval[] @relation("ApprovalReviewer")
+  staffCreated        StaffAccount[]  @relation("OrganiserStaff")
+  staffAccess         StaffAccount[]  @relation("StaffUser")
 
   @@map("users")
 }
@@ -171,6 +185,12 @@ model Event {
   homeBannerDesc   String?  @map("home_banner_desc")
   maxAttendees Int?        @map("max_attendees")
   tags         String[]    @default([])
+  timezone     String      @default("Asia/Kolkata")
+  saleCutoffDate DateTime? @map("sale_cutoff_date")
+  cancelledAt  DateTime?   @map("cancelled_at")
+  cancelReason String?     @map("cancel_reason")
+  postponedFrom DateTime?  @map("postponed_from")
+  postponeMessage String?  @map("postpone_message")
 
   organiserId  String      @map("organiser_id")
   categoryId   String      @map("category_id")
@@ -225,6 +245,7 @@ model AdminApproval {
   action       ApprovalAction @default(PENDING)
   reason       String?
   notes        String?
+  metadata     Json?
 
   requesterId  String         @map("requester_id")
   reviewerId   String?        @map("reviewer_id")
@@ -375,24 +396,72 @@ model Ticket {
   @@map("tickets")
 }
 
+model Plan {
+  id                 String   @id @default(cuid())
+  tier               String   @unique
+  name               String
+  price              Decimal  @db.Decimal(10, 2)
+  maxEventsPerMonth  Int      @map("max_events_per_month")
+  maxTicketTiers     Int      @map("max_ticket_tiers")
+  maxTicketsPerEvent Int      @map("max_tickets_per_event")
+  maxStaffAccounts   Int      @map("max_staff_accounts")
+  commissionPercent  Decimal  @db.Decimal(5, 2) @map("commission_percent")
+  features           String[] @default([])
+  isActive           Boolean  @default(true) @map("is_active")
+  sortOrder          Int      @default(0) @map("sort_order")
+
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  subscriptions      OrgSubscription[]
+
+  @@map("plans")
+}
+
 model OrgSubscription {
-  id          String             @id @default(cuid())
-  tier        SubscriptionTier   @default(FREE)
-  status      SubscriptionStatus @default(ACTIVE)
-  maxEvents   Int                @map("max_events")
-  maxTickets  Int                @map("max_tickets")
-  price       Decimal            @db.Decimal(10, 2) @default(0)
-  startDate   DateTime           @map("start_date")
-  endDate     DateTime?          @map("end_date")
+  id                 String             @id @default(cuid())
+  tier               SubscriptionTier   @default(FREE)
+  status             SubscriptionStatus @default(ACTIVE)
+  maxEvents          Int                @map("max_events")
+  maxTickets         Int                @map("max_tickets")
+  maxTicketTiers     Int                @default(2) @map("max_ticket_tiers")
+  maxStaffAccounts   Int                @default(1) @map("max_staff_accounts")
+  commissionPercent  Decimal            @db.Decimal(5, 2) @default(4.00) @map("commission_percent")
+  price              Decimal            @db.Decimal(10, 2) @default(0)
+  startDate          DateTime           @map("start_date")
+  endDate            DateTime?          @map("end_date")
 
-  userId      String             @map("user_id")
+  userId             String             @map("user_id")
+  planId             String?            @map("plan_id")
+  scheduledPlanId    String?            @map("scheduled_plan_id")
+  scheduledPlanTier  String?            @map("scheduled_plan_tier")
 
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  user        User               @relation(fields: [userId], references: [id])
+  user               User               @relation(fields: [userId], references: [id])
+  plan               Plan?              @relation(fields: [planId], references: [id])
 
   @@index([userId])
   @@index([userId, status])
   @@map("org_subscriptions")
+}
+
+model StaffAccount {
+  id            String           @id @default(cuid())
+  accessLevel   StaffAccessLevel @map("access_level")
+  isActive      Boolean          @default(true) @map("is_active")
+
+  organiserId   String           @map("organiser_id")
+  userId        String           @map("user_id")
+
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  organiser     User             @relation("OrganiserStaff", fields: [organiserId], references: [id])
+  user          User             @relation("StaffUser", fields: [userId], references: [id])
+
+  @@unique([organiserId, userId])
+  @@index([userId])
+  @@map("staff_accounts")
 }

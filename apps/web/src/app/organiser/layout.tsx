@@ -1,20 +1,38 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
+import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users } from 'lucide-react';
 
 const sidebarLinks = [
   { href: '/organiser/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/organiser/events', label: 'My Events', icon: List },
   { href: '/organiser/events/create', label: 'Create Event', icon: CalendarPlus },
   { href: '/organiser/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/organiser/staff', label: 'Staff', icon: Users },
   { href: '/organiser/subscriptions', label: 'Subscription', icon: CreditCard },
 ];
 
 export default function OrganiserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'ORGANISER')) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" /></div>;
+  }
+
+  if (!user || user.role !== 'ORGANISER') return null;
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">

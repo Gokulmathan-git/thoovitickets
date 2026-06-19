@@ -13,11 +13,15 @@ import {
   Prisma,
 } from '@thoovitickets/database';
 import { ApprovalActionDto } from './dto/approval-action.dto';
+import { EventsService } from '../events/events.service';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsService: EventsService,
+  ) {}
 
   async getDashboardStats() {
     const [
@@ -84,6 +88,10 @@ export class AdminService {
           emailVerified: true,
           orgName: true,
           orgDescription: true,
+          avatarUrl: true,
+          statusReason: true,
+          idDocumentType: true,
+          profileCompleted: true,
           createdAt: true,
           _count: { select: { events: true } },
         },
@@ -99,24 +107,46 @@ export class AdminService {
     if (!user) throw new NotFoundException('User not found');
     if (user.role === UserRole.ADMIN) throw new BadRequestException('Cannot modify admin users');
 
+    const updateData: Record<string, unknown> = { status: dto.status as UserStatus };
+
+    if (dto.status === 'SUSPENDED') {
+      updateData.statusReason = dto.reason || 'Account suspended by admin';
+    } else if (dto.status === 'REJECTED') {
+      updateData.statusReason = dto.reason || 'Registration rejected by admin';
+    } else if (dto.status === 'ACTIVE') {
+      updateData.statusReason = null;
+    }
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { status: dto.status as UserStatus },
+      data: updateData,
       select: {
         id: true,
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
         role: true,
         status: true,
         orgName: true,
+        orgDescription: true,
+        statusReason: true,
+        emailVerified: true,
+        avatarUrl: true,
+        createdAt: true,
       },
     });
 
-    if (user.role === UserRole.ORGANISER && user.status === UserStatus.PENDING) {
+    const approvalType = user.status === UserStatus.PENDING
+      ? ApprovalType.USER_REGISTRATION
+      : dto.status === 'ACTIVE' && user.status === UserStatus.SUSPENDED
+        ? 'USER_REACTIVATION' as ApprovalType
+        : null;
+
+    if (approvalType && user.role === UserRole.ORGANISER) {
       await this.prisma.adminApproval.create({
         data: {
-          type: ApprovalType.USER_REGISTRATION,
+          type: approvalType,
           action: dto.status === 'ACTIVE' ? ApprovalAction.APPROVED : ApprovalAction.REJECTED,
           reason: dto.reason,
           requesterId: userId,
@@ -202,7 +232,7 @@ export class AdminService {
   }
 
   async getPendingApprovals() {
-    const [pendingOrganisers, pendingEvents] = await Promise.all([
+    const [pendingOrganisers, pendingEvents, pendingActions] = await Promise.all([
       this.prisma.user.findMany({
         where: { role: UserRole.ORGANISER, status: UserStatus.PENDING },
         orderBy: { createdAt: 'asc' },
@@ -211,8 +241,12 @@ export class AdminService {
           email: true,
           firstName: true,
           lastName: true,
+          phone: true,
           orgName: true,
           orgDescription: true,
+          avatarUrl: true,
+          idDocumentType: true,
+          profileCompleted: true,
           createdAt: true,
         },
       }),
@@ -222,14 +256,54 @@ export class AdminService {
         include: {
           category: true,
           organiser: {
-            select: { id: true, firstName: true, lastName: true, orgName: true, email: true },
+            select: { id: true, firstName: true, lastName: true, orgName: true, email: true, phone: true },
           },
           ticketTypes: true,
         },
       }),
+      this.prisma.adminApproval.findMany({
+        where: {
+          action: ApprovalAction.PENDING,
+          type: { in: [ApprovalType.EVENT_CANCEL, ApprovalType.EVENT_POSTPONE, 'USER_REACTIVATION' as ApprovalType] },
+        },
+        orderBy: { createdAt: 'asc' },
+        include: {
+          requester: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, orgName: true } },
+          event: { select: { id: true, title: true, venue: true, startDate: true, status: true } },
+        },
+      }),
     ]);
 
-    return { pendingOrganisers, pendingEvents };
+    return { pendingOrganisers, pendingEvents, pendingActions };
+  }
+
+  async getPlans() {
+    return this.prisma.plan.findMany({ orderBy: { sortOrder: 'asc' } });
+  }
+
+  async createPlan(data: {
+    tier: string; name: string; price: number;
+    maxEventsPerMonth: number; maxTicketTiers: number; maxTicketsPerEvent: number;
+    maxStaffAccounts: number; commissionPercent: number; features: string[]; sortOrder?: number;
+  }) {
+    return this.prisma.plan.create({ data });
+  }
+
+  async updatePlan(id: string, data: Record<string, unknown>) {
+    const plan = await this.prisma.plan.findUnique({ where: { id } });
+    if (!plan) throw new NotFoundException('Plan not found');
+    return this.prisma.plan.update({ where: { id }, data });
+  }
+
+  async deletePlan(id: string) {
+    const plan = await this.prisma.plan.findUnique({ where: { id } });
+    if (!plan) throw new NotFoundException('Plan not found');
+    if (plan.tier === 'FREE') throw new BadRequestException('Cannot delete the FREE plan');
+
+    return this.prisma.plan.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   async getCategories() {
@@ -265,5 +339,72 @@ export class AdminService {
     }
     await this.prisma.eventCategory.delete({ where: { id } });
     return { message: 'Category deleted' };
+  }
+
+  async markPaymentRefunded(paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { order: true },
+    });
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    await this.prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: 'REFUNDED' as any, metadata: { ...(payment.metadata as any || {}), refundedAt: new Date().toISOString(), refundedBy: 'admin' } },
+    });
+
+    return { message: 'Payment marked as refunded' };
+  }
+
+  async reviewEventAction(approvalId: string, adminId: string, dto: ApprovalActionDto) {
+    const approval = await this.prisma.adminApproval.findUnique({
+      where: { id: approvalId },
+      include: { event: true },
+    });
+
+    if (!approval) throw new NotFoundException('Approval request not found');
+    if (approval.action !== ApprovalAction.PENDING) throw new BadRequestException('Request already reviewed');
+
+    await this.prisma.adminApproval.update({
+      where: { id: approvalId },
+      data: {
+        action: dto.action === 'APPROVED' ? ApprovalAction.APPROVED : ApprovalAction.REJECTED,
+        reviewerId: adminId,
+        notes: dto.notes || dto.reason || null,
+      },
+    });
+
+    if (dto.action === 'APPROVED') {
+      if (approval.type === ApprovalType.EVENT_CANCEL && approval.eventId) {
+        await this.eventsService.executeCancelEvent(approval.eventId, approval.reason || 'Cancelled by organiser');
+      } else if (approval.type === ApprovalType.EVENT_POSTPONE && approval.eventId) {
+        const meta = approval.metadata as any;
+        if (meta?.startDate && meta?.endDate) {
+          await this.eventsService.executePostponeEvent(approval.eventId, {
+            startDate: meta.startDate,
+            endDate: meta.endDate,
+            saleCutoffDate: meta.saleCutoffDate,
+            message: meta.message || approval.reason || '',
+          });
+        }
+      } else if (approval.type as string === 'USER_REACTIVATION') {
+        await this.prisma.user.update({
+          where: { id: approval.requesterId },
+          data: { status: UserStatus.ACTIVE, statusReason: null },
+        });
+      }
+    }
+
+    const typeLabels: Record<string, string> = {
+      EVENT_CANCEL: 'Cancellation',
+      EVENT_POSTPONE: 'Postponement',
+      USER_REACTIVATION: 'Reactivation',
+    };
+
+    return {
+      message: dto.action === 'APPROVED'
+        ? `${typeLabels[approval.type] || 'Request'} approved and executed`
+        : 'Request rejected',
+    };
   }
 }

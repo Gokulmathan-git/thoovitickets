@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useCartStore, type CartItem } from '@/stores/cart-store';
 import { Calendar, Tag, Minus, Plus, Share2, Clock } from 'lucide-react';
 import { AttendeeForm, type AttendeeInfo } from '@/components/events/attendee-form';
+import { EventCountdown } from '@/components/events/event-countdown';
 
 interface TicketType {
   id: string;
@@ -39,6 +40,8 @@ interface EventDetail {
   longitude: number | null;
   tags: string[];
   maxAttendees: number | null;
+  timezone: string;
+  saleCutoffDate: string | null;
   category: { name: string; slug: string };
   ticketTypes: TicketType[];
   organiser: { firstName: string; lastName: string; orgName: string | null };
@@ -145,6 +148,7 @@ export default function EventDetailPage() {
   const orgName = event.organiser.orgName || `${event.organiser.firstName} ${event.organiser.lastName}`;
   const totalSelected = event.ticketTypes.reduce((sum, tt) => sum + (quantities[tt.id] || 0), 0);
   const totalPrice = event.ticketTypes.reduce((sum, tt) => sum + Number(tt.price) * (quantities[tt.id] || 0), 0);
+  const salesClosed = (event.saleCutoffDate && new Date() >= new Date(event.saleCutoffDate)) || new Date() >= new Date(event.startDate);
 
   return (
     <div className="bg-gray-50">
@@ -286,6 +290,9 @@ export default function EventDetailPage() {
           {/* ── Right Column — Sticky ── */}
           <div className="w-full lg:w-[370px] shrink-0">
             <div className="sticky top-20 space-y-4">
+              {/* Countdown Timer */}
+              <EventCountdown startDate={event.startDate} saleCutoffDate={event.saleCutoffDate} />
+
               {/* Ticket Card */}
               <div className="rounded-2xl bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-bold text-gray-900">Get Your Tickets</h2>
@@ -352,13 +359,19 @@ export default function EventDetailPage() {
                 )}
 
                 {/* CTA Button — opens attendee form */}
-                <Button
-                  className="mt-4 w-full rounded-xl bg-orange-500 py-6 text-base font-bold text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20"
-                  disabled={totalSelected === 0 || addingToCart !== null}
-                  onClick={() => setShowAttendeeForm(true)}
-                >
-                  {totalSelected > 0 ? `Get ${totalSelected} Ticket${totalSelected !== 1 ? 's' : ''} — ₹${totalPrice.toLocaleString('en-IN')}` : 'Select Tickets'}
-                </Button>
+                {salesClosed ? (
+                  <Button className="mt-4 w-full rounded-xl bg-gray-400 py-6 text-base font-bold text-white cursor-not-allowed" disabled>
+                    Sales Closed
+                  </Button>
+                ) : (
+                  <Button
+                    className="mt-4 w-full rounded-xl bg-orange-500 py-6 text-base font-bold text-white hover:bg-orange-600 shadow-lg shadow-orange-500/20"
+                    disabled={totalSelected === 0 || addingToCart !== null}
+                    onClick={() => setShowAttendeeForm(true)}
+                  >
+                    {totalSelected > 0 ? `Get ${totalSelected} Ticket${totalSelected !== 1 ? 's' : ''} — ₹${totalPrice.toLocaleString('en-IN')}` : 'Select Tickets'}
+                  </Button>
+                )}
                 <p className="mt-2.5 text-center text-[11px] text-gray-400">Non-refundable. T&Cs apply.</p>
               </div>
 

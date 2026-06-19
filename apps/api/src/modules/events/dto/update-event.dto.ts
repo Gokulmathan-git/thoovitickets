@@ -69,4 +69,18 @@ export class UpdateEventDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  @IsDateString()
+  saleCutoffDate?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  [key: string]: unknown;
 }
