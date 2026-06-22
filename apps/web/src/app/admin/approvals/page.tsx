@@ -10,8 +10,11 @@ interface PendingOrganiser {
   email: string;
   firstName: string;
   lastName: string;
+  phone: string | null;
   orgName: string | null;
   orgDescription: string | null;
+  idDocumentType: string | null;
+  profileCompleted: boolean;
   createdAt: string;
 }
 
