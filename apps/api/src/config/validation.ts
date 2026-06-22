@@ -22,4 +22,6 @@ export const envValidationSchema = Joi.object({
   GMAIL_APP_PASSWORD: Joi.string().optional(),
   SUPABASE_URL: Joi.string().required(),
   SUPABASE_SERVICE_ROLE_KEY: Joi.string().required(),
+  GEMINI_API_KEY: Joi.string().optional(),
+  GEMINI_MODEL: Joi.string().optional().default('gemini-2.0-flash'),
 });

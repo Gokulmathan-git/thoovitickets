@@ -6,6 +6,7 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Star, Eye, EyeOff } from 'lucide-react';
 
 interface EventMetrics {
   totalPurchased: number;
@@ -86,6 +87,8 @@ export default function OrganiserEventDetailPage() {
   const [showPostponeModal, setShowPostponeModal] = useState(false);
   const [postponeForm, setPostponeForm] = useState({ startDate: '', endDate: '', message: '' });
   const [metrics, setMetrics] = useState<EventMetrics | null>(null);
+  const [eventReviews, setEventReviews] = useState<any[]>([]);
+  const [reviewStats, setReviewStats] = useState<{ averageRating: number; totalReviews: number } | null>(null);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -97,6 +100,13 @@ export default function OrganiserEventDetailPage() {
           setMetrics(metricsRes.data.data);
         } catch {
           // metrics may not be available for all events
+        }
+        try {
+          const reviewsRes = await apiClient.get(`/reviews/event/organiser/${params.id}`);
+          setEventReviews(reviewsRes.data.reviews || []);
+          setReviewStats({ averageRating: reviewsRes.data.averageRating, totalReviews: reviewsRes.data.totalReviews });
+        } catch {
+          // reviews may not be available
         }
       } catch {
         router.push('/organiser/events');
@@ -440,6 +450,65 @@ export default function OrganiserEventDetailPage() {
                     <p className="mt-0.5 text-lg font-bold text-gray-900 dark:text-gray-100">{metrics.totalOrders}</p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Customer Reviews */}
+        {reviewStats && reviewStats.totalReviews > 0 && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Customer Reviews
+                  <span className="text-sm font-normal text-gray-500 dark:text-gray-400">({reviewStats.totalReviews})</span>
+                </CardTitle>
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-5 w-5 fill-orange-400 text-orange-400" />
+                  <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{reviewStats.averageRating}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {eventReviews.map((review: any) => (
+                  <div key={review.id} className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {review.user.firstName} {review.user.lastName}
+                        </span>
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s: number) => (
+                            <Star key={s} className={`h-3.5 w-3.5 ${s <= review.rating ? 'fill-orange-400 text-orange-400' : 'text-gray-300 dark:text-gray-600'}`} />
+                          ))}
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {new Date(review.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                        </span>
+                      </div>
+                      {review.title && <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{review.title}</p>}
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{review.content}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiClient.patch(`/reviews/event/${review.id}/visibility`, { isVisible: !review.isVisible });
+                          setEventReviews(prev => prev.map(r => r.id === review.id ? { ...r, isVisible: !r.isVisible } : r));
+                        } catch { /* ignore */ }
+                      }}
+                      className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                        review.isVisible
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200'
+                      }`}
+                      title={review.isVisible ? 'Visible to public — click to hide' : 'Hidden from public — click to show'}
+                    >
+                      {review.isVisible ? <><Eye className="h-3.5 w-3.5" /> Visible</> : <><EyeOff className="h-3.5 w-3.5" /> Hidden</>}
+                    </button>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

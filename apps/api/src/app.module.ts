@@ -23,6 +23,8 @@ import { StaffModule } from './modules/staff/staff.module';
 import { ContentModule } from './modules/content/content.module';
 import { MobileModule } from './modules/mobile/mobile.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { AiModule } from './modules/ai/ai.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -60,6 +62,8 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     StaffModule,
     ContentModule,
     MobileModule,
+    AiModule,
+    ReviewsModule,
   ],
   providers: [
     {

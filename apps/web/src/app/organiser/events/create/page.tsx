@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Shield } from 'lucide-react';
 import { MapPicker } from '@/components/events/map-picker';
+import { AiDescriptionGenerator } from '@/components/ai/ai-description-generator';
 import { useAuthStore } from '@/stores/auth-store';
 import Link from 'next/link';
 
@@ -32,6 +33,7 @@ export default function CreateEventPage() {
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateEventFormValues>({
     resolver: zodResolver(createEventBaseSchema),
@@ -131,6 +133,19 @@ export default function CreateEventPage() {
                 {...register('description')}
               />
               {errors.description && <p className="text-sm text-red-600 dark:text-red-400">{errors.description.message}</p>}
+              <AiDescriptionGenerator
+                title={watch('title') || ''}
+                category={categories.find(c => c.id === watch('categoryId'))?.name || ''}
+                venue={watch('venue') || ''}
+                city={watch('city') || ''}
+                startDate={watch('startDate') || ''}
+                endDate={watch('endDate')}
+                onApply={(data) => {
+                  setValue('description', data.description, { shouldValidate: true });
+                  if (data.shortDesc) setValue('shortDesc' as any, data.shortDesc);
+                  if (data.tags?.length) setValue('tags', data.tags);
+                }}
+              />
             </div>
 
             <div className="space-y-2">

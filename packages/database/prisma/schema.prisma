@@ -87,6 +87,12 @@ enum TicketStatus {
   CANCELLED
 }
 
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── PLATFORM CONFIG ─────────────────────────────────
 
 model PlatformConfig {
@@ -143,6 +149,8 @@ model User {
   approvalsReviewed   AdminApproval[] @relation("ApprovalReviewer")
   staffCreated        StaffAccount[]  @relation("OrganiserStaff")
   staffAccess         StaffAccount[]  @relation("StaffUser")
+  platformReviews     PlatformReview[]
+  eventReviews        EventReview[]
 
   @@map("users")
 }
@@ -210,6 +218,7 @@ model Event {
   ticketTypes  TicketType[]
   orderItems   OrderItem[]
   approvals    AdminApproval[]
+  eventReviews EventReview[]
 
   @@index([organiserId])
   @@index([categoryId])
@@ -331,6 +340,8 @@ model Order {
   items          OrderItem[]
   tickets        Ticket[]
   payment        Payment?
+  platformReview PlatformReview?
+  eventReviews   EventReview[]
 
   @@index([userId])
   @@index([orderNumber])
@@ -506,4 +517,58 @@ model ConvenienceFeeSlab {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("convenience_fee_slabs")
+}
+
+// ─── PLATFORM REVIEWS ───────────────────────────────
+
+model PlatformReview {
+  id          String       @id @default(cuid())
+  rating      Int
+  title       String?
+  content     String       @db.Text
+  status      ReviewStatus @default(PENDING)
+  isVisible   Boolean      @default(false) @map("is_visible")
+  adminNotes  String?      @map("admin_notes")
+  reviewedBy  String?      @map("reviewed_by")
+  reviewedAt  DateTime?    @map("reviewed_at")
+
+  userId      String       @map("user_id")
+  orderId     String       @unique @map("order_id")
+
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([isVisible])
+  @@map("platform_reviews")
+}
+
+// ─── EVENT REVIEWS ──────────────────────────────────
+
+model EventReview {
+  id          String       @id @default(cuid())
+  rating      Int
+  title       String?
+  content     String       @db.Text
+  isVisible   Boolean      @default(true) @map("is_visible")
+
+  userId      String       @map("user_id")
+  eventId     String       @map("event_id")
+  orderId     String       @map("order_id")
+
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  user        User         @relation(fields: [userId], references: [id])
+  event       Event        @relation(fields: [eventId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, eventId])
+  @@index([eventId])
+  @@index([isVisible])
+  @@map("event_reviews")
 }

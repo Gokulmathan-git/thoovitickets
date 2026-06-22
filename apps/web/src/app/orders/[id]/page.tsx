@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { CheckCircle, Clock, XCircle, Calendar, MapPin, Download, Mail, QrCode } from 'lucide-react';
+import { ReviewForm } from '@/components/reviews/review-form';
 
 interface OrderDetail {
   id: string;
@@ -26,7 +27,7 @@ interface OrderDetail {
     unitPrice: number;
     totalPrice: number;
     ticketType: { name: string; price: number; currency: string; description: string | null };
-    event: { title: string; slug: string; venue: string; address: string | null; city: string; state: string | null; startDate: string; endDate: string };
+    event: { id: string; title: string; slug: string; venue: string; address: string | null; city: string; state: string | null; startDate: string; endDate: string };
   }[];
   payment: { status: string; provider: string } | null;
 }
@@ -313,6 +314,15 @@ export default function OrderDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Reviews */}
+        {order.status === 'CONFIRMED' && order.items[0] && (
+          <ReviewForm
+            orderId={order.id}
+            eventId={order.items[0].event.id}
+            eventTitle={order.items[0].event.title}
+          />
+        )}
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row justify-between gap-3">

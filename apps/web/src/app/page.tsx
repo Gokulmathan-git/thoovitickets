@@ -6,7 +6,7 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { EventCard } from '@/components/events/event-card';
 import { HeroCarousel } from '@/components/events/hero-carousel';
-import { ArrowRight, ShieldCheck, Zap, Headphones } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, Headphones, Star, Quote } from 'lucide-react';
 
 interface Banner {
   id: string;
@@ -43,20 +43,32 @@ interface Event {
   ticketTypes: { price: number }[];
 }
 
+interface Review {
+  id: string;
+  rating: number;
+  title: string | null;
+  content: string;
+  createdAt: string;
+  user: { firstName: string; lastName: string; avatarUrl: string | null };
+}
+
 export default function HomePage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [featured, setFeatured] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     Promise.all([
       apiClient.get('/events/banners').catch(() => ({ data: { data: [] } })),
       apiClient.get('/events/featured').catch(() => ({ data: { data: [] } })),
       apiClient.get('/categories').catch(() => ({ data: { data: [] } })),
-    ]).then(([bannersRes, featuredRes, catsRes]) => {
+      apiClient.get('/reviews/public?limit=6').catch(() => ({ data: [] })),
+    ]).then(([bannersRes, featuredRes, catsRes, reviewsRes]) => {
       setBanners(bannersRes.data.data);
       setFeatured(featuredRes.data.data);
       setCategories(catsRes.data.data);
+      setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : reviewsRes.data.data || []);
     });
   }, []);
 
@@ -156,6 +168,57 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Customer Reviews */}
+      {reviews.length > 0 && (
+        <section className="relative overflow-hidden py-10 sm:py-20">
+          <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 bg-linear-to-r from-transparent via-orange-200 to-transparent" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-8 sm:mb-12 text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">What Our Customers Say</h2>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">Real experiences from real ticket buyers</p>
+            </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm transition-all hover:shadow-md"
+                >
+                  <Quote className="h-8 w-8 text-orange-200 dark:text-orange-800 mb-3" />
+                  <div className="flex gap-0.5 mb-3">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 ${star <= review.rating ? 'fill-orange-400 text-orange-400' : 'text-gray-300 dark:text-gray-600'}`}
+                      />
+                    ))}
+                  </div>
+                  {review.title && (
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">{review.title}</p>
+                  )}
+                  <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300 mb-4">
+                    {review.content.length > 180 ? `${review.content.slice(0, 180)}...` : review.content}
+                  </p>
+                  <div className="flex items-center gap-3 border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30 text-sm font-semibold text-orange-600">
+                      {review.user.firstName.charAt(0)}{review.user.lastName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {review.user.firstName} {review.user.lastName.charAt(0)}.
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(review.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="relative overflow-hidden bg-gray-900 py-10 sm:py-20">
