@@ -5,9 +5,10 @@ import apiClient from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setAuth, setLoading, accessToken } = useAuthStore();
+  const { setAuth, setLoading, accessToken, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (accessToken) {
       setLoading(false);
       return;
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     restoreSession();
-  }, [setAuth, setLoading, accessToken]);
+  }, [setAuth, setLoading, accessToken, _hasHydrated]);
 
   return <>{children}</>;
 }

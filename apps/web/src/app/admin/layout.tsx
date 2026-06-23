@@ -23,15 +23,15 @@ const sidebarLinks = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading } = useAuthStore();
+  const { user, isLoading, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== 'ADMIN')) {
+    if (_hasHydrated && !isLoading && (!user || user.role !== 'ADMIN')) {
       router.push('/login');
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, _hasHydrated, router]);
 
-  if (isLoading) {
+  if (!_hasHydrated || isLoading) {
     return <div className="flex min-h-[60vh] items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" /></div>;
   }
 
