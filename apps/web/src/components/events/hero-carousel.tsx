@@ -146,10 +146,10 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
       {/* Navigation Arrows */}
       {totalSlides > 1 && (
         <>
-          <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white dark:bg-gray-800/15 p-2.5 text-white backdrop-blur-sm hover:bg-white/25 transition">
+          <button onClick={prev} className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2.5 text-white backdrop-blur-sm hover:bg-black/50 transition">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white dark:bg-gray-800/15 p-2.5 text-white backdrop-blur-sm hover:bg-white/25 transition">
+          <button onClick={next} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/30 p-2.5 text-white backdrop-blur-sm hover:bg-black/50 transition">
             <ChevronRight className="h-5 w-5" />
           </button>
         </>

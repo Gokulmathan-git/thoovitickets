@@ -79,8 +79,9 @@ export default function AdminReviewsPage() {
       if (search) params.search = search;
 
       const res = await apiClient.get('/reviews/admin', { params });
-      setReviews(res.data.reviews);
-      setTotalPages(res.data.totalPages);
+      const data = res.data.data || res.data;
+      setReviews(data.reviews || []);
+      setTotalPages(data.totalPages || 1);
     } catch {
       /* ignore */
     } finally {
@@ -91,7 +92,7 @@ export default function AdminReviewsPage() {
   const fetchStats = async () => {
     try {
       const res = await apiClient.get('/reviews/admin/stats');
-      setStats(res.data);
+      setStats(res.data.data || res.data);
     } catch {
       /* ignore */
     }
@@ -104,7 +105,8 @@ export default function AdminReviewsPage() {
     setActionLoading(reviewId);
     try {
       const res = await apiClient.post(`/reviews/admin/${reviewId}/action`, { action });
-      setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, ...res.data, status: action, isVisible: action === 'APPROVED' } : r)));
+      const updated = res.data.data || res.data;
+      setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, ...updated, status: action, isVisible: action === 'APPROVED' } : r)));
       fetchStats();
     } catch {
       /* ignore */
@@ -126,7 +128,7 @@ export default function AdminReviewsPage() {
     setSentimentLoading(true);
     try {
       const res = await apiClient.post('/ai/review-sentiment');
-      setSentiment(res.data);
+      setSentiment(res.data.data || res.data);
       setShowSentiment(true);
     } catch {
       /* ignore */

@@ -34,7 +34,7 @@ export function Header() {
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
           <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : user?.role === 'ADMIN' ? '/admin/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
-            <Image src="/Main_logo.svg" alt="ThooviTickets" width={160} height={36} className="h-9 w-auto" priority />
+            <Image src="/Main_logo.svg" alt="ThooviTickets" width={320} height={74} className="h-[70px] w-auto" priority />
           </Link>
 
           {!isLoading && user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
@@ -234,7 +234,7 @@ export function Header() {
                 <Link href="/login" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
                   Sign In
                 </Link>
-                <Link href="/register" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                <Link href="/register" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20">
                   Sign Up
                 </Link>
               </>

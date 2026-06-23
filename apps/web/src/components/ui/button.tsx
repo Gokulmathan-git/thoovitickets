@@ -7,12 +7,12 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const buttonVariants = {
-  default: 'bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-sm',
+  default: 'bg-linear-to-r from-[#ff4a1f] via-[#ff5413] to-[#ff6800] text-white hover:from-[#e0421b] hover:via-[#e04a10] hover:to-[#e05d00] shadow-sm',
   destructive: 'bg-linear-to-r from-red-500 to-red-700 text-white hover:from-red-600 hover:to-red-800 shadow-sm',
   outline: 'border border-gray-300 dark:border-gray-600 bg-linear-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-800 text-gray-700 dark:text-gray-200',
   secondary: 'bg-linear-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 text-gray-900 dark:text-gray-100 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-700',
   ghost: 'hover:bg-linear-to-b hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-900 text-gray-700 dark:text-gray-300',
-  link: 'text-blue-600 dark:text-blue-400 underline-offset-4 hover:underline',
+  link: 'text-[#FF541F] dark:text-orange-400 underline-offset-4 hover:underline',
 };
 
 const sizeVariants = {

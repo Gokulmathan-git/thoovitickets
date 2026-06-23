@@ -96,9 +96,7 @@ export function RegisterForm() {
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50">
         {/* Header */}
         <div className="mb-6 text-center">
-          <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg ${isOrganiser ? 'bg-gray-900 shadow-gray-900/30' : 'bg-orange-500 shadow-orange-500/30'}`}>
-            <span className="text-2xl font-bold text-white">{isOrganiser ? 'O' : 'T'}</span>
-          </div>
+          <img src={isOrganiser ? '/black_bg_logo.svg' : '/icon.svg'} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isOrganiser ? 'Organiser Registration' : 'Create Your Account'}
           </h1>

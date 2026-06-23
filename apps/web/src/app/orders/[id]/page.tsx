@@ -243,7 +243,7 @@ export default function OrderDetailPage() {
         {order.items.map((item) => (
           <Card key={item.id}>
             <CardContent className="p-4">
-              <Link href={`/events/${item.event.slug}`} className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 text-base sm:text-lg wrap-break-word">
+              <Link href={`/events/${item.event.slug}`} className="font-semibold text-gray-900 dark:text-gray-100 hover:text-orange-600 text-base sm:text-lg wrap-break-word">
                 {item.event.title}
               </Link>
               <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400">

@@ -48,9 +48,7 @@ export function LoginForm() {
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 shadow-lg shadow-orange-500/30">
-            <span className="text-2xl font-bold text-white">T</span>
-          </div>
+          <img src="/icon.svg" alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome Back</h1>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sign in to your ThooviTickets account</p>
         </div>

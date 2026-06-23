@@ -129,7 +129,7 @@ export default function CreateEventPage() {
                 id="description"
                 rows={4}
                 placeholder="Describe your event in detail (min 20 characters)"
-                className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-gray-100"
+                className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:text-gray-100"
                 {...register('description')}
               />
               {errors.description && <p className="text-sm text-red-600 dark:text-red-400">{errors.description.message}</p>}
@@ -263,7 +263,7 @@ export default function CreateEventPage() {
               <Label htmlFor="timezone">Event Timezone</Label>
               <select
                 id="timezone"
-                className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-100"
+                className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
                 {...register('timezone' as any)}
                 defaultValue="Asia/Kolkata"
               >
