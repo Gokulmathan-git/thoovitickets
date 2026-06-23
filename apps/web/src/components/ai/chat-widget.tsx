@@ -52,10 +52,11 @@ export function ChatWidget() {
 
     try {
       const res = await apiClient.post('/ai/chat', { message: trimmed });
+      const data = res.data.data || res.data;
       const aiMsg: Message = {
         id: `ai-${Date.now()}`,
         role: 'assistant',
-        content: res.data.reply,
+        content: data.reply,
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch {

@@ -435,15 +435,19 @@ function LockedCard({ label, plan }: { label: string; plan: string }) {
   return (
     <Card className="relative overflow-hidden">
       <CardContent className="p-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
-          <Lock className="h-5 w-5" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600">
+          <UserCheck className="h-5 w-5" />
         </div>
         <p className="mt-3 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-300">--</p>
-        <Link href="/organiser/subscriptions">
-          <Button size="sm" variant="outline" className="mt-2 text-xs">Upgrade to {plan}</Button>
-        </Link>
+        <p className="mt-1 text-2xl font-bold text-gray-300 dark:text-gray-600 blur-[6px] select-none">78.5%</p>
       </CardContent>
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 dark:bg-gray-900/60 backdrop-blur-[2px]">
+        <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+        <p className="mt-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">{plan}+ Plan</p>
+        <Link href="/organiser/subscriptions">
+          <Button size="sm" className="mt-2 h-7 text-[11px] bg-linear-to-r from-[#ff4a1f] via-[#ff5413] to-[#ff6800] text-white">Upgrade</Button>
+        </Link>
+      </div>
     </Card>
   );
 }
@@ -455,14 +459,45 @@ function LockedWidget({ title, plan, icon }: { title: string; plan: string; icon
         <CardTitle className="flex items-center gap-2 text-lg">{icon} {title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col items-center justify-center py-8">
-          <Lock className="h-8 w-8 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">Available on {plan}+ plan</p>
-          <Link href="/organiser/subscriptions">
-            <Button size="sm" className="mt-3 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">Upgrade to {plan}</Button>
-          </Link>
+        <div className="blur-[6px] select-none pointer-events-none">
+          {title === 'Monthly Revenue' ? (
+            <div className="text-center py-4">
+              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">₹24,500</p>
+              <p className="mt-1 text-sm text-gray-500">This month</p>
+              <div className="mt-3 flex items-center justify-center gap-1">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <span className="text-sm font-medium text-green-600">+12% vs last month</span>
+              </div>
+              <p className="mt-2 text-xs text-gray-400">Last month: ₹21,875</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {['Summer Festival', 'Tech Conference', 'Comedy Night'].map((name, i) => (
+                <div key={i} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold text-gray-600">{i + 1}</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{name}</p>
+                      <p className="text-xs text-gray-400">{(50 - i * 12)} tickets</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">₹{(15000 - i * 4000).toLocaleString('en-IN')}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 dark:bg-gray-900/40">
+        <div className="flex flex-col items-center rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-6 py-4 shadow-lg">
+          <Lock className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+          <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">{plan}+ Feature</p>
+          <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Upgrade to unlock {title.toLowerCase()}</p>
+          <Link href="/organiser/subscriptions">
+            <Button size="sm" className="mt-3 bg-linear-to-r from-[#ff4a1f] via-[#ff5413] to-[#ff6800] text-white">Upgrade to {plan}</Button>
+          </Link>
+        </div>
+      </div>
     </Card>
   );
 }
