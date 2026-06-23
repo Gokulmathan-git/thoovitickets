@@ -7,6 +7,7 @@ import apiClient from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
+import { ICON_LOGO } from '@/lib/logos';
 
 const countryCodes = [
   { code: '+91', country: 'IN', maxLen: 10, format: 'XXXXX XXXXX' },
@@ -96,7 +97,7 @@ export function RegisterForm() {
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50">
         {/* Header */}
         <div className="mb-6 text-center">
-          <img src={isOrganiser ? '/black_bg_logo.svg' : '/icon.svg'} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
+          <img src={ICON_LOGO} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isOrganiser ? 'Organiser Registration' : 'Create Your Account'}
           </h1>

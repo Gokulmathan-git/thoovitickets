@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { ICON_LOGO } from '@/lib/logos';
 
 export function LoginForm() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export function LoginForm() {
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <img src="/icon.svg" alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
+          <img src={ICON_LOGO} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome Back</h1>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sign in to your ThooviTickets account</p>
         </div>
