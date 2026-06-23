@@ -30,9 +30,9 @@ export function LoginForm() {
     try {
       const user = await login({ email, password });
       switch (user.role) {
-        case 'ADMIN': window.location.href = '/admin/dashboard'; break;
-        case 'ORGANISER': window.location.href = '/organiser/dashboard'; break;
-        default: window.location.href = '/';
+        case 'ADMIN': router.push('/admin/dashboard'); break;
+        case 'ORGANISER': router.push('/organiser/dashboard'); break;
+        default: router.push('/');
       }
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };

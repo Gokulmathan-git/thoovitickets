@@ -5,10 +5,10 @@ import apiClient from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setAuth, setLoading, user: existingUser, accessToken: existingToken } = useAuthStore();
+  const { setAuth, setLoading, accessToken } = useAuthStore();
 
   useEffect(() => {
-    if (existingUser && existingToken) {
+    if (accessToken) {
       setLoading(false);
       return;
     }
@@ -16,21 +16,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       try {
         const refreshResponse = await apiClient.post('/auth/refresh');
-        const { accessToken } = refreshResponse.data.data;
+        const { accessToken: newToken } = refreshResponse.data.data;
 
         const meResponse = await apiClient.get('/auth/me', {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${newToken}` },
         });
         const user = meResponse.data.data;
 
-        setAuth(user, accessToken);
+        setAuth(user, newToken);
       } catch {
         setLoading(false);
       }
     };
 
     restoreSession();
-  }, [setAuth, setLoading, existingUser, existingToken]);
+  }, [setAuth, setLoading, accessToken]);
 
   return <>{children}</>;
 }
