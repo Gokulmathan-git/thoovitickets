@@ -84,7 +84,7 @@ export class AuthController {
     await this.authService.logout(userId);
 
     const frontendUrl = process.env.FRONTEND_URL || '';
-    const isCrossDomain = frontendUrl.includes('.vercel.app') || frontendUrl.includes('.railway.app') || (frontendUrl && !frontendUrl.includes('localhost'));
+    const isCrossDomain: boolean = frontendUrl.includes('.vercel.app') || frontendUrl.includes('.railway.app') || (frontendUrl.length > 0 && !frontendUrl.includes('localhost'));
 
     response.clearCookie('refreshToken', {
       httpOnly: true,
@@ -129,7 +129,7 @@ export class AuthController {
     const maxAge = this.authService.getRefreshMaxAgeByRole(role || 'CUSTOMER');
     const isProduction = process.env.NODE_ENV === 'production';
     const frontendUrl = process.env.FRONTEND_URL || '';
-    const isCrossDomain = frontendUrl.includes('.vercel.app') || frontendUrl.includes('.railway.app') || (frontendUrl && !frontendUrl.includes('localhost'));
+    const isCrossDomain: boolean = frontendUrl.includes('.vercel.app') || frontendUrl.includes('.railway.app') || (frontendUrl.length > 0 && !frontendUrl.includes('localhost'));
 
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
