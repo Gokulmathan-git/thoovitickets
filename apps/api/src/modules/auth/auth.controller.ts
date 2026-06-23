@@ -83,10 +83,13 @@ export class AuthController {
   ) {
     await this.authService.logout(userId);
 
+    const frontendUrl = process.env.FRONTEND_URL || '';
+    const isCrossDomain = frontendUrl.includes('.vercel.app') || frontendUrl.includes('.railway.app') || (frontendUrl && !frontendUrl.includes('localhost'));
+
     response.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      secure: process.env.NODE_ENV === 'production' || isCrossDomain,
+      sameSite: isCrossDomain ? 'none' : 'strict',
       path: '/',
     });
 
@@ -124,10 +127,14 @@ export class AuthController {
 
   private setRefreshTokenCookie(response: Response, refreshToken: string, role?: string) {
     const maxAge = this.authService.getRefreshMaxAgeByRole(role || 'CUSTOMER');
+    const isProduction = process.env.NODE_ENV === 'production';
+    const frontendUrl = process.env.FRONTEND_URL || '';
+    const isCrossDomain = frontendUrl.includes('.vercel.app') || frontendUrl.includes('.railway.app') || (frontendUrl && !frontendUrl.includes('localhost'));
+
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      secure: isProduction || isCrossDomain,
+      sameSite: isCrossDomain ? 'none' : 'strict',
       path: '/',
       maxAge,
     });
