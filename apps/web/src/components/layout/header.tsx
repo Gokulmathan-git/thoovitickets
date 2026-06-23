@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCartStore } from '@/stores/cart-store';
 import apiClient from '@/lib/api-client';
-import Image from 'next/image';
 import { ShoppingCart, Menu, X, Bell, User, ChevronDown, Crown } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
@@ -34,7 +33,7 @@ export function Header() {
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
           <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : user?.role === 'ADMIN' ? '/admin/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
-            <Image src="/Main_logo.svg" alt="ThooviTickets" width={320} height={74} className="h-[70px] w-auto" priority />
+            <img src="/Main_logo.svg" alt="ThooviTickets" className="h-[70px] w-auto" />
           </Link>
 
           {!isLoading && user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
