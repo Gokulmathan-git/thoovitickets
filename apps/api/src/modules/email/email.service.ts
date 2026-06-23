@@ -142,7 +142,7 @@ export class EmailService {
     return `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
           Verify your email
@@ -166,7 +166,7 @@ export class EmailService {
     return `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
           Reset your password
@@ -210,7 +210,7 @@ export class EmailService {
     return `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
           Your Tickets Are Ready!
@@ -298,7 +298,7 @@ export class EmailService {
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">Plan Expiring Soon</h1>
         <p style="color: #6b7280; font-size: 15px; text-align: center; margin-bottom: 24px;">
@@ -326,7 +326,7 @@ export class EmailService {
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
           Account Suspended
@@ -350,7 +350,7 @@ export class EmailService {
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #16a34a; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
           Account Reactivated
@@ -376,7 +376,7 @@ export class EmailService {
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
         <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; background: #f97316; color: white; font-size: 24px; font-weight: bold; width: 48px; height: 48px; line-height: 48px; border-radius: 12px;">T</div>
+          <img src="${this.frontendUrl}/Main_logo.svg" alt="ThooviTickets" style="height: 40px; width: auto;" />
         </div>
         <h1 style="color: #111827; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px;">
           Registration Update

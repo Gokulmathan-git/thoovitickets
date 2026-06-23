@@ -19,11 +19,24 @@ export const metadata: Metadata = {
   description:
     'Book tickets for concerts, sports, comedy shows, tech conferences and more. Secure payment, instant digital tickets.',
   keywords: ['events', 'tickets', 'concerts', 'sports', 'booking', 'ThooviTickets'],
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/icon.svg',
+  },
   openGraph: {
     title: 'ThooviTickets - Discover Amazing Events',
     description: 'Book tickets for concerts, sports, comedy shows and more.',
     type: 'website',
     siteName: 'ThooviTickets',
+    images: [{ url: '/Main_logo.svg', width: 256, height: 148, alt: 'ThooviTickets' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'ThooviTickets - Discover Amazing Events',
+    description: 'Book tickets for concerts, sports, comedy shows and more.',
+    images: ['/Main_logo.svg'],
   },
 };
 

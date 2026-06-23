@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCartStore } from '@/stores/cart-store';
 import apiClient from '@/lib/api-client';
+import Image from 'next/image';
 import { ShoppingCart, Menu, X, Bell, User, ChevronDown, Crown } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
@@ -19,7 +20,7 @@ export function Header() {
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.role !== 'ORGANISER' && user?.role !== 'ADMIN') return;
+    if (user?.role !== 'ORGANISER') return;
     apiClient.get('/subscriptions/my')
       .then((res) => setSubscriptionTier(res.data.data?.tier || 'FREE'))
       .catch(() => setSubscriptionTier('FREE'));
@@ -33,7 +34,7 @@ export function Header() {
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
           <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : user?.role === 'ADMIN' ? '/admin/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
-            <span className="text-xl font-bold text-orange-500">ThooviTickets</span>
+            <Image src="/Main_logo.svg" alt="ThooviTickets" width={160} height={36} className="h-9 w-auto" priority />
           </Link>
 
           {!isLoading && user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (

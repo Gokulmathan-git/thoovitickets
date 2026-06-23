@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import * as path from 'path';
+import * as fs from 'fs';
 import PDFDocument = require('pdfkit');
 
 interface InvoiceData {
@@ -51,12 +53,17 @@ export class InvoiceService {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // --- Header: ThooviTickets logo text ---
-      doc
-        .fillColor('#f97316')
-        .fontSize(18)
-        .font('Helvetica-Bold')
-        .text('ThooviTickets', 20, 20, { align: 'center', width: 260 });
+      // --- Header: ThooviTickets logo ---
+      try {
+        const logoPath = path.join(__dirname, '..', '..', 'assets', 'Main_logo.svg');
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 80, 12, { width: 140 });
+        } else {
+          doc.fillColor('#f97316').fontSize(18).font('Helvetica-Bold').text('ThooviTickets', 20, 20, { align: 'center', width: 260 });
+        }
+      } catch {
+        doc.fillColor('#f97316').fontSize(18).font('Helvetica-Bold').text('ThooviTickets', 20, 20, { align: 'center', width: 260 });
+      }
 
       doc
         .fillColor('#6b7280')
@@ -187,15 +194,18 @@ export class InvoiceService {
   }
 
   private buildHeader(doc: PDFKit.PDFDocument, data: InvoiceData) {
-    doc
-      .fillColor('#f97316')
-      .fontSize(24)
-      .font('Helvetica-Bold')
-      .text('ThooviTickets', 50, 50)
-      .fillColor('#6b7280')
-      .fontSize(10)
-      .font('Helvetica')
-      .text('Event Ticketing Platform', 50, 78);
+    try {
+      const logoPath = path.join(__dirname, '..', '..', 'assets', 'Main_logo.svg');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 50, 45, { width: 180 });
+      } else {
+        doc.fillColor('#f97316').fontSize(24).font('Helvetica-Bold').text('ThooviTickets', 50, 50);
+        doc.fillColor('#6b7280').fontSize(10).font('Helvetica').text('Event Ticketing Platform', 50, 78);
+      }
+    } catch {
+      doc.fillColor('#f97316').fontSize(24).font('Helvetica-Bold').text('ThooviTickets', 50, 50);
+      doc.fillColor('#6b7280').fontSize(10).font('Helvetica').text('Event Ticketing Platform', 50, 78);
+    }
 
     doc
       .fillColor('#111827')

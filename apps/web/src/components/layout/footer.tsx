@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export function Footer() {
@@ -32,7 +33,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <span className="text-lg font-bold text-orange-500">ThooviTickets</span>
+            <Image src="/Main_logo.svg" alt="ThooviTickets" width={140} height={32} className="h-8 w-auto" />
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               The world&apos;s premier platform for extraordinary experiences.
             </p>
