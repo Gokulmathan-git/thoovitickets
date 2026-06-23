@@ -1,25 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/', '/login', '/register', '/events', '/forgot-password', '/reset-password', '/verify-email', '/about', '/pricing', '/become-organiser', '/cart', '/checkout', '/checkout/success', '/privacy-policy', '/terms-of-service', '/contact-support', '/refund-policy'];
-
-export default function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  const isPublicPath = publicPaths.some(
-    (path) => pathname === path || pathname.startsWith('/events/'),
-  ) || pathname.startsWith('/reset-password') || pathname.startsWith('/verify/');
-
-  if (isPublicPath) return NextResponse.next();
-
-  const refreshToken = request.cookies.get('refreshToken')?.value;
-
-  if (!refreshToken) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
+export default function proxy() {
   return NextResponse.next();
 }
 
