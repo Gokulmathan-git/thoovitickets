@@ -29,7 +29,7 @@ export function EventCard({ event }: EventCardProps) {
   return (
     <Link
       href={`/events/${event.slug}`}
-      className="group relative block overflow-hidden rounded-2xl shadow-md transition-all hover:shadow-xl hover:-translate-y-1"
+      className="group relative block overflow-hidden rounded-2xl shadow-md card-3d"
     >
       {/* Full Card Image */}
       <div className="relative aspect-square w-full overflow-hidden">
@@ -76,7 +76,7 @@ export function EventCard({ event }: EventCardProps) {
               <span>{event.city}</span>
             </div>
             {lowestPrice !== null && (
-              <span className="text-base font-bold text-white">
+              <span className="rounded-full glass px-3 py-1 text-sm font-bold text-white">
                 {lowestPrice === 0 ? 'Free' : `From ₹${lowestPrice.toLocaleString('en-IN')}`}
               </span>
             )}

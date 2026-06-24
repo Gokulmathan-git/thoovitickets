@@ -1,6 +1,8 @@
 import {
   Controller,
   Post,
+  Get,
+  Query,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -43,6 +45,15 @@ export class UploadController {
   ) {
     if (!file) throw new BadRequestException('No file provided');
     const url = await this.uploadService.upload('events', file, userId);
+    return { url };
+  }
+
+  @Get('document-url')
+  async getDocumentUrl(
+    @Query('path') path: string,
+  ) {
+    if (!path) throw new BadRequestException('Path is required');
+    const url = await this.uploadService.getSignedUrl('documents', path);
     return { url };
   }
 }

@@ -115,7 +115,7 @@ export default function HomePage() {
                 <Link
                   key={cat.slug}
                   href={`/events?category=${cat.slug}`}
-                  className="group flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-6 text-center shadow-sm transition-all hover:border-orange-300 hover:shadow-lg hover:-translate-y-1"
+                  className="group flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border border-gray-200/60 dark:border-gray-700/40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 sm:p-6 text-center card-3d"
                 >
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 text-2xl group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 group-hover:scale-110 transition-all">
                     {cat.icon || '🎫'}
@@ -138,8 +138,8 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Why ThooviTickets?</h2>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-5 sm:p-8 text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="mx-auto mb-4 sm:mb-5 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20">
+            <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/40 glass-light p-5 sm:p-8 text-center card-3d">
+              <div className="mx-auto mb-4 sm:mb-5 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 animate-float">
                 <ShieldCheck className="h-7 w-7 sm:h-8 sm:w-8 text-orange-500" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">Guaranteed Trust</h3>
@@ -147,8 +147,8 @@ export default function HomePage() {
                 Every ticket is verified through our secure platform, ensuring 100% authenticity and fraud protection.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20">
+            <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/40 glass-light p-8 text-center card-3d">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 animate-float" style={{ animationDelay: '0.5s' }}>
                 <Zap className="h-8 w-8 text-orange-500" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Speed of Access</h3>
@@ -156,8 +156,8 @@ export default function HomePage() {
                 Find, select, and buy your tickets in under 30 seconds. No waiting rooms, no hassle.
               </p>
             </div>
-            <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800 p-8 text-center shadow-sm hover:shadow-md transition-shadow">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20">
+            <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/40 glass-light p-8 text-center card-3d">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 animate-float" style={{ animationDelay: '1s' }}>
                 <Headphones className="h-8 w-8 text-orange-500" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Easy Management</h3>
@@ -183,9 +183,9 @@ export default function HomePage() {
               {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="rounded-2xl border border-gray-200/80 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm transition-all hover:shadow-md"
+                  className="rounded-2xl border border-gray-200/60 dark:border-gray-700/40 glass-light p-6 card-3d"
                 >
-                  <Quote className="h-8 w-8 text-orange-200 dark:text-orange-800 mb-3" />
+                  <Quote className="h-8 w-8 text-orange-200 dark:text-orange-800 mb-3 animate-float-slow" />
                   <div className="flex gap-0.5 mb-3">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
@@ -222,8 +222,10 @@ export default function HomePage() {
 
       {/* CTA Section */}
       <section className="relative overflow-hidden bg-gray-900 py-10 sm:py-20">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-orange-900/20 via-transparent to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-orange-500/30 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-orange-900/30 via-transparent to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-orange-500/50 to-transparent" />
+        <div className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-orange-500/10 blur-3xl animate-float-slow" />
+        <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-orange-500/10 blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-10 lg:flex-row lg:justify-between">
             <div className="max-w-lg text-center lg:text-left">

@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
   IndianRupee, Ticket, CalendarDays, UserCheck, TrendingUp, TrendingDown, Crown,
-  ArrowRight, Lock, BarChart3, Shield, AlertTriangle,
+  ArrowRight, Lock, BarChart3, Shield, AlertTriangle, CheckCircle, User, FileText, Upload,
 } from 'lucide-react';
 
 interface DashboardData {
@@ -54,17 +54,17 @@ export default function OrganiserDashboard() {
   const [actionReason, setActionReason] = useState('');
   const [actionSent, setActionSent] = useState(false);
 
-  const isPending = user?.status === 'PENDING';
   const isSuspended = user?.status === 'SUSPENDED';
   const isRejected = user?.status === 'REJECTED';
+  const profileCompleted = (user as any)?.profileCompleted;
 
   useEffect(() => {
-    if (isPending || isSuspended || isRejected) { setLoading(false); return; }
+    if (isSuspended || isRejected) { setLoading(false); return; }
     apiClient.get('/analytics/organiser/dashboard')
       .then((res) => setData(res.data.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isPending, isSuspended, isRejected]);
+  }, [isSuspended, isRejected]);
 
   const handleRequestAction = async (endpoint: string) => {
     if (!actionReason.trim()) return;
@@ -134,18 +134,12 @@ export default function OrganiserDashboard() {
         </div>
       )}
 
-      {isPending && (
-        <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-600" />
-            <h3 className="font-semibold text-amber-800 dark:text-amber-300">Account Pending Approval</h3>
-          </div>
-          <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">Your organiser account is awaiting admin approval. You&apos;ll be able to create events once approved.</p>
-        </div>
+      {!profileCompleted && !isSuspended && !isRejected && (
+        <CompleteProfileBanner user={user} />
       )}
 
-      {(isPending || isSuspended || isRejected) && !loading && <div />}
-      {(isPending || isSuspended || isRejected) && !loading ? null : loading ? (
+      {(isSuspended || isRejected) && !loading && <div />}
+      {(isSuspended || isRejected) && !loading ? null : loading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />)}
@@ -515,6 +509,78 @@ function UsageBar({ label, used, max }: { label: string; used: number; max: numb
           className={cn('h-2 rounded-full transition-all', pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-orange-500')}
           style={{ width: `${pct}%` }}
         />
+      </div>
+    </div>
+  );
+}
+
+function CompleteProfileBanner({ user }: { user: any }) {
+  const userAny = user as any;
+
+  const checks = [
+    { label: 'Full Name', done: !!(user?.firstName && user?.lastName), icon: <User className="h-4 w-4" /> },
+    { label: 'Organisation Name', done: !!userAny?.orgName, icon: <Shield className="h-4 w-4" /> },
+    { label: 'Email Verified', done: !!user?.emailVerified, icon: <CheckCircle className="h-4 w-4" /> },
+    { label: 'Aadhaar Card', done: !!userAny?.aadharDocumentUrl, icon: <Upload className="h-4 w-4" /> },
+    { label: 'PAN Card', done: !!userAny?.panDocumentUrl, icon: <FileText className="h-4 w-4" /> },
+    { label: 'GST Number (Optional)', done: !!userAny?.gstNumber, icon: <FileText className="h-4 w-4" />, optional: true },
+  ];
+
+  const required = checks.filter(c => !c.optional);
+  const completedCount = required.filter(c => c.done).length;
+  const pct = Math.round((completedCount / required.length) * 100);
+
+  return (
+    <div className="mb-6 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/10 p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-orange-600" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Complete Your Profile</h3>
+          </div>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            Complete the steps below to start creating events.
+          </p>
+
+          <div className="mt-3 flex items-center gap-3">
+            <div className="h-2 flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
+              <div
+                className="h-2 rounded-full bg-orange-500 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{completedCount}/{required.length}</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {checks.map((check) => (
+              <div
+                key={check.label}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm',
+                  check.done
+                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                    : check.optional
+                      ? 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700',
+                )}
+              >
+                {check.done ? (
+                  <CheckCircle className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+                ) : (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 border-gray-300 dark:border-gray-600" />
+                )}
+                <span className={check.done ? 'line-through' : 'font-medium'}>{check.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <Link href="/organiser/profile">
+          <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white whitespace-nowrap">
+            Go to Profile
+          </Button>
+        </Link>
       </div>
     </div>
   );

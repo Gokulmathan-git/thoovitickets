@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/auth-store';
@@ -11,9 +12,45 @@ import { ShoppingCart, Menu, X, Bell, User, ChevronDown, Crown } from 'lucide-re
 import { ThemeToggle } from './theme-toggle';
 import { MAIN_LOGO } from '@/lib/logos';
 
+const organiserPages: Record<string, string> = {
+  '/organiser/dashboard': 'Dashboard',
+  '/organiser/events/create': 'Create Event',
+  '/organiser/events': 'My Events',
+  '/organiser/analytics': 'Analytics',
+  '/organiser/staff': 'Staff',
+  '/organiser/subscriptions': 'Subscription',
+  '/organiser/profile': 'Profile',
+  '/organiser/privacy-policy': 'Privacy Policy',
+  '/organiser/terms-of-service': 'Terms of Service',
+  '/organiser/refund-policy': 'Refund Policy',
+  '/organiser/support': 'Support',
+};
+
+const adminPages: Record<string, string> = {
+  '/admin/dashboard': 'Dashboard',
+  '/admin/approvals': 'Approvals',
+  '/admin/users': 'Users',
+  '/admin/events': 'Events',
+  '/admin/content': 'Content',
+  '/admin/reviews': 'Reviews',
+  '/admin/plans': 'Plans',
+  '/admin/categories': 'Categories',
+  '/admin/fees': 'Fees',
+};
+
+function getPageTitle(pathname: string, pages: Record<string, string>): string | null {
+  if (pages[pathname]) return pages[pathname];
+  const sorted = Object.keys(pages).sort((a, b) => b.length - a.length);
+  for (const key of sorted) {
+    if (pathname.startsWith(key + '/')) return pages[key];
+  }
+  return null;
+}
+
 export function Header() {
   const { logout } = useAuth();
   const { user, isLoading } = useAuthStore();
+  const pathname = usePathname();
   const cartCount = useCartStore((s) => s.itemCount);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -29,7 +66,7 @@ export function Header() {
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-200/80 dark:border-gray-800 bg-linear-to-r from-white via-white to-gray-50/50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-200/40 dark:border-gray-700/30 bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
@@ -50,6 +87,20 @@ export function Header() {
               </Link>
             </nav>
           )}
+
+          {!isLoading && user?.role === 'ORGANISER' && (() => {
+            const title = getPageTitle(pathname, organiserPages);
+            return title ? (
+              <span className="hidden text-lg font-bold text-gray-900 dark:text-gray-100 md:block">{title}</span>
+            ) : null;
+          })()}
+
+          {!isLoading && user?.role === 'ADMIN' && (() => {
+            const title = getPageTitle(pathname, adminPages);
+            return title ? (
+              <span className="hidden text-lg font-bold text-gray-900 dark:text-gray-100 md:block">{title}</span>
+            ) : null;
+          })()}
         </div>
 
         {/* Right: Actions */}
@@ -77,23 +128,13 @@ export function Header() {
 
               {/* Organiser/Admin links */}
               {user.role === 'ORGANISER' && (
-                <>
-                  <Link href="/organiser/dashboard">
-                    <Button variant="ghost" size="sm" className="text-gray-600">Dashboard</Button>
-                  </Link>
-                  <Link href="/organiser/subscriptions" className="flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs font-semibold transition-colors hover:bg-gray-50">
-                    <Crown className="h-3.5 w-3.5 text-orange-500" />
-                    <span className="text-gray-700">{subscriptionTier || 'FREE'}</span>
-                  </Link>
-                </>
-              )}
-              {user.role === 'ADMIN' && (
-                <Link href="/admin/dashboard">
-                  <Button variant="ghost" size="sm" className="text-gray-600">Admin</Button>
+                <Link href="/organiser/subscriptions" className="flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs font-semibold transition-colors hover:bg-gray-50">
+                  <Crown className="h-3.5 w-3.5 text-orange-500" />
+                  <span className="text-gray-700">{subscriptionTier || 'FREE'}</span>
                 </Link>
               )}
 
-              {/* Profile Dropdown */}
+              {/* Profile Dropdown — only for customer/admin (organiser uses sidebar) */}
               <div className="relative">
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
@@ -114,20 +155,29 @@ export function Header() {
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.firstName} {user.lastName}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                       </div>
-                      <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700">
-                        Profile
-                      </Link>
+                      {user.role !== 'ORGANISER' && (
+                        <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700">
+                          Profile
+                        </Link>
+                      )}
                       {user.role === 'CUSTOMER' && (
                         <Link href="/orders" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                           My Orders
                         </Link>
                       )}
-                      <button
-                        onClick={() => { setProfileOpen(false); logout(); }}
-                        className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                      >
-                        Logout
-                      </button>
+                      {user.role === 'ADMIN' && (
+                        <Link href="/admin/dashboard" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                          Admin Panel
+                        </Link>
+                      )}
+                      {user.role !== 'ORGANISER' && (
+                        <button
+                          onClick={() => { setProfileOpen(false); logout(); }}
+                          className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                        >
+                          Logout
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
@@ -219,15 +269,19 @@ export function Header() {
                     Admin Panel
                   </Link>
                 )}
-                <Link href="/profile" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
-                  Profile
-                </Link>
-                <button
-                  onClick={() => { logout(); closeMobile(); }}
-                  className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  Logout
-                </button>
+                {user.role !== 'ORGANISER' && (
+                  <Link href="/profile" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                    Profile
+                  </Link>
+                )}
+                {user.role !== 'ORGANISER' && (
+                  <button
+                    onClick={() => { logout(); closeMobile(); }}
+                    className="rounded-md px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    Logout
+                  </button>
+                )}
               </>
             ) : (
               <>

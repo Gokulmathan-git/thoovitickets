@@ -38,4 +38,16 @@ export class UpdateProfileDto {
   @IsString()
   @IsIn(['AADHAR', 'PAN'])
   idDocumentType?: string;
+
+  @IsOptional()
+  @IsString()
+  aadharDocumentUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  panDocumentUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  gstNumber?: string;
 }

@@ -59,7 +59,7 @@ export class AuthService {
         lastName: dto.lastName.trim(),
         phone: dto.phone || null,
         role: dto.role as UserRole,
-        status: dto.role === 'ORGANISER' ? UserStatus.PENDING : UserStatus.ACTIVE,
+        status: UserStatus.ACTIVE,
         orgName: dto.orgName || null,
         orgDescription: dto.orgDescription || null,
         emailVerificationToken: hashedVerificationToken,
@@ -73,21 +73,16 @@ export class AuthService {
       verificationToken,
     );
 
-    if (user.role === UserRole.CUSTOMER) {
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
-      await this.updateRefreshToken(user.id, tokens.refreshToken);
-
-      return {
-        message: 'Registration successful. A verification link has been sent to your email.',
-        user: this.sanitizeUser(user),
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      };
-    }
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      message: 'Registration successful. Please verify your email to complete registration.',
+      message: user.role === UserRole.ORGANISER
+        ? 'Registration successful. Please verify your email and complete your profile.'
+        : 'Registration successful. A verification link has been sent to your email.',
       user: this.sanitizeUser(user),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 

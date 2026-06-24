@@ -17,6 +17,9 @@ const USER_SELECT = {
   orgDescription: true,
   idDocumentUrl: true,
   idDocumentType: true,
+  aadharDocumentUrl: true,
+  panDocumentUrl: true,
+  gstNumber: true,
   profileCompleted: true,
   statusReason: true,
   createdAt: true,
@@ -52,9 +55,8 @@ export class UsersService {
         user.firstName &&
         user.lastName &&
         user.orgName &&
-        user.avatarUrl &&
-        user.idDocumentUrl &&
-        user.idDocumentType &&
+        user.aadharDocumentUrl &&
+        user.panDocumentUrl &&
         user.emailVerified
       );
 

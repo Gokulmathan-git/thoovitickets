@@ -1,16 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
+import { ArrowLeft } from 'lucide-react';
 
 interface ContentPageProps {
   slug: string;
   forceAudience?: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
-export function ContentPageView({ slug, forceAudience }: ContentPageProps) {
+export function ContentPageView({ slug, forceAudience, backHref, backLabel }: ContentPageProps) {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -39,6 +44,15 @@ export function ContentPageView({ slug, forceAudience }: ContentPageProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+      {backHref && (
+        <button
+          onClick={() => router.push(backHref)}
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel || 'Back'}
+        </button>
+      )}
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">{title}</h1>
       <div
         className="prose dark:prose-invert mt-8 max-w-none prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-600 dark:prose-p:text-gray-300 prose-li:text-gray-600 dark:prose-li:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-a:text-orange-500"

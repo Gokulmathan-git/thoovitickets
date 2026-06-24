@@ -14,6 +14,9 @@ export interface UserResponse {
   orgDescription: string | null;
   idDocumentUrl: string | null;
   idDocumentType: string | null;
+  aadharDocumentUrl: string | null;
+  panDocumentUrl: string | null;
+  gstNumber: string | null;
   profileCompleted: boolean;
   createdAt: string;
   updatedAt: string;

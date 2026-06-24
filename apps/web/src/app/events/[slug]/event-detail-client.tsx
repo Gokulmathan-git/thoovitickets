@@ -162,7 +162,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
         <div className="absolute bottom-0 left-0 right-0 pb-8 pt-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
+              <span className="rounded-full glass px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
                 {event.category.name}
               </span>
               <span className="text-xs sm:text-sm text-gray-300">
@@ -190,7 +190,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
           {/* Left Column */}
           <div className="flex-1 min-w-0 space-y-10">
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex items-start gap-4 rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm">
+              <div className="flex items-start gap-4 rounded-2xl glass-light p-5 hover-lift">
                 <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 p-3"><Calendar className="h-5 w-5 text-orange-500" /></div>
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Date & Time</p>
@@ -198,7 +198,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
                   <p className="text-sm text-gray-500 dark:text-gray-400">{startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} — {endDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-4 rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm">
+              <div className="flex items-start gap-4 rounded-2xl glass-light p-5 hover-lift">
                 <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 p-3"><Clock className="h-5 w-5 text-orange-500" /></div>
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Duration</p>
@@ -208,7 +208,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
               </div>
             </section>
 
-            <section className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm sm:p-8">
+            <section className="rounded-2xl glass-light p-6 sm:p-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">About the Experience</h2>
               <div className="mt-4 text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{event.description}</div>
               {event.tags.length > 0 && (
@@ -254,7 +254,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
             <div className="sticky top-20 space-y-4">
               <EventCountdown startDate={event.startDate} saleCutoffDate={event.saleCutoffDate} />
 
-              <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm">
+              <div className="rounded-2xl glass-light p-6 shadow-lg">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Get Your Tickets</h2>
                 <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">Secure your spot at this event</p>
 
@@ -312,7 +312,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
                 <p className="mt-2.5 text-center text-[11px] text-gray-400 dark:text-gray-500">Non-refundable. T&Cs apply.</p>
               </div>
 
-              <div className="flex items-center gap-3 rounded-2xl bg-white dark:bg-gray-800 p-5 shadow-sm">
+              <div className="flex items-center gap-3 rounded-2xl glass-light p-5 hover-lift">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-sm font-bold text-white">{orgName[0]}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Organized by</p>

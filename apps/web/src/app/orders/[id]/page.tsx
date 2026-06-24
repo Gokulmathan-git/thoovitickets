@@ -202,10 +202,10 @@ export default function OrderDetailPage() {
                   <div
                     key={ticket.id}
                     className={cn(
-                      'rounded-xl border p-4 transition-all',
+                      'rounded-xl border p-4 hover-lift',
                       ticket.status === 'USED' ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20' :
                       ticket.status === 'CANCELLED' ? 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 opacity-60' :
-                      'border-gray-200 dark:border-gray-700 hover:border-orange-200 hover:shadow-md',
+                      'border-gray-200/60 dark:border-gray-700/40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm hover:border-orange-200 hover:shadow-lg',
                     )}
                   >
                     {ticket.qrDataUrl && (

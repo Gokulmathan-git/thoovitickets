@@ -94,10 +94,10 @@ export function RegisterForm() {
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-5 sm:p-8 shadow-xl shadow-gray-200/50">
+      <div className="rounded-2xl glass-light p-5 sm:p-8 shadow-2xl shadow-gray-200/30 dark:shadow-black/30">
         {/* Header */}
         <div className="mb-6 text-center">
-          <img src={ICON_LOGO} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30" />
+          <img src={ICON_LOGO} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30 animate-float-slow" />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isOrganiser ? 'Organiser Registration' : 'Create Your Account'}
           </h1>
