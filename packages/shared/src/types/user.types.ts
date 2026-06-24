@@ -18,6 +18,7 @@ export interface UserResponse {
   panDocumentUrl: string | null;
   gstNumber: string | null;
   profileCompleted: boolean;
+  statusReason: string | null;
   createdAt: string;
   updatedAt: string;
 }

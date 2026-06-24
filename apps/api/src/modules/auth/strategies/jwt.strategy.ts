@@ -38,13 +38,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         avatarUrl: true,
         orgName: true,
         orgDescription: true,
+        profileCompleted: true,
+        statusReason: true,
+        aadharDocumentUrl: true,
+        panDocumentUrl: true,
+        gstNumber: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
     if (!user) throw new UnauthorizedException('User not found');
-    if (user.status === 'SUSPENDED') throw new UnauthorizedException('Account is suspended');
 
     return user;
   }

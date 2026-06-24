@@ -65,15 +65,21 @@ export class UsersController {
     });
     if (existing) throw new BadRequestException('A re-approval request is already pending');
 
-    await this.prisma.adminApproval.create({
-      data: {
-        type: 'USER_REACTIVATION' as any,
-        action: 'PENDING',
-        reason,
-        requesterId: userId,
-      },
-    });
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { status: 'PENDING', statusReason: null },
+      }),
+      this.prisma.adminApproval.create({
+        data: {
+          type: 'USER_REACTIVATION' as any,
+          action: 'PENDING',
+          reason,
+          requesterId: userId,
+        },
+      }),
+    ]);
 
-    return { message: 'Re-approval request submitted. Admin will review it.' };
+    return { message: 'Re-approval request submitted. Your account is under review again.' };
   }
 }

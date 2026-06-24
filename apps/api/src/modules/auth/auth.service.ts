@@ -51,6 +51,8 @@ export class AuthService {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
+    const isOrganiser = dto.role === 'ORGANISER';
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email.toLowerCase().trim(),
@@ -59,13 +61,24 @@ export class AuthService {
         lastName: dto.lastName.trim(),
         phone: dto.phone || null,
         role: dto.role as UserRole,
-        status: UserStatus.ACTIVE,
+        status: isOrganiser ? UserStatus.PENDING : UserStatus.ACTIVE,
         orgName: dto.orgName || null,
         orgDescription: dto.orgDescription || null,
         emailVerificationToken: hashedVerificationToken,
         emailVerificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
     });
+
+    if (isOrganiser) {
+      await this.prisma.adminApproval.create({
+        data: {
+          type: 'USER_REGISTRATION' as any,
+          action: 'PENDING',
+          reason: 'New organiser registration — awaiting profile completion and admin review',
+          requesterId: user.id,
+        },
+      });
+    }
 
     await this.emailService.sendVerificationEmail(
       user.email,

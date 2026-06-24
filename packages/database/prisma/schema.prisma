@@ -154,6 +154,7 @@ model User {
   staffAccess         StaffAccount[]  @relation("StaffUser")
   platformReviews     PlatformReview[]
   eventReviews        EventReview[]
+  subscriptionPayments SubscriptionPayment[]
 
   @@map("users")
 }
@@ -439,6 +440,7 @@ model Plan {
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   subscriptions      OrgSubscription[]
+  subscriptionPayments SubscriptionPayment[]
 
   @@map("plans")
 }
@@ -471,6 +473,33 @@ model OrgSubscription {
   @@index([userId])
   @@index([userId, status])
   @@map("org_subscriptions")
+}
+
+model SubscriptionPayment {
+  id                String        @id @default(cuid())
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  provider          String        @default("manual")
+  providerPaymentId String?       @map("provider_payment_id")
+  providerOrderId   String?       @map("provider_order_id")
+  metadata          Json?
+  failureReason     String?       @map("failure_reason")
+
+  userId            String        @map("user_id")
+  planId            String        @map("plan_id")
+  tier              String
+  activateNow       Boolean       @default(true) @map("activate_now")
+
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  user              User          @relation(fields: [userId], references: [id])
+  plan              Plan          @relation(fields: [planId], references: [id])
+
+  @@index([userId])
+  @@index([providerOrderId])
+  @@map("subscription_payments")
 }
 
 model StaffAccount {

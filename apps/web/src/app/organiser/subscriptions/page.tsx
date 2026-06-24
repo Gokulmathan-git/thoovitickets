@@ -5,7 +5,7 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Crown, Check, AlertTriangle, Clock, X, Star } from 'lucide-react';
+import { Crown, Check, AlertTriangle, Clock, X, Star, Loader2 } from 'lucide-react';
 
 interface Plan {
   id: string; tier: string; name: string; price: number;
@@ -19,6 +19,18 @@ interface Usage {
   commission: number; tier: string; expiresAt: string | null;
   daysRemaining: number | null; isExpiringSoon: boolean; canRenew: boolean;
   scheduledPlan: { tier: string } | null;
+}
+
+interface PaymentInfo {
+  providerOrderId: string;
+  amount: number;
+  currency: string;
+  provider: string;
+  keyId?: string;
+  planName: string;
+  tier: string;
+  isRenewal?: boolean;
+  prefill: { name: string; email: string; contact: string };
 }
 
 export default function SubscriptionsPage() {
@@ -43,36 +55,137 @@ export default function SubscriptionsPage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const openRazorpayCheckout = (paymentInfo: PaymentInfo, verifyEndpoint: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
+      if (!win.Razorpay) {
+        reject(new Error('Payment gateway not loaded. Please refresh the page.'));
+        return;
+      }
+
+      const rzp = new win.Razorpay({
+        key: paymentInfo.keyId,
+        amount: paymentInfo.amount * 100,
+        currency: paymentInfo.currency,
+        name: 'ThooviTickets',
+        description: `${paymentInfo.planName} Plan Subscription`,
+        order_id: paymentInfo.providerOrderId,
+        prefill: paymentInfo.prefill,
+        theme: { color: '#f97316' },
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+          try {
+            const verifyRes = await apiClient.post(verifyEndpoint, {
+              providerPaymentId: response.razorpay_payment_id,
+              providerOrderId: response.razorpay_order_id,
+              providerSignature: response.razorpay_signature,
+            });
+            const msg = verifyRes.data.data?.message || `${paymentInfo.planName} plan activated!`;
+            setMessage({ type: 'success', text: msg });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        modal: {
+          ondismiss: () => reject(new Error('Payment cancelled')),
+        },
+      });
+      rzp.open();
+    });
+  };
+
+  const handleMockPayment = async (paymentInfo: PaymentInfo, verifyEndpoint: string) => {
+    const mockPaymentId = `mock_pay_${Date.now()}`;
+    const mockSignature = 'mock_valid_signature';
+
+    const verifyRes = await apiClient.post(verifyEndpoint, {
+      providerPaymentId: mockPaymentId,
+      providerOrderId: paymentInfo.providerOrderId,
+      providerSignature: mockSignature,
+    });
+
+    const msg = verifyRes.data.data?.message || `${paymentInfo.planName} plan activated!`;
+    setMessage({ type: 'success', text: msg });
+  };
+
   const handleSubscribe = async () => {
     if (!showModal || !usage) return;
     setActionLoading(true);
     setMessage(null);
+
     try {
+      const price = Number(showModal.price);
       const isFree = usage.tier === 'FREE';
-      const res = await apiClient.post('/subscriptions', {
+
+      if (price === 0) {
+        await apiClient.post('/subscriptions', { tier: showModal.tier });
+        setMessage({ type: 'success', text: `Switched to ${showModal.name} plan` });
+        setShowModal(null);
+        await fetchData();
+        return;
+      }
+
+      const res = await apiClient.post('/subscriptions/initiate-payment', {
         tier: showModal.tier,
         activateNow: isFree ? true : activateOption === 'now',
       });
-      setMessage({ type: 'success', text: res.data.data?.message || `Switched to ${showModal.name} plan` });
+
+      const data = res.data.data;
+
+      if (data.scheduled) {
+        setMessage({ type: 'success', text: data.message });
+        setShowModal(null);
+        await fetchData();
+        return;
+      }
+
+      const paymentInfo: PaymentInfo = data;
       setShowModal(null);
+
+      if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
+        await openRazorpayCheckout(paymentInfo, '/subscriptions/verify-payment');
+      } else {
+        await handleMockPayment(paymentInfo, '/subscriptions/verify-payment');
+      }
+
       await fetchData();
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
-      setMessage({ type: 'error', text: axiosError.response?.data?.error?.message || 'Failed to change plan' });
-    } finally { setActionLoading(false); }
+      const error = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
+      const msg = error.response?.data?.error?.message || error.message || 'Failed to process payment';
+      if (msg !== 'Payment cancelled') {
+        setMessage({ type: 'error', text: msg });
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleRenew = async () => {
     setActionLoading(true);
     setMessage(null);
+
     try {
       const res = await apiClient.post('/subscriptions/renew');
-      setMessage({ type: 'success', text: res.data.data?.message || 'Plan renewed!' });
+      const data = res.data.data;
+
+      const paymentInfo: PaymentInfo = data;
+
+      if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
+        await openRazorpayCheckout(paymentInfo, '/subscriptions/verify-renewal');
+      } else {
+        await handleMockPayment(paymentInfo, '/subscriptions/verify-renewal');
+      }
+
       await fetchData();
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
-      setMessage({ type: 'error', text: axiosError.response?.data?.error?.message || 'Failed to renew' });
-    } finally { setActionLoading(false); }
+      const error = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
+      const msg = error.response?.data?.error?.message || error.message || 'Failed to renew';
+      if (msg !== 'Payment cancelled') {
+        setMessage({ type: 'error', text: msg });
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleCancelScheduled = async () => {
@@ -150,7 +263,7 @@ export default function SubscriptionsPage() {
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>Your plan expires in {usage.daysRemaining} day{usage.daysRemaining !== 1 ? 's' : ''}. Renew now to keep your limits.</span>
               <Button size="sm" onClick={handleRenew} disabled={actionLoading} className="self-start sm:ml-auto bg-amber-600 hover:bg-amber-700 text-white">
-                {actionLoading ? 'Renewing...' : 'Renew Now'}
+                {actionLoading ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Renewing...</> : 'Renew Now'}
               </Button>
             </div>
           )}
@@ -205,7 +318,7 @@ export default function SubscriptionsPage() {
                     <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">Free</span>
                   ) : (
                     <>
-                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">₹{price.toLocaleString('en-IN')}</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">{'₹'}{price.toLocaleString('en-IN')}</span>
                       <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
                     </>
                   )}
@@ -253,7 +366,7 @@ export default function SubscriptionsPage() {
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowModal(null)}>Cancel</Button>
                   <Button variant="destructive" onClick={handleSubscribe} disabled={actionLoading}>
-                    {actionLoading ? 'Switching...' : 'Switch to FREE'}
+                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Switching...</> : 'Switch to FREE'}
                   </Button>
                 </div>
               </div>
@@ -268,8 +381,8 @@ export default function SubscriptionsPage() {
                   <label className={cn('flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors', activateOption === 'schedule' ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700')}>
                     <input type="radio" name="activate" checked={activateOption === 'schedule'} onChange={() => setActivateOption('schedule')} className="mt-1 accent-orange-500" />
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">Activate after current plan ends</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Your {currentTier} plan continues until expiry. {showModal.name} starts automatically.</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Schedule after current plan ends</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Pay now, {showModal.name} starts after your {currentTier} plan expires.</p>
                     </div>
                   </label>
                   <label className={cn('flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors', activateOption === 'now' ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700')}>
@@ -280,23 +393,29 @@ export default function SubscriptionsPage() {
                     </div>
                   </label>
                 </div>
+                <div className="rounded-lg bg-gray-50 dark:bg-gray-900 p-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{showModal.name} Plan (1 month)</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{'₹'}{Number(showModal.price).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowModal(null)}>Cancel</Button>
                   <Button onClick={handleSubscribe} disabled={actionLoading} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
-                    {actionLoading ? 'Processing...' : `Confirm — ₹${Number(showModal.price).toLocaleString('en-IN')}`}
+                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Processing...</> : `Pay ₹${Number(showModal.price).toLocaleString('en-IN')}`}
                   </Button>
                 </div>
               </div>
             ) : (
               <div>
                 <div className="rounded-lg bg-gray-50 dark:bg-gray-900 p-4 mb-4 text-center">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">₹{Number(showModal.price).toLocaleString('en-IN')}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{'₹'}{Number(showModal.price).toLocaleString('en-IN')}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">per month · {Number(showModal.commissionPercent)}% commission</p>
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowModal(null)}>Cancel</Button>
                   <Button onClick={handleSubscribe} disabled={actionLoading} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
-                    {actionLoading ? 'Processing...' : `Subscribe — ₹${Number(showModal.price).toLocaleString('en-IN')}`}
+                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Processing...</> : `Pay ₹${Number(showModal.price).toLocaleString('en-IN')}`}
                   </Button>
                 </div>
               </div>

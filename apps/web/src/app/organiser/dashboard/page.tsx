@@ -56,15 +56,17 @@ export default function OrganiserDashboard() {
 
   const isSuspended = user?.status === 'SUSPENDED';
   const isRejected = user?.status === 'REJECTED';
+  const isPending = user?.status === 'PENDING';
   const profileCompleted = (user as any)?.profileCompleted;
+  const isBlocked = isSuspended || isRejected || isPending;
 
   useEffect(() => {
-    if (isSuspended || isRejected) { setLoading(false); return; }
+    if (isBlocked) { setLoading(false); return; }
     apiClient.get('/analytics/organiser/dashboard')
       .then((res) => setData(res.data.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isSuspended, isRejected]);
+  }, [isBlocked]);
 
   const handleRequestAction = async (endpoint: string) => {
     if (!actionReason.trim()) return;
@@ -134,12 +136,27 @@ export default function OrganiserDashboard() {
         </div>
       )}
 
+      {isPending && profileCompleted && (
+        <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-300">Account Under Review</h3>
+          </div>
+          <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+            Your profile is complete. Our admin team is reviewing your documents. You will receive an email once your account is approved.
+          </p>
+          <p className="mt-1 text-xs text-amber-600/70 dark:text-amber-400/60">
+            This usually takes 1-2 business days.
+          </p>
+        </div>
+      )}
+
       {!profileCompleted && !isSuspended && !isRejected && (
         <CompleteProfileBanner user={user} />
       )}
 
-      {(isSuspended || isRejected) && !loading && <div />}
-      {(isSuspended || isRejected) && !loading ? null : loading ? (
+      {isBlocked && !loading && <div />}
+      {isBlocked && !loading ? null : loading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />)}
@@ -539,7 +556,7 @@ function CompleteProfileBanner({ user }: { user: any }) {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Complete Your Profile</h3>
           </div>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Complete the steps below to start creating events.
+            Complete the steps below. Once done, our admin team will review and approve your account so you can start creating events.
           </p>
 
           <div className="mt-3 flex items-center gap-3">

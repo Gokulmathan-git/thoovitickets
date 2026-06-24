@@ -235,7 +235,7 @@ export class AdminService {
           firstName: user.firstName,
           reason: dto.reason || 'Registration rejected by admin',
         });
-      } else if (dto.status === 'ACTIVE' && user.status === UserStatus.SUSPENDED) {
+      } else if (dto.status === 'ACTIVE' && (user.status === UserStatus.SUSPENDED || user.status === UserStatus.PENDING)) {
         await this.emailService.sendAccountReactivatedEmail(user.email, {
           firstName: user.firstName,
         });
@@ -336,6 +336,9 @@ export class AdminService {
           orgDescription: true,
           avatarUrl: true,
           idDocumentType: true,
+          aadharDocumentUrl: true,
+          panDocumentUrl: true,
+          emailVerified: true,
           profileCompleted: true,
           createdAt: true,
         },
