@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import apiClient from '@/lib/api-client';
+import { validateName, validatePhone, validateGST, sanitizeName, sanitizePhone } from '@/lib/validators';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +27,8 @@ export function ProfileContent() {
     orgDescription: (user as any)?.orgDescription || '',
     gstNumber: (user as any)?.gstNumber || '',
   });
+
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
 
   const [resendingVerification, setResendingVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -69,6 +73,17 @@ export function ProfileContent() {
   }, [isOrganiser, userAny?.aadharDocumentUrl, userAny?.panDocumentUrl]);
 
   const handleSaveProfile = async () => {
+    const errors: Record<string, string | null> = {};
+    errors.firstName = validateName(form.firstName, 'First name');
+    errors.lastName = validateName(form.lastName, 'Last name');
+    errors.phone = validatePhone(form.phone);
+    if (isOrganiser) {
+      errors.gstNumber = validateGST(form.gstNumber);
+    }
+    const hasErrors = Object.values(errors).some((e) => e !== null);
+    setFieldErrors(errors);
+    if (hasErrors) return;
+
     setSaving(true);
     setMessage(null);
     try {
@@ -157,6 +172,8 @@ export function ProfileContent() {
     setUploading(true);
     setMessage(null);
 
+    const oldPath = type === 'AADHAR' ? userAny?.aadharDocumentUrl : userAny?.panDocumentUrl;
+
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -167,6 +184,12 @@ export function ProfileContent() {
       const fieldName = type === 'AADHAR' ? 'aadharDocumentUrl' : 'panDocumentUrl';
       const profileRes = await apiClient.patch('/users/profile', { [fieldName]: docPath });
       setUser(profileRes.data.data);
+
+      if (oldPath) {
+        try {
+          await apiClient.delete('/upload/document', { data: { path: oldPath } });
+        } catch {}
+      }
 
       const signedRes = await apiClient.get('/upload/document-url', { params: { path: docPath } });
       if (type === 'AADHAR') {
@@ -347,11 +370,11 @@ export function ProfileContent() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">First Name</Label>
-                      <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+                      <Input value={form.firstName} maxLength={50} error={fieldErrors.firstName ?? undefined} onChange={(e) => { setForm({ ...form, firstName: sanitizeName(e.target.value) }); setFieldErrors((prev) => ({ ...prev, firstName: null })); }} />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Last Name</Label>
-                      <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+                      <Input value={form.lastName} maxLength={50} error={fieldErrors.lastName ?? undefined} onChange={(e) => { setForm({ ...form, lastName: sanitizeName(e.target.value) }); setFieldErrors((prev) => ({ ...prev, lastName: null })); }} />
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -360,19 +383,20 @@ export function ProfileContent() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Phone</Label>
-                    <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 9876543210" />
+                    <Input value={form.phone} maxLength={15} error={fieldErrors.phone ?? undefined} onChange={(e) => { setForm({ ...form, phone: sanitizePhone(e.target.value) }); setFieldErrors((prev) => ({ ...prev, phone: null })); }} placeholder="+91 9876543210" />
                   </div>
                   {isOrganiser && (
                     <>
                       <div className="space-y-1">
                         <Label className="text-xs">Organisation Name</Label>
-                        <Input value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} placeholder="Your company or brand" />
+                        <Input value={form.orgName} maxLength={100} onChange={(e) => setForm({ ...form, orgName: e.target.value })} placeholder="Your company or brand" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Organisation Description</Label>
                         <textarea
                           value={form.orgDescription}
                           onChange={(e) => setForm({ ...form, orgDescription: e.target.value })}
+                          maxLength={500}
                           placeholder="Tell us about your organisation..."
                           className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:text-gray-100"
                           rows={2}
@@ -380,7 +404,7 @@ export function ProfileContent() {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">GST Number <span className="text-gray-400">(Optional)</span></Label>
-                        <Input value={form.gstNumber} onChange={(e) => setForm({ ...form, gstNumber: e.target.value })} placeholder="e.g. 22AAAAA0000A1Z5" />
+                        <Input value={form.gstNumber} maxLength={15} error={fieldErrors.gstNumber ?? undefined} onChange={(e) => { setForm({ ...form, gstNumber: e.target.value.toUpperCase() }); setFieldErrors((prev) => ({ ...prev, gstNumber: null })); }} placeholder="e.g. 22AAAAA0000A1Z5" />
                       </div>
                     </>
                   )}
@@ -388,7 +412,7 @@ export function ProfileContent() {
                     <Button onClick={handleSaveProfile} disabled={saving} size="sm">
                       {saving ? 'Saving...' : 'Save Changes'}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+                    <Button variant="outline" size="sm" onClick={() => { setEditing(false); setFieldErrors({}); }}>Cancel</Button>
                   </div>
                 </div>
               ) : (
@@ -582,60 +606,54 @@ function DocumentUploadSection({
   onCancel: () => void;
 }) {
   const [showFullPreview, setShowFullPreview] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [blurred, setBlurred] = useState(false);
   const icon = type === 'AADHAR' ? <Upload className="h-5 w-5" /> : <FileText className="h-5 w-5" />;
 
-  if (uploadedUrl && signedUrl) {
-    return (
-      <div>
-        <div className="mb-2 flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">Uploaded</span>
-        </div>
-        <div className="relative group">
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-            <img
-              src={signedUrl}
-              alt={label}
-              className="mx-auto max-h-40 w-auto object-contain p-2"
-            />
-          </div>
-          <button
-            onClick={() => setShowFullPreview(true)}
-            className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100"
-          >
-            <Eye className="h-5 w-5 text-white" />
-          </button>
-        </div>
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="mt-2 text-xs text-orange-500 hover:text-orange-600 font-medium"
-        >
-          Re-upload
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          className="hidden"
-          onChange={onFileSelect}
-        />
+  const block = useCallback((e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
-        {showFullPreview && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setShowFullPreview(false)}>
-            <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setShowFullPreview(false)}
-                className="absolute -right-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <img src={signedUrl} alt={label} className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain" />
-            </div>
-          </div>
-        )}
+  useEffect(() => {
+    if (!uploadedUrl || !signedUrl) return;
+
+    const onVisibility = () => setBlurred(document.hidden);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen') {
+        e.preventDefault();
+        setBlurred(true);
+        setTimeout(() => setBlurred(false), 2000);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [uploadedUrl, signedUrl]);
+
+  const watermark = (size: 'sm' | 'lg' = 'sm') => (
+    <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden select-none">
+      <div className="absolute inset-0" style={{
+        backgroundImage: `repeating-linear-gradient(-45deg, transparent, transparent 80px, rgba(0,0,0,0.04) 80px, rgba(0,0,0,0.04) 81px)`,
+      }} />
+      <div className="flex h-full w-full items-center justify-center">
+        <p className={`rotate-[-30deg] font-bold whitespace-nowrap tracking-widest uppercase select-none ${size === 'sm' ? 'text-base text-black/5 dark:text-white/5' : 'text-3xl text-black/4 dark:text-white/4'}`}>
+          CONFIDENTIAL
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
 
   if (selectedFile) {
     return (
@@ -643,7 +661,7 @@ function DocumentUploadSection({
         <div className="rounded-xl border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/10 p-3">
           {previewUrl ? (
             <div className="mb-3 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <img src={previewUrl} alt={`${label} preview`} className="mx-auto max-h-40 w-auto object-contain p-2" />
+              <img src={previewUrl} alt={`${label} preview`} className="mx-auto max-h-48 w-auto object-contain p-2" />
             </div>
           ) : (
             <div className="mb-3 flex items-center gap-3 rounded-lg bg-white dark:bg-gray-800 p-2.5 border border-gray-200 dark:border-gray-700">
@@ -669,6 +687,121 @@ function DocumentUploadSection({
             </Button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (uploadedUrl && signedUrl) {
+    const isPdf = uploadedUrl.toLowerCase().endsWith('.pdf');
+
+    return (
+      <div className="protected-document">
+        <div className="mb-2 flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">Uploaded</span>
+        </div>
+
+        {isPdf ? (
+          <div
+            className="relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 cursor-pointer"
+            onClick={() => setShowFullPreview(true)}
+            onContextMenu={block}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                <FileText className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{label} (PDF)</p>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Click to preview</span>
+              </div>
+              <Eye className="h-4 w-4 text-gray-400" />
+            </div>
+          </div>
+        ) : (
+          <div
+            className="relative group cursor-pointer"
+            onClick={() => setShowFullPreview(true)}
+            onContextMenu={block}
+            onDragStart={block}
+          >
+            <div className={`overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 transition-all duration-300 ${blurred ? 'blur-xl' : ''}`}>
+              {!imageLoaded && (
+                <div className="flex h-48 items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-orange-500" />
+                </div>
+              )}
+              <img
+                src={signedUrl}
+                alt={label}
+                draggable={false}
+                onContextMenu={block}
+                onDragStart={block}
+                className={`mx-auto max-h-48 w-auto object-contain p-2 transition-opacity select-none pointer-events-none ${imageLoaded ? 'opacity-100' : 'h-0 opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
+              />
+            </div>
+            {watermark('sm')}
+            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
+              <Eye className="h-6 w-6 text-white drop-shadow-md" />
+            </div>
+          </div>
+        )}
+
+        {showFullPreview && createPortal(
+          <div
+            className="fixed inset-0 z-9999 flex items-center justify-center bg-black/80 p-4 protected-document"
+            onClick={() => setShowFullPreview(false)}
+            onContextMenu={block}
+          >
+            <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowFullPreview(false)}
+                className="absolute -right-3 -top-3 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className={`relative transition-all duration-300 ${blurred ? 'blur-xl' : ''}`} onContextMenu={block}>
+                {isPdf ? (
+                  <div className="relative">
+                    <iframe
+                      src={`${signedUrl}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+                      className="h-[85vh] w-[85vw] max-w-3xl rounded-lg bg-white"
+                    />
+                    <div className="pointer-events-none absolute inset-0 z-10" />
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={signedUrl}
+                      alt={label}
+                      draggable={false}
+                      onContextMenu={block}
+                      onDragStart={block}
+                      className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain bg-white dark:bg-gray-900 shadow-2xl select-none pointer-events-none"
+                    />
+                    {watermark('lg')}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="mt-2 text-xs text-orange-500 hover:text-orange-600 font-medium"
+        >
+          Re-upload
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          className="hidden"
+          onChange={onFileSelect}
+        />
       </div>
     );
   }

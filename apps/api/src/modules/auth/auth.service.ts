@@ -105,16 +105,16 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    if (!user.emailVerified && user.role === UserRole.ORGANISER) {
-      throw new ForbiddenException('Please verify your email before logging in. Check your inbox for the verification link.');
+      throw new UnauthorizedException('This email is not registered.\nPlease create an account first.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Incorrect password. Please try again or use "Forgot password" to reset it.');
+    }
+
+    if (!user.emailVerified && user.role === UserRole.ORGANISER) {
+      throw new ForbiddenException('Please verify your email before logging in. Check your inbox for the verification link.');
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -133,18 +133,17 @@ export class AuthService {
     });
 
     if (!user || !user.refreshToken) {
-      throw new UnauthorizedException('Access denied');
+      throw new UnauthorizedException('Session expired. Please log in again.');
     }
 
     const isRefreshTokenValid = await bcrypt.compare(refreshToken, user.refreshToken);
 
     if (!isRefreshTokenValid) {
-      // Potential token theft — invalidate all tokens
       await this.prisma.user.update({
         where: { id: userId },
         data: { refreshToken: null },
       });
-      throw new UnauthorizedException('Access denied');
+      throw new UnauthorizedException('Session expired. Please log in again.');
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);

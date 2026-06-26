@@ -120,6 +120,11 @@ export class AdminController {
     });
   }
 
+  @Get('events/:id')
+  getEventDetail(@Param('id') eventId: string) {
+    return this.adminService.getEventDetail(eventId);
+  }
+
   @Post('events/:id/review')
   @HttpCode(HttpStatus.OK)
   reviewEvent(
@@ -236,5 +241,38 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   deleteConvenienceFeeSlab(@Param('id') id: string) {
     return this.adminService.deleteConvenienceFeeSlab(id);
+  }
+
+  // ─── HOME BANNERS ─────────────────────────────────
+
+  @Get('banners')
+  getBanners() {
+    return this.adminService.getBanners();
+  }
+
+  @Post('banners')
+  createBanner(
+    @Body() body: { title: string; description?: string; imageUrl: string; linkType?: string; linkUrl?: string; eventId?: string },
+  ) {
+    return this.adminService.createBanner(body);
+  }
+
+  @Patch('banners/:id')
+  updateBanner(
+    @Param('id') id: string,
+    @Body() body: { title?: string; description?: string; imageUrl?: string; linkType?: string; linkUrl?: string; eventId?: string; isActive?: boolean; sortOrder?: number },
+  ) {
+    return this.adminService.updateBanner(id, body);
+  }
+
+  @Patch('banners/reorder')
+  reorderBanners(@Body() body: { ids: string[] }) {
+    return this.adminService.reorderBanners(body.ids);
+  }
+
+  @Delete('banners/:id')
+  @HttpCode(HttpStatus.OK)
+  deleteBanner(@Param('id') id: string) {
+    return this.adminService.deleteBanner(id);
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { MAIN_LOGO } from '@/lib/logos';
+
 
 export function Footer() {
   const pathname = usePathname();
@@ -17,7 +17,8 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <img src={MAIN_LOGO} alt="ThooviTickets" className="h-16 w-auto" />
+            <img src="/Main_logo_black.svg" alt="ThooviTickets" className="h-16 w-auto block dark:hidden" />
+            <img src="/Main_logo_white.svg" alt="ThooviTickets" className="h-16 w-auto hidden dark:block" />
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               The world&apos;s premier platform for extraordinary experiences.
             </p>

@@ -7,13 +7,14 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee, MessageSquare, User, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee, MessageSquare, User, LogOut, Image } from 'lucide-react';
 
 const sidebarLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/approvals', label: 'Approvals', icon: ShieldCheck },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/events', label: 'Events', icon: Calendar },
+  { href: '/admin/banners', label: 'Banners', icon: Image },
   { href: '/admin/content', label: 'Content', icon: FileText },
   { href: '/admin/reviews', label: 'Reviews', icon: MessageSquare },
   { href: '/admin/plans', label: 'Plans', icon: CreditCard },

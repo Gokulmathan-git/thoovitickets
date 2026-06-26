@@ -2,7 +2,9 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Query,
+  Body,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -55,5 +57,18 @@ export class UploadController {
     if (!path) throw new BadRequestException('Path is required');
     const url = await this.uploadService.getSignedUrl('documents', path);
     return { url };
+  }
+
+  @Delete('document')
+  async deleteDocument(
+    @CurrentUser('id') userId: string,
+    @Body('path') path: string,
+  ) {
+    if (!path) throw new BadRequestException('Path is required');
+    if (!path.startsWith(userId + '/')) {
+      throw new BadRequestException('Unauthorized to delete this file');
+    }
+    await this.uploadService.delete('documents', path);
+    return { deleted: true };
   }
 }

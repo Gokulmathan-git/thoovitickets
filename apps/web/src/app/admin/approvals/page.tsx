@@ -205,6 +205,7 @@ export default function ApprovalsPage() {
                             </div>
                             <input
                               type="text"
+                              maxLength={300}
                               placeholder="Rejection reason (required to reject)"
                               className="w-full sm:w-64 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs"
                               value={rejectReason[org.id] || ''}
@@ -304,6 +305,7 @@ export default function ApprovalsPage() {
                           </div>
                           <input
                             type="text"
+                            maxLength={300}
                             placeholder="Reason (optional)"
                             className="w-full sm:w-56 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs"
                             value={rejectReason[action.id] || ''}
@@ -370,6 +372,7 @@ export default function ApprovalsPage() {
                           </div>
                           <input
                             type="text"
+                            maxLength={300}
                             placeholder="Rejection reason (optional)"
                             className="w-full sm:w-56 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs"
                             value={rejectReason[event.id] || ''}

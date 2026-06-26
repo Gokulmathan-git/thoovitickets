@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Search, Eye, X, Phone, Mail, Calendar, Shield, Building, Percent } from 'lucide-react';
+import { Search, Eye, X, Phone, Mail, Calendar, Shield, Building, Percent, FileText, CheckCircle, XCircle, Lock } from 'lucide-react';
 
 interface User {
   id: string;
@@ -22,6 +22,8 @@ interface User {
   statusReason: string | null;
   emailVerified: boolean;
   idDocumentType: string | null;
+  aadharDocumentUrl: string | null;
+  panDocumentUrl: string | null;
   profileCompleted: boolean;
   orgCommissionPercent: string | null;
   planTier: string;
@@ -55,9 +57,38 @@ export default function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showSuspendModal, setShowSuspendModal] = useState<User | null>(null);
+  const [showActivateModal, setShowActivateModal] = useState<User | null>(null);
   const [statusReason, setSuspendReason] = useState('');
   const [commissionInput, setCommissionInput] = useState('');
   const [commissionLoading, setCommissionLoading] = useState(false);
+  const [docPreview, setDocPreview] = useState<{ url: string; label: string } | null>(null);
+  const [docLoading, setDocLoading] = useState<string | null>(null);
+  const [docPasswordInput, setDocPasswordInput] = useState('');
+  const [docUnlocked, setDocUnlocked] = useState(false);
+  const [docPasswordError, setDocPasswordError] = useState(false);
+
+  const ADMIN_DOC_PASSWORD = 'Thoovi@2026';
+
+  const handleDocUnlock = () => {
+    if (docPasswordInput === ADMIN_DOC_PASSWORD) {
+      setDocUnlocked(true);
+      setDocPasswordError(false);
+    } else {
+      setDocPasswordError(true);
+    }
+  };
+
+  const viewDocument = async (docPath: string, label: string) => {
+    setDocLoading(docPath);
+    try {
+      const res = await apiClient.get(`/upload/document-url?path=${encodeURIComponent(docPath)}`);
+      setDocPreview({ url: res.data.data.url, label });
+    } catch {
+      alert('Failed to load document');
+    } finally {
+      setDocLoading(null);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -206,7 +237,7 @@ export default function AdminUsersPage() {
                       {user.role !== 'ADMIN' && (
                         <>
                           {user.status !== 'ACTIVE' && (
-                            <Button size="sm" variant="ghost" className="text-xs h-7 text-green-600" onClick={() => handleStatusChange(user.id, 'ACTIVE')} disabled={actionLoading === user.id}>
+                            <Button size="sm" variant="ghost" className="text-xs h-7 text-green-600" onClick={() => setShowActivateModal(user)} disabled={actionLoading === user.id}>
                               Activate
                             </Button>
                           )}
@@ -257,7 +288,7 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setSelectedUser(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                <button onClick={() => { setSelectedUser(null); setDocUnlocked(false); setDocPasswordInput(''); setDocPasswordError(false); }} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -292,9 +323,57 @@ export default function AdminUsersPage() {
                     )}
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                       <Shield className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                      ID: {selectedUser.idDocumentType || 'Not uploaded'} | Profile: {selectedUser.profileCompleted ? 'Complete' : 'Incomplete'}
+                      Profile: {selectedUser.profileCompleted ? <span className="text-green-600">Complete</span> : <span className="text-red-500">Incomplete</span>}
                     </div>
                     <div className="text-gray-600 dark:text-gray-300 pl-6">Events created: {selectedUser._count.events}</div>
+
+                    {/* KYC Documents */}
+                    <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">KYC Documents</span>
+                      </div>
+
+                      {!docUnlocked ? (
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Enter admin password to view documents</p>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Lock className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                              <input
+                                type="password"
+                                placeholder="Admin password"
+                                value={docPasswordInput}
+                                onChange={(e) => { setDocPasswordInput(e.target.value); setDocPasswordError(false); }}
+                                onKeyDown={(e) => e.key === 'Enter' && handleDocUnlock()}
+                                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 pl-8 pr-3 py-1.5 text-sm outline-none focus:border-orange-400"
+                              />
+                            </div>
+                            <Button size="sm" className="h-8 text-xs" onClick={handleDocUnlock}>
+                              Unlock
+                            </Button>
+                          </div>
+                          {docPasswordError && (
+                            <p className="mt-1 text-xs text-red-500">Incorrect password</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <DocumentRow
+                            label="Aadhaar Card"
+                            path={selectedUser.aadharDocumentUrl}
+                            loading={docLoading}
+                            onView={(path) => viewDocument(path, `${selectedUser.firstName} ${selectedUser.lastName} — Aadhaar`)}
+                          />
+                          <DocumentRow
+                            label="PAN Card"
+                            path={selectedUser.panDocumentUrl}
+                            loading={docLoading}
+                            onView={(path) => viewDocument(path, `${selectedUser.firstName} ${selectedUser.lastName} — PAN`)}
+                          />
+                        </div>
+                      )}
+                    </div>
 
                     {/* Commission Override */}
                     <div className="mt-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
@@ -370,7 +449,7 @@ export default function AdminUsersPage() {
               {selectedUser.role !== 'ADMIN' && (
                 <div className="mt-6 flex flex-wrap gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                   {selectedUser.status !== 'ACTIVE' && (
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleStatusChange(selectedUser.id, 'ACTIVE')} disabled={!!actionLoading}>
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowActivateModal(selectedUser)} disabled={!!actionLoading}>
                       Activate
                     </Button>
                   )}
@@ -383,6 +462,27 @@ export default function AdminUsersPage() {
               )}
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {docPreview && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4" onClick={() => setDocPreview(null)}>
+          <div className="relative max-h-[90vh] max-w-3xl w-full rounded-xl bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+              <p className="font-semibold text-gray-900 dark:text-gray-100">{docPreview.label}</p>
+              <button onClick={() => setDocPreview(null)} className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="flex items-center justify-center overflow-auto p-4 select-none" style={{ maxHeight: 'calc(90vh - 56px)' }} onContextMenu={(e) => e.preventDefault()}>
+              {docPreview.url.endsWith('.pdf') ? (
+                <iframe src={docPreview.url} className="h-[70vh] w-full rounded border" />
+              ) : (
+                <img src={docPreview.url} alt={docPreview.label} className="max-h-[70vh] max-w-full rounded object-contain pointer-events-none" draggable={false} />
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -411,6 +511,108 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {/* Activate Confirmation Modal */}
+      {showActivateModal && (() => {
+        const isOrganiser = showActivateModal.role === 'ORGANISER';
+        const docsComplete = !!(showActivateModal.aadharDocumentUrl && showActivateModal.panDocumentUrl);
+        const canActivate = !isOrganiser || (docsComplete && showActivateModal.profileCompleted);
+
+        return (
+          <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md mx-4 rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-xl">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Activate User</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Activate <strong>{showActivateModal.firstName} {showActivateModal.lastName}</strong> ({showActivateModal.email})?
+              </p>
+
+              {isOrganiser && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">KYC Checklist</p>
+                  <div className="flex items-center gap-2 text-sm">
+                    {showActivateModal.emailVerified
+                      ? <CheckCircle className="h-4 w-4 text-green-600" />
+                      : <XCircle className="h-4 w-4 text-red-500" />}
+                    <span className={showActivateModal.emailVerified ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>Email Verified</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {showActivateModal.aadharDocumentUrl
+                      ? <CheckCircle className="h-4 w-4 text-green-600" />
+                      : <XCircle className="h-4 w-4 text-red-500" />}
+                    <span className={showActivateModal.aadharDocumentUrl ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>Aadhaar Card</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {showActivateModal.panDocumentUrl
+                      ? <CheckCircle className="h-4 w-4 text-green-600" />
+                      : <XCircle className="h-4 w-4 text-red-500" />}
+                    <span className={showActivateModal.panDocumentUrl ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>PAN Card</span>
+                  </div>
+
+                  {!canActivate && (
+                    <div className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        Cannot activate — organiser has not completed their profile yet. Aadhaar and PAN documents must be uploaded before approval.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-5 flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowActivateModal(null)}>Cancel</Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    handleStatusChange(showActivateModal.id, 'ACTIVE');
+                    setShowActivateModal(null);
+                  }}
+                  disabled={!canActivate || !!actionLoading}
+                >
+                  {actionLoading ? 'Activating...' : 'Confirm Activate'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function DocumentRow({
+  label,
+  path,
+  loading,
+  onView,
+}: {
+  label: string;
+  path: string | null;
+  loading: string | null;
+  onView: (path: string) => void;
+}) {
+  if (!path) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2">
+        <XCircle className="h-4 w-4 shrink-0 text-red-500" />
+        <span className="text-sm text-red-700 dark:text-red-400">{label}: Not uploaded</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <CheckCircle className="h-4 w-4 shrink-0 text-green-600" />
+        <span className="text-sm text-green-700 dark:text-green-400">{label}: Uploaded</span>
+      </div>
+      <button
+        onClick={() => onView(path)}
+        disabled={loading === path}
+        className="flex items-center gap-1 rounded-md bg-white dark:bg-gray-800 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 disabled:opacity-50"
+      >
+        <Eye className="h-3.5 w-3.5" />
+        {loading === path ? 'Loading...' : 'View'}
+      </button>
     </div>
   );
 }

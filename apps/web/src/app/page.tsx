@@ -8,7 +8,7 @@ import { EventCard } from '@/components/events/event-card';
 import { HeroCarousel } from '@/components/events/hero-carousel';
 import { ArrowRight, ShieldCheck, Zap, Headphones, Star, Quote } from 'lucide-react';
 
-interface Banner {
+interface EventBanner {
   id: string;
   slug: string;
   title: string;
@@ -21,6 +21,17 @@ interface Banner {
   city: string;
   category: { name: string };
   ticketTypes: { price: number }[];
+}
+
+interface AdminBanner {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string;
+  linkType: string;
+  linkUrl: string | null;
+  eventId: string | null;
+  event: { slug: string; title: string } | null;
 }
 
 interface Category {
@@ -53,7 +64,8 @@ interface Review {
 }
 
 export default function HomePage() {
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [eventBanners, setEventBanners] = useState<EventBanner[]>([]);
+  const [adminBanners, setAdminBanners] = useState<AdminBanner[]>([]);
   const [featured, setFeatured] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -65,7 +77,9 @@ export default function HomePage() {
       apiClient.get('/categories').catch(() => ({ data: { data: [] } })),
       apiClient.get('/reviews/public?limit=6').catch(() => ({ data: [] })),
     ]).then(([bannersRes, featuredRes, catsRes, reviewsRes]) => {
-      setBanners(bannersRes.data.data);
+      const bannerData = bannersRes.data.data || {};
+      setEventBanners(bannerData.eventBanners || []);
+      setAdminBanners(bannerData.adminBanners || []);
       setFeatured(featuredRes.data.data);
       setCategories(catsRes.data.data);
       setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : reviewsRes.data.data || []);
@@ -75,7 +89,7 @@ export default function HomePage() {
   return (
     <div className="bg-white dark:bg-gray-800">
       {/* Hero Carousel */}
-      <HeroCarousel banners={banners} />
+      <HeroCarousel eventBanners={eventBanners} adminBanners={adminBanners} />
 
       {/* Featured Experiences */}
       {featured.length > 0 && (

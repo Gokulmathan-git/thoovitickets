@@ -75,29 +75,29 @@ export class EventsService {
 
     const slug = await this.generateUniqueSlug(dto.title);
 
-    const { ticketTypes, ...eventData } = dto;
+    const { ticketTypes, saleCutoffDate, shortDesc, ...eventData } = dto;
 
     return this.prisma.event.create({
       data: {
-        ...eventData,
+        ...eventData as any,
         slug,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
-        saleCutoffDate: dto.saleCutoffDate ? new Date(dto.saleCutoffDate) : null,
+        saleCutoffDate: saleCutoffDate ? new Date(saleCutoffDate) : null,
         timezone: dto.timezone || 'Asia/Kolkata',
         organiserId,
         status: EventStatus.DRAFT,
         tags: dto.tags || [],
         country: dto.country || 'India',
         ticketTypes: {
-          create: ticketTypes.map((tt, index) => ({
+          create: ticketTypes.map((tt: any, index: number) => ({
             name: tt.name,
             description: tt.description,
             price: tt.price,
             currency: tt.currency || 'INR',
             totalQty: tt.totalQty,
             maxPerOrder: tt.maxPerOrder || 5,
-            saleStart: tt.saleStart ? new Date(tt.saleStart) : null,
+            saleStart: tt.saleStartNow ? new Date() : tt.saleStart ? new Date(tt.saleStart) : null,
             saleEnd: tt.saleEnd ? new Date(tt.saleEnd) : null,
             sortOrder: index,
           })),
@@ -202,35 +202,44 @@ export class EventsService {
   }
 
   async getHomeBanners() {
-    return this.prisma.event.findMany({
-      where: {
-        status: EventStatus.PUBLISHED,
-        showOnHomeBanner: true,
-        homeBannerUrl: { not: null },
-        startDate: { gte: new Date() },
-      },
-      orderBy: [{ isFeatured: 'desc' }, { startDate: 'asc' }],
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        homeBannerUrl: true,
-        homeBannerTitle: true,
-        homeBannerDesc: true,
-        shortDesc: true,
-        startDate: true,
-        venue: true,
-        city: true,
-        category: { select: { name: true } },
-        ticketTypes: {
-          where: { isActive: true },
-          orderBy: { price: 'asc' },
-          take: 1,
-          select: { price: true },
+    const [eventBanners, adminBanners] = await Promise.all([
+      this.prisma.event.findMany({
+        where: {
+          status: EventStatus.PUBLISHED,
+          showOnHomeBanner: true,
+          homeBannerUrl: { not: null },
+          startDate: { gte: new Date() },
         },
-      },
-    });
+        orderBy: [{ isFeatured: 'desc' }, { startDate: 'asc' }],
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          homeBannerUrl: true,
+          homeBannerTitle: true,
+          homeBannerDesc: true,
+          shortDesc: true,
+          startDate: true,
+          venue: true,
+          city: true,
+          category: { select: { name: true } },
+          ticketTypes: {
+            where: { isActive: true },
+            orderBy: { price: 'asc' },
+            take: 1,
+            select: { price: true },
+          },
+        },
+      }),
+      this.prisma.homeBanner.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: { event: { select: { slug: true, title: true } } },
+      }),
+    ]);
+
+    return { eventBanners, adminBanners };
   }
 
   async getCities() {
@@ -253,7 +262,7 @@ export class EventsService {
           orderBy: { sortOrder: 'asc' },
         },
         organiser: {
-          select: { id: true, firstName: true, lastName: true, orgName: true },
+          select: { id: true, firstName: true, lastName: true, orgName: true, avatarUrl: true },
         },
       },
     });

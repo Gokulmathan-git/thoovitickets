@@ -138,16 +138,16 @@ export default function OrganiserLayout({ children }: { children: React.ReactNod
         {sidebarContent}
       </aside>
 
-      {/* Main content area — only this scrolls */}
+      {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
             {children}
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="shrink-0 border-t border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3">
+        {/* Footer — always fixed at bottom */}
+        <footer className="shrink-0 border-t border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-2.5">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 text-center text-xs text-gray-400 dark:text-gray-500">
             <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
               <span>&copy; {new Date().getFullYear()} ThooviTickets.</span>
@@ -158,7 +158,7 @@ export default function OrganiserLayout({ children }: { children: React.ReactNod
                 </a>
               </span>
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
               {footerLinks.map((link, i) => (
                 <span key={link.href} className="flex items-center gap-x-3">
                   {i > 0 && <span>&middot;</span>}

@@ -169,7 +169,7 @@ export default function OrganiserDashboard() {
       ) : data && (
         <>
           {/* Header */}
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
                 Welcome, {(user as any)?.orgName || user?.firstName}
@@ -188,7 +188,7 @@ export default function OrganiserDashboard() {
           </div>
 
           {/* Stats Cards */}
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={<IndianRupee className="h-5 w-5" />}
               iconBg="bg-green-100 dark:bg-green-900/30 text-green-600"
@@ -222,7 +222,7 @@ export default function OrganiserDashboard() {
           </div>
 
           {/* Middle Section */}
-          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
             {/* Active Events */}
             <Card className="lg:col-span-2">
               <CardHeader className="pb-3">
@@ -299,7 +299,7 @@ export default function OrganiserDashboard() {
                   <p className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">No orders yet</p>
                 ) : (
                   <div className="space-y-4">
-                    {data.recentOrders.map((order) => (
+                    {data.recentOrders.slice(0, 2).map((order) => (
                       <div key={order.id} className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs font-bold text-orange-600">
@@ -313,6 +313,11 @@ export default function OrganiserDashboard() {
                         <span className="text-sm font-semibold text-green-600 whitespace-nowrap">+₹{order.amount.toLocaleString('en-IN')}</span>
                       </div>
                     ))}
+                    {data.recentOrders.length > 2 && (
+                      <Link href="/organiser/orders" className="flex items-center justify-center gap-1 rounded-lg py-2 text-sm font-medium text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                        View All Orders <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -320,7 +325,7 @@ export default function OrganiserDashboard() {
           </div>
 
           {/* Bottom Section */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {/* Subscription Usage */}
             <Card>
               <CardHeader className="pb-3">
@@ -430,13 +435,11 @@ export default function OrganiserDashboard() {
 function StatCard({ icon, iconBg, label, value, sub }: { icon: React.ReactNode; iconBg: string; label: string; value: string; sub?: string }) {
   return (
     <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', iconBg)}>{icon}</div>
-        </div>
-        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-1 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">{value}</p>
-        {sub && <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{sub}</p>}
+      <CardContent className="p-4">
+        <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', iconBg)}>{icon}</div>
+        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="mt-0.5 text-xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+        {sub && <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{sub}</p>}
       </CardContent>
     </Card>
   );

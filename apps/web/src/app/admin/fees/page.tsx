@@ -174,6 +174,7 @@ export default function AdminFeesPage() {
                 <Input
                   type="number"
                   min={0}
+                  max={form.feeType === 'PERCENTAGE' ? 100 : undefined}
                   step={form.feeType === 'PERCENTAGE' ? '0.01' : '1'}
                   value={form.feeValue}
                   onChange={(e) => setForm({ ...form, feeValue: Number(e.target.value) })}

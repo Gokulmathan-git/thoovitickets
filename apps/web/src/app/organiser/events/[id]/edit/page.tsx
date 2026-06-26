@@ -1,21 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createEventBaseSchema, type CreateEventFormValues, type EventCategoryResponse } from '@thoovitickets/shared';
 import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Shield, Globe, Clock } from 'lucide-react';
+import { Trash2, Plus, Globe, Clock } from 'lucide-react';
 import { MapPicker } from '@/components/events/map-picker';
 import { AiDescriptionGenerator } from '@/components/ai/ai-description-generator';
-import { useAuthStore } from '@/stores/auth-store';
-import Link from 'next/link';
+import type { EventCategoryResponse } from '@thoovitickets/shared';
 
 const TIMEZONES = [
   { value: 'Pacific/Midway', label: 'Pacific/Midway (SST, -11:00)' },
@@ -44,14 +41,6 @@ const TIMEZONES = [
   { value: 'Pacific/Auckland', label: 'Pacific/Auckland (NZST, +12:00)' },
 ];
 
-function getLocalTimezone(): string {
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (TIMEZONES.find(t => t.value === tz)) return tz;
-  } catch {}
-  return 'Asia/Kolkata';
-}
-
 function toLocalDatetimeString(date: Date, timezone: string): string {
   const formatter = new Intl.DateTimeFormat('sv-SE', {
     timeZone: timezone,
@@ -78,32 +67,25 @@ function localInputToUTC(localValue: string, timezone: string): string {
   return utcDate.toISOString();
 }
 
-function getMinStartDate(timezone: string): string {
-  const now = new Date();
-  const minDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-  return toLocalDatetimeString(minDate, timezone);
-}
-
-function getNowString(timezone: string): string {
-  return toLocalDatetimeString(new Date(), timezone);
-}
-
-export default function CreateEventPage() {
+export default function EditEventPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const params = useParams();
+  const eventId = params.id as string;
+
   const [categories, setCategories] = useState<EventCategoryResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
-  const [selectedTimezone, setSelectedTimezone] = useState(getLocalTimezone);
+  const [selectedTimezone, setSelectedTimezone] = useState('Asia/Kolkata');
   const [startDateLocal, setStartDateLocal] = useState('');
   const [endDateLocal, setEndDateLocal] = useState('');
-  const [ticketSaleEndLocals, setTicketSaleEndLocals] = useState<Record<number, string>>({});
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const {
@@ -112,36 +94,65 @@ export default function CreateEventPage() {
     control,
     watch,
     setValue,
+    reset,
     formState: { errors },
-  } = useForm<CreateEventFormValues>({
-    resolver: zodResolver(createEventBaseSchema),
-    defaultValues: {
-      country: 'India',
-      tags: [],
-      timezone: getLocalTimezone(),
-      ticketTypes: [
-        { name: 'General', price: 0, totalQty: 100, maxPerOrder: 5, currency: 'INR' },
-      ],
-    },
+  } = useForm<any>({
+    defaultValues: { tags: [], ticketTypes: [] },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'ticketTypes',
-  });
+  const { fields, append, remove } = useFieldArray({ control, name: 'ticketTypes' });
 
   useEffect(() => {
-    apiClient.get('/categories').then((res) => setCategories(res.data.data));
-  }, []);
+    Promise.all([
+      apiClient.get(`/events/my/${eventId}`),
+      apiClient.get('/categories'),
+    ]).then(([eventRes, catsRes]) => {
+      const event = eventRes.data.data;
+      setCategories(catsRes.data.data);
 
-  const [minStartDate] = useState(() => getMinStartDate(selectedTimezone));
-  const [nowString] = useState(() => getNowString(selectedTimezone));
+      const tz = event.timezone || 'Asia/Kolkata';
+      setSelectedTimezone(tz);
+      setLatitude(event.latitude || null);
+      setLongitude(event.longitude || null);
+      setEventImageUrl(event.imageUrl || null);
+      setBannerUrl(event.bannerUrl || null);
 
-  const minEndDate = useMemo(() => {
-    if (!startDateLocal) return minStartDate;
-    const threeHoursAfter = new Date(new Date(startDateLocal).getTime() + 3 * 60 * 60 * 1000);
-    return toLocalDatetimeString(threeHoursAfter, selectedTimezone);
-  }, [startDateLocal, selectedTimezone, minStartDate]);
+      if (event.startDate) {
+        setStartDateLocal(toLocalDatetimeString(new Date(event.startDate), tz));
+      }
+      if (event.endDate) {
+        setEndDateLocal(toLocalDatetimeString(new Date(event.endDate), tz));
+      }
+
+      reset({
+        title: event.title,
+        description: event.description,
+        venue: event.venue,
+        address: event.address || '',
+        city: event.city,
+        state: event.state || '',
+        country: event.country || 'India',
+        categoryId: event.category?.id || event.categoryId,
+        maxAttendees: event.maxAttendees || undefined,
+        tags: event.tags || [],
+        startDate: event.startDate,
+        endDate: event.endDate,
+        timezone: tz,
+        ticketTypes: (event.ticketTypes || []).map((tt: any) => ({
+          name: tt.name,
+          description: tt.description || '',
+          price: Number(tt.price),
+          currency: tt.currency || 'INR',
+          totalQty: tt.totalQty,
+          maxPerOrder: tt.maxPerOrder || 5,
+        })),
+      });
+    }).catch(() => {
+      router.push('/organiser/events');
+    }).finally(() => {
+      setLoading(false);
+    });
+  }, [eventId, reset, router]);
 
   const maxTicketSaleEnd = useMemo(() => {
     if (!startDateLocal) return '';
@@ -153,22 +164,13 @@ export default function CreateEventPage() {
   const handleStartDateChange = (value: string) => {
     setStartDateLocal(value);
     if (value) {
-      setValue('startDate', localInputToUTC(value, selectedTimezone), { shouldValidate: true });
-
-      const oneDayBefore = new Date(new Date(value).getTime() - 24 * 60 * 60 * 1000);
-      const saleEndDefault = toLocalDatetimeString(oneDayBefore, selectedTimezone);
-      const newLocals: Record<number, string> = {};
-      fields.forEach((_, i) => {
-        newLocals[i] = saleEndDefault;
-        setValue(`ticketTypes.${i}.saleEnd`, localInputToUTC(saleEndDefault, selectedTimezone));
-      });
-      setTicketSaleEndLocals(newLocals);
+      setValue('startDate', localInputToUTC(value, selectedTimezone));
     }
     if (endDateLocal && value) {
       const threeHoursAfter = new Date(new Date(value).getTime() + 3 * 60 * 60 * 1000);
       if (new Date(endDateLocal) < threeHoursAfter) {
         setEndDateLocal('');
-        setValue('endDate', '', { shouldValidate: false });
+        setValue('endDate', '');
       }
     }
   };
@@ -176,85 +178,80 @@ export default function CreateEventPage() {
   const handleEndDateChange = (value: string) => {
     setEndDateLocal(value);
     if (value) {
-      setValue('endDate', localInputToUTC(value, selectedTimezone), { shouldValidate: true });
+      setValue('endDate', localInputToUTC(value, selectedTimezone));
     }
   };
 
   const handleTimezoneChange = (tz: string) => {
     setSelectedTimezone(tz);
     setValue('timezone', tz);
-    if (startDateLocal) {
-      setValue('startDate', localInputToUTC(startDateLocal, tz), { shouldValidate: true });
-    }
-    if (endDateLocal) {
-      setValue('endDate', localInputToUTC(endDateLocal, tz), { shouldValidate: true });
-    }
+    if (startDateLocal) setValue('startDate', localInputToUTC(startDateLocal, tz));
+    if (endDateLocal) setValue('endDate', localInputToUTC(endDateLocal, tz));
   };
 
-  const onSubmit = async (data: CreateEventFormValues) => {
+  const onSubmit = async (data: any) => {
     setError(null);
-    setIsSubmitting(true);
+    setMessage(null);
+    setIsSaving(true);
 
     try {
-      const ticketTypes = data.ticketTypes.map((t: any) => {
-        const ticket = { ...t };
-        if (ticket.saleStartNow) {
-          ticket.saleStart = new Date().toISOString();
-        }
-        delete ticket.saleStartNow;
-        return ticket;
-      });
+      const payload: any = {
+        title: data.title,
+        description: data.description,
+        venue: data.venue,
+        address: data.address || undefined,
+        city: data.city,
+        state: data.state || undefined,
+        country: data.country,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        categoryId: data.categoryId,
+        maxAttendees: data.maxAttendees || undefined,
+        tags: data.tags,
+        timezone: data.timezone,
+        latitude,
+        longitude,
+        imageUrl: eventImageUrl,
+        bannerUrl,
+      };
 
-      const payload = { ...data, ticketTypes, latitude, longitude, imageUrl: eventImageUrl, bannerUrl };
-      const res = await apiClient.post('/events', payload);
-      const event = res.data.data;
-      router.push(`/organiser/events/${event.id}/edit`);
+      await apiClient.patch(`/events/${eventId}`, payload);
+      setMessage({ type: 'success', text: 'Event updated successfully!' });
+      setTimeout(() => router.push(`/organiser/events/${eventId}`), 1000);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string; details?: string[] } } } };
       const details = axiosError.response?.data?.error?.details;
-      const msg = Array.isArray(details) ? details.join(', ') : axiosError.response?.data?.error?.message || 'Failed to create event';
+      const msg = Array.isArray(details) ? details.join(', ') : axiosError.response?.data?.error?.message || 'Failed to update event';
       setError(msg);
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
   };
 
-  const profileCompleted = (user as any)?.profileCompleted;
-
-  if (user && !profileCompleted) {
+  if (loading) {
     return (
-      <div>
-        <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Create New Event</h1>
-        <Card>
-          <CardContent className="py-12">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-                <Shield className="h-8 w-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Complete Your Profile First</h2>
-              <p className="max-w-md text-sm text-gray-600 dark:text-gray-300">
-                Before creating events, you need to complete your profile: upload a profile photo, verify your email, and submit your Aadhar or PAN card.
-              </p>
-              <Link href="/profile">
-                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
-                  Go to Profile
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />)}
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Create New Event</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Edit Event</h1>
+        <Button variant="outline" onClick={() => router.push(`/organiser/events/${eventId}`)}>Back to Event</Button>
+      </div>
 
       <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {error && (
           <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>
+        )}
+        {message && (
+          <div className={`rounded-md p-3 text-sm ${message.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+            {message.text}
+          </div>
         )}
 
         {/* Basic Info */}
@@ -265,10 +262,9 @@ export default function CreateEventPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Event Title *</Label>
-              <Input id="title" placeholder="e.g. Summer Music Festival 2026" maxLength={200} error={errors.title?.message} {...register('title')} />
+              <Input id="title" placeholder="e.g. Summer Music Festival 2026" maxLength={200} error={errors.title?.message as string} {...register('title')} />
             </div>
 
-            {/* Event Date & Time — right below title */}
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 space-y-4">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="h-4 w-4 text-orange-500" />
@@ -282,19 +278,9 @@ export default function CreateEventPage() {
                     id="startDate"
                     type="datetime-local"
                     value={startDateLocal}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val && new Date(val) < new Date(minStartDate)) {
-                        setError('Start date must be at least 2 days from now');
-                        return;
-                      }
-                      setError(null);
-                      handleStartDateChange(val);
-                    }}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
                     className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:text-gray-100"
                   />
-                  {errors.startDate && <p className="text-xs text-red-600 dark:text-red-400">{errors.startDate.message}</p>}
-                  <p className="text-xs text-gray-400">Earliest: 2 days from now</p>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="endDate">End Date & Time *</Label>
@@ -314,12 +300,7 @@ export default function CreateEventPage() {
                     disabled={!startDateLocal}
                     className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:text-gray-100 disabled:opacity-50"
                   />
-                  {errors.endDate && <p className="text-xs text-red-600 dark:text-red-400">{errors.endDate.message}</p>}
-                  {!startDateLocal ? (
-                    <p className="text-xs text-gray-400">Set start date first</p>
-                  ) : (
-                    <p className="text-xs text-gray-400">Min 3 hours after start</p>
-                  )}
+                  <p className="text-xs text-gray-400">Min 3 hours after start</p>
                 </div>
               </div>
 
@@ -338,7 +319,6 @@ export default function CreateEventPage() {
                     <option key={tz.value} value={tz.value}>{tz.label}</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400">Auto-detected from your browser. All times saved in UTC.</p>
               </div>
             </div>
 
@@ -353,11 +333,10 @@ export default function CreateEventPage() {
                 id="description"
                 rows={4}
                 maxLength={1000}
-                placeholder="Describe your event in detail (min 20 characters, max 1000)"
+                placeholder="Describe your event in detail"
                 className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:text-gray-100"
                 {...register('description')}
               />
-              {errors.description && <p className="text-sm text-red-600 dark:text-red-400">{errors.description.message}</p>}
               <AiDescriptionGenerator
                 title={watch('title') || ''}
                 category={categories.find(c => c.id === watch('categoryId'))?.name || ''}
@@ -375,7 +354,7 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="categoryId">Category *</Label>
-                <Select id="categoryId" error={errors.categoryId?.message} {...register('categoryId')}>
+                <Select id="categoryId" error={errors.categoryId?.message as string} {...register('categoryId')}>
                   <option value="">Select a category</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
@@ -385,7 +364,7 @@ export default function CreateEventPage() {
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
                 <Input id="tags" placeholder="e.g. outdoor, live-music, family" maxLength={50} {...register('tags', {
-                  setValueAs: (v: string) => typeof v === 'string' ? v.split(',').map(t => t.trim()).filter(Boolean) : v,
+                  setValueAs: (v: string) => typeof v === 'string' ? v.split(',').map((t: string) => t.trim()).filter(Boolean) : v,
                 })} />
               </div>
             </div>
@@ -430,23 +409,15 @@ export default function CreateEventPage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 5 * 1024 * 1024) {
-                      setError('Image must be under 5MB');
-                      return;
-                    }
+                    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB'); return; }
                     setUploadingImage(true);
                     try {
                       const formData = new FormData();
                       formData.append('file', file);
-                      const res = await apiClient.post('/upload/event', formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                      });
+                      const res = await apiClient.post('/upload/event', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       setEventImageUrl(res.data.data.url);
-                    } catch {
-                      setError('Failed to upload image');
-                    } finally {
-                      setUploadingImage(false);
-                    }
+                    } catch { setError('Failed to upload image'); }
+                    finally { setUploadingImage(false); }
                   }}
                 />
               </label>
@@ -492,23 +463,15 @@ export default function CreateEventPage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    if (file.size > 5 * 1024 * 1024) {
-                      setError('Image must be under 5MB');
-                      return;
-                    }
+                    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB'); return; }
                     setUploadingBanner(true);
                     try {
                       const formData = new FormData();
                       formData.append('file', file);
-                      const res = await apiClient.post('/upload/event', formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                      });
+                      const res = await apiClient.post('/upload/event', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
                       setBannerUrl(res.data.data.url);
-                    } catch {
-                      setError('Failed to upload banner');
-                    } finally {
-                      setUploadingBanner(false);
-                    }
+                    } catch { setError('Failed to upload banner'); }
+                    finally { setUploadingBanner(false); }
                   }}
                 />
               </label>
@@ -525,7 +488,7 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="venue">Venue *</Label>
-                <Input id="venue" placeholder="e.g. Convention Center" maxLength={200} error={errors.venue?.message} {...register('venue')} />
+                <Input id="venue" placeholder="e.g. Convention Center" maxLength={200} error={errors.venue?.message as string} {...register('venue')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
@@ -536,7 +499,7 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="city">City *</Label>
-                <Input id="city" placeholder="e.g. Chennai" maxLength={100} error={errors.city?.message} {...register('city')} />
+                <Input id="city" placeholder="e.g. Chennai" maxLength={100} error={errors.city?.message as string} {...register('city')} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="state">State</Label>
@@ -561,152 +524,52 @@ export default function CreateEventPage() {
           </CardContent>
         </Card>
 
-        {/* Ticket Types */}
+        {/* Ticket Types (read-only summary) */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Ticket Types</CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ name: '', price: 0, totalQty: 50, maxPerOrder: 5, currency: 'INR' })}
-              >
-                <Plus className="mr-1 h-4 w-4" /> Add Ticket
-              </Button>
-            </div>
+            <CardTitle className="text-lg">Ticket Types</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {errors.ticketTypes && typeof errors.ticketTypes.message === 'string' && (
-              <p className="text-sm text-red-600 dark:text-red-400">{errors.ticketTypes.message}</p>
+          <CardContent>
+            {fields.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">No ticket types</p>
+            ) : (
+              <div className="space-y-3">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Name</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{watch(`ticketTypes.${index}.name`)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Price</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">₹{watch(`ticketTypes.${index}.price`)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Quantity</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{watch(`ticketTypes.${index}.totalQty`)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Max/Order</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{watch(`ticketTypes.${index}.maxPerOrder`)}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-
-            {fields.map((field, index) => {
-              const saleStartNow = watch(`ticketTypes.${index}.saleStartNow` as any);
-
-              return (
-                <div key={field.id} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Ticket #{index + 1}</span>
-                    {fields.length > 1 && (
-                      <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-1">
-                      <Label>Name *</Label>
-                      <Input placeholder="e.g. General, VIP" maxLength={100} error={errors.ticketTypes?.[index]?.name?.message} {...register(`ticketTypes.${index}.name`)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Price (₹) *</Label>
-                      <Input type="number" step="0.01" min="0" error={errors.ticketTypes?.[index]?.price?.message} {...register(`ticketTypes.${index}.price`, { valueAsNumber: true })} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Total Qty *</Label>
-                      <Input type="number" min="1" error={errors.ticketTypes?.[index]?.totalQty?.message} {...register(`ticketTypes.${index}.totalQty`, { valueAsNumber: true })} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Max Per Order</Label>
-                      <Input type="number" min="1" max="50" {...register(`ticketTypes.${index}.maxPerOrder`, { valueAsNumber: true })} />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 space-y-1">
-                    <Label>Description</Label>
-                    <Input placeholder="What's included in this ticket?" maxLength={300} {...register(`ticketTypes.${index}.description`)} />
-                  </div>
-
-                  {/* Ticket Sale Dates */}
-                  <div className="mt-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5 text-orange-500" />
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Ticket Sale Period</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Sale Start</Label>
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={saleStartNow ?? true}
-                              onChange={(e) => {
-                                setValue(`ticketTypes.${index}.saleStartNow` as any, e.target.checked);
-                                if (e.target.checked) {
-                                  setValue(`ticketTypes.${index}.saleStart`, undefined);
-                                }
-                              }}
-                              className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                            />
-                            <span className="text-xs text-gray-600 dark:text-gray-400">Start selling immediately</span>
-                          </label>
-                          {!saleStartNow && saleStartNow !== undefined && (
-                            <input
-                              type="datetime-local"
-                              min={nowString}
-                              max={maxTicketSaleEnd}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  setValue(`ticketTypes.${index}.saleStart`, localInputToUTC(e.target.value, selectedTimezone));
-                                }
-                              }}
-                              className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Sale End</Label>
-                        <input
-                          type="datetime-local"
-                          min={nowString}
-                          max={maxTicketSaleEnd}
-                          value={ticketSaleEndLocals[index] || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setTicketSaleEndLocals(prev => ({ ...prev, [index]: val }));
-                            if (val) {
-                              setValue(`ticketTypes.${index}.saleEnd`, localInputToUTC(val, selectedTimezone));
-                            }
-                          }}
-                          className="flex w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
-                        />
-                        {startDateLocal ? (
-                          <p className="text-xs text-gray-400">Default: 1 day before event. Change if needed.</p>
-                        ) : (
-                          <p className="text-xs text-gray-400">Set event start date to auto-fill</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            <p className="mt-3 text-xs text-gray-400">Ticket types cannot be modified after creation. Contact support if you need changes.</p>
           </CardContent>
         </Card>
 
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={() => router.push(`/organiser/events/${eventId}`)}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating Event...' : 'Create Event (Draft)'}
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
-
-        {isSubmitting && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3 rounded-2xl bg-white dark:bg-gray-800 px-8 py-6 shadow-xl">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" />
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Creating your event...</p>
-              <p className="text-xs text-gray-400">You'll be redirected to edit it shortly</p>
-            </div>
-          </div>
-        )}
       </form>
     </div>
   );

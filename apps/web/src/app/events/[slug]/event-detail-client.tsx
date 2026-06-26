@@ -20,6 +20,8 @@ interface TicketType {
   soldQty: number;
   maxPerOrder: number;
   isActive: boolean;
+  saleStart: string | null;
+  saleEnd: string | null;
 }
 
 interface EventDetail {
@@ -36,6 +38,7 @@ interface EventDetail {
   startDate: string;
   endDate: string;
   imageUrl: string | null;
+  bannerUrl: string | null;
   latitude: number | null;
   longitude: number | null;
   tags: string[];
@@ -44,7 +47,7 @@ interface EventDetail {
   saleCutoffDate: string | null;
   category: { name: string; slug: string };
   ticketTypes: TicketType[];
-  organiser: { firstName: string; lastName: string; orgName: string | null };
+  organiser: { id: string; firstName: string; lastName: string; orgName: string | null; avatarUrl: string | null };
 }
 
 export default function EventDetailClient({ slug }: { slug: string }) {
@@ -56,8 +59,13 @@ export default function EventDetailClient({ slug }: { slug: string }) {
   const [cartMessage, setCartMessage] = useState<string | null>(null);
   const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showAttendeeForm, setShowAttendeeForm] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const { user } = useAuthStore();
   const { setCart } = useCartStore();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     apiClient
@@ -102,10 +110,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
         useCartStore.getState().setEventId(event!.id);
         useCartStore.getState().setAttendees(attendeeList);
         setShowAttendeeForm(false);
-        setCartMessage('Added to cart! Go to cart to checkout.');
-        const reset: Record<string, number> = {};
-        itemsToAdd.forEach((tt) => { reset[tt.id] = 0; });
-        setQuantities((q) => ({ ...q, ...reset }));
+        router.push('/checkout');
       } else {
         const guestItems: CartItem[] = itemsToAdd.map((tt) => ({
           id: `guest-${tt.id}`,
@@ -146,39 +151,107 @@ export default function EventDetailClient({ slug }: { slug: string }) {
   const totalPrice = event.ticketTypes.reduce((sum, tt) => sum + Number(tt.price) * (quantities[tt.id] || 0), 0);
   const salesClosed = (event.saleCutoffDate && new Date() >= new Date(event.saleCutoffDate)) || new Date() >= new Date(event.startDate);
 
+  const handleAddToCalendar = () => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const toGCal = (d: Date) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+    const location = [event.venue, event.address, event.city, event.state].filter(Boolean).join(', ');
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: event.title,
+      dates: `${toGCal(startDate)}/${toGCal(endDate)}`,
+      details: `${event.shortDesc || event.title}\n\nBook tickets: ${window.location.href}`,
+      location,
+      sf: 'true',
+    });
+    window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
+  };
+
+  const handleShare = async () => {
+    const shareData = { title: event.title, text: event.shortDesc || event.title, url: window.location.href };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch { /* user cancelled */ }
+    } else {
+      setShowShareMenu((v) => !v);
+    }
+  };
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setCartMessage('Link copied to clipboard!');
+    setShowShareMenu(false);
+    setTimeout(() => setCartMessage(null), 2000);
+  };
+
+  const shareToWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(`${event.title}\n${window.location.href}`)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const shareToTwitter = () => {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(event.title)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
   return (
     <div className="bg-gray-50 dark:bg-gray-900">
-      {/* Hero */}
-      <div className="relative">
-        <div className="h-[350px] sm:h-[420px] lg:h-[460px] overflow-hidden">
-          <img
-            src={event.imageUrl || 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1400&q=80'}
-            alt={event.title}
-            className="h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent" />
-        </div>
+      {/* Hero Image */}
+      <div className="h-[300px] sm:h-[380px] lg:h-[420px] overflow-hidden">
+        <img
+          src={event.bannerUrl || event.imageUrl || 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1400&q=80'}
+          alt={event.title}
+          className="h-full w-full object-cover object-center"
+        />
+      </div>
 
-        <div className="absolute bottom-0 left-0 right-0 pb-8 pt-20">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="rounded-full glass px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
-                {event.category.name}
-              </span>
-              <span className="text-xs sm:text-sm text-gray-300">
-                {startDate.toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })} &middot; {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-              </span>
+      {/* Event Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="mb-2">
+                <span className="rounded-full bg-orange-100 dark:bg-orange-900/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                  {event.category.name}
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight text-gray-900 dark:text-gray-100">
+                {event.title}
+              </h1>
             </div>
-            <h1 className="mt-3 sm:mt-4 max-w-2xl text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-tight text-white">
-              {event.title}
-            </h1>
-            <div className="mt-4 sm:mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
-              <button className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-orange-600 transition">
-                <Calendar className="h-4 w-4" /> Add to Calendar
-              </button>
-              <button className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white dark:bg-gray-800/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20 transition">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-300 shrink-0">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-orange-500" />
+                <span>{startDate.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}, {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-orange-500" />
+                <span>{Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60))}h &middot; {event.city}</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+            <button onClick={handleAddToCalendar} className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-orange-600 transition">
+              <Calendar className="h-4 w-4" /> Add to Calendar
+            </button>
+            <div className="relative">
+              <button onClick={handleShare} className="inline-flex items-center gap-2 rounded-full border border-gray-300 dark:border-gray-600 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                 <Share2 className="h-4 w-4" /> Share Event
               </button>
+              {showShareMenu && (
+                <div className="absolute top-full left-0 mt-2 w-48 rounded-xl bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  <button onClick={copyLink} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                    Copy Link
+                  </button>
+                  <button onClick={shareToWhatsApp} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <svg className="h-4 w-4 text-green-500" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492l4.604-1.207A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.153 0-4.144-.68-5.778-1.835l-.413-.267-2.733.717.73-2.667-.292-.433A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    WhatsApp
+                  </button>
+                  <button onClick={shareToTwitter} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    X (Twitter)
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -189,24 +262,6 @@ export default function EventDetailClient({ slug }: { slug: string }) {
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left Column */}
           <div className="flex-1 min-w-0 space-y-10">
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex items-start gap-4 rounded-2xl glass-light p-5 hover-lift">
-                <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 p-3"><Calendar className="h-5 w-5 text-orange-500" /></div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Date & Time</p>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{startDate.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} — {endDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4 rounded-2xl glass-light p-5 hover-lift">
-                <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 p-3"><Clock className="h-5 w-5 text-orange-500" /></div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Duration</p>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60))} hours</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{event.city}, {event.state || event.country}</p>
-                </div>
-              </div>
-            </section>
 
             <section className="rounded-2xl glass-light p-6 sm:p-8">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">About the Experience</h2>
@@ -226,21 +281,17 @@ export default function EventDetailClient({ slug }: { slug: string }) {
               <div className="p-6 sm:p-8">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Venue & Location</h2>
               </div>
-              <div className="relative h-64 bg-gray-100 dark:bg-gray-800">
-                {mapCoords ? (
+              {mapCoords && (
+                <div className="relative h-64 bg-gray-100 dark:bg-gray-800">
                   <iframe title="Event location" src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCoords.lng - 0.008},${mapCoords.lat - 0.004},${mapCoords.lng + 0.008},${mapCoords.lat + 0.004}&layer=mapnik&marker=${mapCoords.lat},${mapCoords.lng}`} className="h-full w-full border-0" loading="lazy" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-400 dark:text-gray-500">
-                    <div className="animate-pulse text-center"><div className="mx-auto mb-2 h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/30" /><p>Loading map...</p></div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-800 p-4 sm:p-5">
                 <div>
                   <p className="font-bold text-gray-900 dark:text-gray-100">{event.venue}</p>
                   <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{[event.address, event.city, event.state].filter(Boolean).join(', ')}</p>
                 </div>
-                <a href={mapCoords ? `https://www.google.com/maps?q=${mapCoords.lat},${mapCoords.lng}` : `https://www.google.com/maps/search/${encodeURIComponent([event.venue, event.city, event.state].filter(Boolean).join(', '))}`} target="_blank" rel="noopener noreferrer">
+                <a href={event.latitude && event.longitude ? `https://www.google.com/maps?q=${event.latitude},${event.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent([event.venue, event.address, event.city, event.state].filter(Boolean).join(', '))}`} target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" size="sm" className="rounded-full text-xs">Open in Maps</Button>
                 </a>
               </div>
@@ -266,22 +317,43 @@ export default function EventDetailClient({ slug }: { slug: string }) {
 
                 <div className="mt-5 space-y-3">
                   {event.ticketTypes.map((tt) => {
+                    const now = new Date();
                     const available = tt.totalQty - tt.soldQty;
                     const isSoldOut = available <= 0;
+                    const saleNotStarted = tt.saleStart && new Date(tt.saleStart) > now;
+                    const saleEnded = tt.saleEnd && new Date(tt.saleEnd) < now;
+                    const isUnavailable = isSoldOut || saleNotStarted || saleEnded;
                     const tQty = quantities[tt.id] || 0;
                     const tMax = Math.min(tt.maxPerOrder, available);
+
+                    let statusText = '';
+                    let statusColor = '';
+                    if (isSoldOut) {
+                      statusText = 'Sold Out';
+                      statusColor = 'text-red-500';
+                    } else if (saleEnded) {
+                      statusText = 'Sale Ended';
+                      statusColor = 'text-red-500';
+                    } else if (saleNotStarted) {
+                      statusText = `Sale starts ${new Date(tt.saleStart!).toLocaleDateString('en-IN', { dateStyle: 'medium' })} at ${new Date(tt.saleStart!).toLocaleTimeString('en-IN', { timeStyle: 'short' })}`;
+                      statusColor = 'text-amber-600 dark:text-amber-400';
+                    }
+
                     return (
-                      <div key={tt.id} className={`rounded-xl border-2 p-4 transition-all ${isSoldOut ? 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 opacity-50' : tQty > 0 ? 'border-orange-500 bg-orange-50/40 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+                      <div key={tt.id} className={`rounded-xl border-2 p-4 transition-all ${isUnavailable ? 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 opacity-60' : tQty > 0 ? 'border-orange-500 bg-orange-50/40 dark:bg-orange-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-900 dark:text-gray-100">{tt.name}</p>
                             {tt.description && <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{tt.description}</p>}
-                            {!isSoldOut && <p className="mt-1 text-[11px] text-green-600 font-medium">{available} available</p>}
-                            {isSoldOut && <p className="mt-1 text-[11px] font-semibold text-red-500">Sold Out</p>}
+                            {statusText ? (
+                              <p className={`mt-1 text-[11px] font-semibold ${statusColor}`}>{statusText}</p>
+                            ) : (
+                              <p className="mt-1 text-[11px] text-green-600 font-medium">{available} available</p>
+                            )}
                           </div>
                           <p className="text-lg font-bold text-orange-600 whitespace-nowrap">{Number(tt.price) === 0 ? 'Free' : `₹${Number(tt.price).toLocaleString('en-IN')}`}</p>
                         </div>
-                        {!isSoldOut && (
+                        {!isUnavailable && (
                           <div className="mt-3 flex items-center justify-end">
                             <div className="flex items-center rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
                               <button className="px-2.5 py-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30" disabled={tQty <= 0} onClick={() => setQuantities((q) => ({ ...q, [tt.id]: Math.max(0, tQty - 1) }))}><Minus className="h-3.5 w-3.5" /></button>
@@ -312,13 +384,19 @@ export default function EventDetailClient({ slug }: { slug: string }) {
                 <p className="mt-2.5 text-center text-[11px] text-gray-400 dark:text-gray-500">Non-refundable. T&Cs apply.</p>
               </div>
 
-              <div className="flex items-center gap-3 rounded-2xl glass-light p-5 hover-lift">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-900 text-sm font-bold text-white">{orgName[0]}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">Organized by</p>
-                  <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{orgName}</p>
+              <div className="rounded-2xl glass-light p-5 hover-lift">
+                <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Organized by</p>
+                <div className="flex items-center gap-3">
+                  {event.organiser.avatarUrl ? (
+                    <img src={event.organiser.avatarUrl} alt={orgName} className="h-11 w-11 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30 text-sm font-bold text-orange-600">{orgName[0]}</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{orgName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{event.organiser.firstName} {event.organiser.lastName}</p>
+                  </div>
                 </div>
-                <span className="text-sm font-semibold text-orange-500 cursor-pointer hover:text-orange-600">Follow</span>
               </div>
             </div>
           </div>

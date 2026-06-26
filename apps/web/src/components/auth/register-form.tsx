@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { ICON_LOGO } from '@/lib/logos';
+import { validateName, validateEmail, validatePhone, validatePassword, sanitizeName, sanitizePhone } from '@/lib/validators';
 
 const countryCodes = [
   { code: '+91', country: 'IN', maxLen: 10, format: 'XXXXX XXXXX' },
@@ -41,17 +42,31 @@ export function RegisterForm() {
   const selectedCountry = countryCodes.find((c) => c.code === countryCode) || countryCodes[0];
   const formatPhone = (value: string) => value.replace(/\D/g, '').slice(0, selectedCountry.maxLen);
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.firstName.trim()) errs.firstName = 'Required';
-    if (!form.lastName.trim()) errs.lastName = 'Required';
-    if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Valid email required';
-    if (form.password.length < 8) errs.password = 'Minimum 8 characters';
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(form.password)) errs.password = 'Need uppercase, lowercase, number & special char';
+    const firstNameErr = validateName(form.firstName, 'First name');
+    if (firstNameErr) errs.firstName = firstNameErr;
+    const lastNameErr = validateName(form.lastName, 'Last name');
+    if (lastNameErr) errs.lastName = lastNameErr;
+    const emailErr = validateEmail(form.email);
+    if (emailErr) errs.email = emailErr;
+    const passwordErr = validatePassword(form.password);
+    if (passwordErr) errs.password = passwordErr;
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
-    const phoneDigits = form.phone.replace(/\D/g, '');
-    if (!phoneDigits) errs.phone = 'Phone number is required';
-    else if (phoneDigits.length !== selectedCountry.maxLen) errs.phone = `Must be ${selectedCountry.maxLen} digits`;
+    const fullPhone = form.phone ? `${countryCode}${form.phone.replace(/\D/g, '')}` : '';
+    const phoneErr = validatePhone(fullPhone);
+    if (!form.phone.replace(/\D/g, '')) errs.phone = 'Phone number is required';
+    else if (form.phone.replace(/\D/g, '').length !== selectedCountry.maxLen) errs.phone = `Must be ${selectedCountry.maxLen} digits`;
+    else if (phoneErr) errs.phone = phoneErr;
     if (isOrganiser && !form.orgName.trim()) errs.orgName = 'Organisation name is required';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
@@ -97,7 +112,7 @@ export function RegisterForm() {
       <div className="rounded-2xl glass-light p-5 sm:p-8 shadow-2xl shadow-gray-200/30 dark:shadow-black/30">
         {/* Header */}
         <div className="mb-6 text-center">
-          <img src={ICON_LOGO} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 shadow-lg shadow-orange-500/30 animate-float-slow" />
+          <img src={ICON_LOGO} alt="ThooviTickets" className="mx-auto mb-4 h-20 w-20 animate-float-slow" />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isOrganiser ? 'Organiser Registration' : 'Create Your Account'}
           </h1>
@@ -113,12 +128,12 @@ export function RegisterForm() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">First Name</label>
-              <input className={inputClass('firstName')} placeholder="John" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+              <input className={inputClass('firstName')} placeholder="John" maxLength={50} value={form.firstName} onChange={(e) => { setForm({ ...form, firstName: sanitizeName(e.target.value) }); clearFieldError('firstName'); }} />
               {fieldErrors.firstName && <p className="mt-1 text-xs text-red-500">{fieldErrors.firstName}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">Last Name</label>
-              <input className={inputClass('lastName')} placeholder="Doe" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+              <input className={inputClass('lastName')} placeholder="Doe" maxLength={50} value={form.lastName} onChange={(e) => { setForm({ ...form, lastName: sanitizeName(e.target.value) }); clearFieldError('lastName'); }} />
               {fieldErrors.lastName && <p className="mt-1 text-xs text-red-500">{fieldErrors.lastName}</p>}
             </div>
           </div>
@@ -126,7 +141,7 @@ export function RegisterForm() {
           {/* Email */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
-            <input className={inputClass('email')} type="email" placeholder="you@example.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <input className={inputClass('email')} type="email" placeholder="you@example.com" maxLength={100} value={form.email} onChange={(e) => { setForm({ ...form, email: e.target.value }); clearFieldError('email'); }} />
             {fieldErrors.email && <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>}
           </div>
 
@@ -134,7 +149,7 @@ export function RegisterForm() {
           {isOrganiser && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200">Organisation Name</label>
-              <input className={inputClass('orgName')} placeholder="Your company or brand name" value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} />
+              <input className={inputClass('orgName')} placeholder="Your company or brand name" maxLength={100} value={form.orgName} onChange={(e) => { setForm({ ...form, orgName: e.target.value }); clearFieldError('orgName'); }} />
               {fieldErrors.orgName && <p className="mt-1 text-xs text-red-500">{fieldErrors.orgName}</p>}
             </div>
           )}
@@ -146,7 +161,7 @@ export function RegisterForm() {
               <select value={countryCode} onChange={(e) => { setCountryCode(e.target.value); setForm({ ...form, phone: '' }); }} className="w-24 sm:w-28 shrink-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-3 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
                 {countryCodes.map((c) => <option key={c.code} value={c.code}>{c.code} {c.country}</option>)}
               </select>
-              <input className={inputClass('phone') + ' flex-1'} type="tel" placeholder={selectedCountry.format} value={form.phone} onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })} />
+              <input className={inputClass('phone') + ' flex-1'} type="tel" maxLength={15} placeholder={selectedCountry.format} value={form.phone} onChange={(e) => { setForm({ ...form, phone: formatPhone(e.target.value) }); clearFieldError('phone'); }} />
             </div>
             {fieldErrors.phone && <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>}
           </div>
@@ -155,7 +170,7 @@ export function RegisterForm() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
             <div className="relative">
-              <input className={inputClass('password')} type={showPassword ? 'text' : 'password'} placeholder="Min 8 chars, Aa1@" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              <input className={inputClass('password')} type={showPassword ? 'text' : 'password'} placeholder="Min 8 chars, Aa1@" maxLength={128} value={form.password} onChange={(e) => { setForm({ ...form, password: e.target.value }); clearFieldError('password'); }} />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -180,7 +195,7 @@ export function RegisterForm() {
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm Password</label>
             <div className="relative">
-              <input className={inputClass('confirmPassword')} type={showConfirm ? 'text' : 'password'} placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
+              <input className={inputClass('confirmPassword')} type={showConfirm ? 'text' : 'password'} placeholder="Re-enter password" maxLength={128} value={form.confirmPassword} onChange={(e) => { setForm({ ...form, confirmPassword: e.target.value }); clearFieldError('confirmPassword'); }} />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>

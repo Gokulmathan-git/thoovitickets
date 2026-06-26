@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import {
   CalendarPlus,
@@ -15,6 +17,18 @@ import {
   Check,
   Star,
 } from 'lucide-react';
+
+interface Plan {
+  tier: string;
+  name: string;
+  price: number;
+  maxEventsPerMonth: number;
+  maxTicketTiers: number;
+  maxTicketsPerEvent: number;
+  maxStaffAccounts: number;
+  commissionPercent: number;
+  features: string[];
+}
 
 const features = [
   {
@@ -56,28 +70,14 @@ const howItWorks = [
   { step: '04', title: 'Start Selling', description: 'Publish your event and start selling tickets instantly.' },
 ];
 
-const plans = [
-  {
-    name: 'Free',
-    price: 0,
-    features: ['Up to 2 events/month', '100 tickets per event', 'Basic analytics', 'Email support'],
-    highlighted: false,
-  },
-  {
-    name: 'Basic',
-    price: 999,
-    features: ['Up to 10 events/month', '500 tickets per event', 'Advanced analytics', 'Priority support'],
-    highlighted: true,
-  },
-  {
-    name: 'Premium',
-    price: 2999,
-    features: ['Unlimited events', '2000 tickets per event', 'Full analytics suite', 'Dedicated support'],
-    highlighted: false,
-  },
-];
-
 export default function BecomeOrganiserPage() {
+  const [plans, setPlans] = useState<Plan[]>([]);
+
+  useEffect(() => {
+    apiClient.get('/subscriptions/plans')
+      .then((res) => setPlans(res.data.data))
+      .catch(() => {});
+  }, []);
   return (
     <div>
       {/* Hero Section */}
@@ -178,62 +178,69 @@ export default function BecomeOrganiserPage() {
       </section>
 
       {/* Pricing Preview */}
-      <section className="bg-white dark:bg-gray-800 py-12 sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl lg:text-4xl">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
-              Start for free, upgrade as you grow.
-            </p>
-          </div>
-          <div className="mt-10 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-3">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-2xl border p-8 ${
-                  plan.highlighted
-                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg shadow-orange-100/50 relative'
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white">
-                    <Star className="h-3 w-3" /> Popular
-                  </div>
-                )}
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                    {plan.price === 0 ? 'Free' : `₹${plan.price}`}
-                  </span>
-                  {plan.price > 0 && <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>}
-                </div>
-                <ul className="mt-6 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                      <Check className="h-4 w-4 text-green-500 shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register?role=organiser" className="mt-8 block">
-                  <Button
-                    className={`w-full rounded-xl py-5 ${
-                      plan.highlighted
-                        ? 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
-                        : 'bg-gray-900 hover:bg-gray-800 text-white'
+      {plans.length > 0 && (
+        <section className="bg-white dark:bg-gray-800 py-12 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl lg:text-4xl">
+                Simple, Transparent Pricing
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
+                Start for free, upgrade as you grow.
+              </p>
+            </div>
+            <div className={`mt-10 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-8 ${plans.length <= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+              {plans.map((plan) => {
+                const isPopular = plan.tier === 'PRO';
+                const price = Number(plan.price);
+
+                return (
+                  <div
+                    key={plan.tier}
+                    className={`rounded-2xl border p-8 flex flex-col ${
+                      isPopular
+                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-lg shadow-orange-100/50 relative'
+                        : 'border-gray-200 dark:border-gray-700'
                     }`}
                   >
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
-            ))}
+                    {isPopular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white">
+                        <Star className="h-3 w-3" /> Popular
+                      </div>
+                    )}
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
+                    <div className="mt-2">
+                      <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                        {price === 0 ? 'Free' : `₹${price.toLocaleString('en-IN')}`}
+                      </span>
+                      {price > 0 && <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>}
+                    </div>
+                    <ul className="mt-6 space-y-3 flex-1">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                          <Check className="h-4 w-4 mt-0.5 text-orange-500 shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href="/register?role=organiser" className="mt-8 block">
+                      <Button
+                        className={`w-full rounded-xl py-5 ${
+                          isPopular
+                            ? 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
+                            : 'bg-gray-900 hover:bg-gray-800 text-white'
+                        }`}
+                      >
+                        Get Started
+                      </Button>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="bg-gray-900 py-12 sm:py-20">

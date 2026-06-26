@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsDateString,
   IsInt,
+  IsNumber,
   IsArray,
   Min,
   MinLength,
@@ -79,8 +80,20 @@ export class UpdateEventDto {
   saleCutoffDate?: string;
 
   @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  bannerUrl?: string;
 
   [key: string]: unknown;
 }

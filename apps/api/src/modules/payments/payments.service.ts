@@ -23,6 +23,36 @@ export class PaymentsService {
     private readonly ticketsService: TicketsService,
   ) {}
 
+  async initiateGuestPayment(orderId: string, guestEmail: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, guestEmail, userId: null },
+      include: {
+        items: {
+          include: {
+            event: { select: { title: true } },
+            ticketType: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    return this._initiatePaymentForOrder(order);
+  }
+
+  async verifyGuestPayment(
+    orderId: string,
+    guestEmail: string,
+    providerPaymentId: string,
+    providerOrderId: string,
+    providerSignature: string,
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, guestEmail, userId: null },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    return this._verifyPaymentForOrder(order, providerPaymentId, providerOrderId, providerSignature);
+  }
+
   async initiatePayment(orderId: string, userId: string) {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
@@ -38,6 +68,24 @@ export class PaymentsService {
     });
 
     if (!order) throw new NotFoundException('Order not found');
+    return this._initiatePaymentForOrder(order);
+  }
+
+  async verifyPayment(
+    orderId: string,
+    userId: string,
+    providerPaymentId: string,
+    providerOrderId: string,
+    providerSignature: string,
+  ) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, userId },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    return this._verifyPaymentForOrder(order, providerPaymentId, providerOrderId, providerSignature);
+  }
+
+  private async _initiatePaymentForOrder(order: any) {
     if (order.status !== OrderStatus.PENDING) {
       throw new BadRequestException('Order is not in pending status');
     }
@@ -47,21 +95,21 @@ export class PaymentsService {
     }
 
     const existing = await this.prisma.payment.findUnique({
-      where: { orderId },
+      where: { orderId: order.id },
     });
     if (existing && existing.status === PaymentStatus.SUCCESS) {
       throw new BadRequestException('Payment already completed');
     }
 
     const description = order.items
-      .map((i) => `${i.ticketType.name} x${i.quantity} - ${i.event.title}`)
+      .map((i: any) => `${i.ticketType.name} x${i.quantity} - ${i.event.title}`)
       .join(', ');
 
     const result = await this.paymentProvider.createOrder({
       orderId: order.id,
       amount: Number(order.totalAmount),
       currency: order.currency,
-      customerName: `${order.user?.firstName || 'Guest'} ${order.user?.lastName || ''}`.trim(),
+      customerName: `${order.user?.firstName || order.guestName || 'Guest'} ${order.user?.lastName || ''}`.trim(),
       customerEmail: order.user?.email || order.guestEmail || '',
       customerPhone: order.user?.phone || order.guestPhone || undefined,
       description,
@@ -69,7 +117,7 @@ export class PaymentsService {
 
     if (existing) {
       await this.prisma.payment.update({
-        where: { orderId },
+        where: { orderId: order.id },
         data: {
           providerOrderId: result.providerOrderId,
           provider: result.provider,
@@ -79,7 +127,7 @@ export class PaymentsService {
     } else {
       await this.prisma.payment.create({
         data: {
-          orderId,
+          orderId: order.id,
           amount: order.totalAmount,
           currency: order.currency,
           provider: result.provider,
@@ -97,27 +145,21 @@ export class PaymentsService {
       keyId: result.keyId,
       orderNumber: order.orderNumber,
       prefill: {
-        name: `${order.user?.firstName || ''} ${order.user?.lastName || ''}`.trim(),
+        name: `${order.user?.firstName || order.guestName || ''} ${order.user?.lastName || ''}`.trim(),
         email: order.user?.email || order.guestEmail || '',
         contact: order.user?.phone || order.guestPhone || '',
       },
     };
   }
 
-  async verifyPayment(
-    orderId: string,
-    userId: string,
+  private async _verifyPaymentForOrder(
+    order: any,
     providerPaymentId: string,
     providerOrderId: string,
     providerSignature: string,
   ) {
-    const order = await this.prisma.order.findFirst({
-      where: { id: orderId, userId },
-    });
-    if (!order) throw new NotFoundException('Order not found');
-
     const payment = await this.prisma.payment.findUnique({
-      where: { orderId },
+      where: { orderId: order.id },
     });
     if (!payment) throw new NotFoundException('Payment record not found');
 
@@ -129,7 +171,7 @@ export class PaymentsService {
 
     if (!verification.verified) {
       await this.prisma.payment.update({
-        where: { orderId },
+        where: { orderId: order.id },
         data: {
           status: PaymentStatus.FAILED,
           providerPaymentId,
@@ -141,11 +183,11 @@ export class PaymentsService {
 
     const [updatedOrder] = await this.prisma.$transaction([
       this.prisma.order.update({
-        where: { id: orderId },
+        where: { id: order.id },
         data: { status: OrderStatus.CONFIRMED, expiresAt: null },
       }),
       this.prisma.payment.update({
-        where: { orderId },
+        where: { orderId: order.id },
         data: {
           status: PaymentStatus.SUCCESS,
           providerPaymentId,
@@ -154,7 +196,7 @@ export class PaymentsService {
       }),
     ]);
 
-    this.generateTicketsAsync(orderId);
+    this.generateTicketsAsync(order.id);
 
     return {
       orderId: updatedOrder.id,

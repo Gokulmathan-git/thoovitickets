@@ -99,7 +99,7 @@ export default function EditContentPage() {
         <CardHeader className="pb-3">
           <div className="space-y-2">
             <Label>Page Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" />
+            <Input value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Page title" />
           </div>
         </CardHeader>
         <CardContent>

@@ -6,7 +6,8 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Star, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { Star, Eye, EyeOff, Pencil } from 'lucide-react';
 
 interface EventMetrics {
   totalPurchased: number;
@@ -184,6 +185,7 @@ export default function OrganiserEventDetailPage() {
 
   if (!event) return null;
 
+  const canEdit = event.status === 'DRAFT' || event.status === 'REJECTED';
   const canSubmit = event.status === 'DRAFT' || event.status === 'REJECTED';
   const canDelete = event.status === 'DRAFT';
   const canCancel = event.status === 'PUBLISHED' || event.status === 'APPROVED';
@@ -202,6 +204,13 @@ export default function OrganiserEventDetailPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{event.category.name}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canEdit && (
+            <Link href={`/organiser/events/${event.id}/edit`}>
+              <Button variant="outline">
+                <Pencil className="mr-1.5 h-4 w-4" /> Edit Event
+              </Button>
+            </Link>
+          )}
           {canSubmit && (
             <Button onClick={handleSubmitForApproval} disabled={actionLoading}>
               {actionLoading ? 'Submitting...' : 'Submit for Approval'}

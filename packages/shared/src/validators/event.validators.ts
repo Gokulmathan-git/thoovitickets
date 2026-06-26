@@ -9,12 +9,12 @@ const ticketTypeSchema = z.object({
   maxPerOrder: z.number().int().min(1).max(50).default(5),
   saleStart: z.string().datetime().optional(),
   saleEnd: z.string().datetime().optional(),
+  saleStartNow: z.boolean().optional(),
 });
 
 export const createEventBaseSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200).trim(),
-  description: z.string().min(20, 'Description must be at least 20 characters').trim(),
-  shortDesc: z.string().max(300).optional(),
+  description: z.string().min(20, 'Description must be at least 20 characters').max(1000, 'Description must be under 1000 characters').trim(),
   venue: z.string().min(2, 'Venue is required').trim(),
   address: z.string().optional(),
   city: z.string().min(2, 'City is required').trim(),
@@ -26,7 +26,6 @@ export const createEventBaseSchema = z.object({
   maxAttendees: z.number().int().min(1).optional(),
   tags: z.array(z.string()).default([]),
   timezone: z.string().default('Asia/Kolkata'),
-  saleCutoffDate: z.string().datetime().optional(),
   ticketTypes: z.array(ticketTypeSchema).min(1, 'At least one ticket type is required'),
 });
 
@@ -37,8 +36,7 @@ export const createEventSchema = createEventBaseSchema.refine(
 
 export const updateEventSchema = z.object({
   title: z.string().min(3).max(200).trim().optional(),
-  description: z.string().min(20).trim().optional(),
-  shortDesc: z.string().max(300).optional(),
+  description: z.string().min(20).max(1000).trim().optional(),
   venue: z.string().min(2).trim().optional(),
   address: z.string().optional(),
   city: z.string().min(2).trim().optional(),

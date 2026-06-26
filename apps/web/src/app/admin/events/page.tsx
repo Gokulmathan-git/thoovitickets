@@ -5,7 +5,8 @@ import apiClient from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, Pencil, X, ChevronDown, ChevronUp, BarChart3, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Pencil, X, ChevronDown, ChevronUp, BarChart3, Loader2, Eye } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -302,6 +303,11 @@ export default function AdminEventsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
+                      <Link href={`/admin/events/${event.id}`}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                          <Eye className="h-3 w-3" /> View
+                        </Button>
+                      </Link>
                       {event.status === 'PENDING_APPROVAL' && (
                         <>
                           <Button size="sm" className="h-7 text-xs" onClick={() => handleReview(event.id, 'APPROVED')} disabled={actionLoading === event.id}>

@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<'review' | 'paying'>('review');
 
+  const firstAttendee = attendees.length > 0 ? attendees[0] : null;
   const [guestInfo, setGuestInfo] = useState({ name: '', email: '', phone: '' });
   const [priceBreakdown, setPriceBreakdown] = useState<{
     subtotal: number;
@@ -30,6 +31,16 @@ export default function CheckoutPage() {
   } | null>(null);
 
   const isGuestCheckout = !user;
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    if (!user && firstAttendee && !guestInfo.name) {
+      setGuestInfo({ name: firstAttendee.name, email: firstAttendee.email, phone: firstAttendee.phone || '' });
+    }
+  }, [user, firstAttendee, guestInfo.name]);
 
   useEffect(() => {
     if (user) {
@@ -84,7 +95,6 @@ export default function CheckoutPage() {
       let orderId: string;
 
       if (isGuestCheckout) {
-        // Guest checkout — create order directly from items
         const orderRes = await apiClient.post('/orders/guest', {
           guestEmail: guestInfo.email,
           guestName: guestInfo.name,
@@ -103,11 +113,25 @@ export default function CheckoutPage() {
         const order = orderRes.data.data;
         orderId = order.id;
 
-        // Confirm guest order (simulated payment)
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        await apiClient.post(`/orders/guest/${orderId}/confirm`, {
-          guestEmail: guestInfo.email,
-        });
+        const orderAmount = priceBreakdown?.totalAmount ?? total;
+        if (orderAmount > 0) {
+          const payRes = await apiClient.post(`/payments/guest/initiate/${orderId}`, {
+            guestEmail: guestInfo.email,
+          });
+          const paymentInfo = payRes.data.data;
+
+          if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
+            await openRazorpayCheckout(orderId, paymentInfo, guestInfo.email);
+          } else {
+            await apiClient.post(`/orders/guest/${orderId}/confirm`, {
+              guestEmail: guestInfo.email,
+            });
+          }
+        } else {
+          await apiClient.post(`/orders/guest/${orderId}/confirm`, {
+            guestEmail: guestInfo.email,
+          });
+        }
       } else {
         // Logged-in checkout — create from server cart
         const orderRes = await apiClient.post('/orders', {
@@ -121,19 +145,24 @@ export default function CheckoutPage() {
         const order = orderRes.data.data;
         orderId = order.id;
 
-        // Initiate payment
-        const payRes = await apiClient.post(`/payments/initiate/${orderId}`);
-        const paymentInfo = payRes.data.data;
+        // Check if payment is needed (skip for free orders)
+        const orderAmount = priceBreakdown?.totalAmount ?? total;
+        if (orderAmount > 0) {
+          const payRes = await apiClient.post(`/payments/initiate/${orderId}`);
+          const paymentInfo = payRes.data.data;
 
-        if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
-          await openRazorpayCheckout(orderId, paymentInfo);
+          if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
+            await openRazorpayCheckout(orderId, paymentInfo);
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await apiClient.post(`/payments/verify/${orderId}`, {
+              providerPaymentId: `mock_pay_${Date.now()}`,
+              providerOrderId: paymentInfo.providerOrderId,
+              providerSignature: 'mock_valid_signature',
+            });
+          }
         } else {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          await apiClient.post(`/payments/verify/${orderId}`, {
-            providerPaymentId: `mock_pay_${Date.now()}`,
-            providerOrderId: paymentInfo.providerOrderId,
-            providerSignature: 'mock_valid_signature',
-          });
+          await apiClient.post(`/orders/${orderId}/confirm`);
         }
       }
 
@@ -148,32 +177,52 @@ export default function CheckoutPage() {
         router.push(`/orders/${orderId}`);
       }
     } catch (err: unknown) {
+      console.error('Checkout error:', err);
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
-      setError(axiosError.response?.data?.error?.message || 'Payment failed. Please try again.');
+      const msg = axiosError.response?.data?.error?.message || (err instanceof Error ? err.message : 'Payment failed. Please try again.');
+      setError(msg);
       setPlacing(false);
       setPaymentStep('review');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const openRazorpayCheckout = async (orderId: string, paymentInfo: { providerOrderId: string; amount: number; currency: string; keyId?: string; orderNumber: string; prefill: { name: string; email: string; contact: string } }) => {
+  const openRazorpayCheckout = async (orderId: string, paymentInfo: { providerOrderId: string; amount: number; currency: string; keyId?: string; orderNumber: string; prefill: { name: string; email: string; contact: string } }, guestEmail?: string) => {
+    const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
+
+    // Wait for Razorpay SDK to load (max 5 seconds)
+    if (!win.Razorpay) {
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        if (win.Razorpay) break;
+      }
+    }
+
+    if (!win.Razorpay) {
+      throw new Error('Payment gateway failed to load. Please refresh and try again.');
+    }
+
     return new Promise<void>((resolve, reject) => {
-      const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
-      if (!win.Razorpay) { reject(new Error('Razorpay SDK not loaded')); return; }
-      const rzp = new win.Razorpay({
+      const rzp = new win.Razorpay!({
         key: paymentInfo.keyId,
         amount: paymentInfo.amount * 100,
         currency: paymentInfo.currency,
         name: 'ThooviTickets',
         description: `Order #${paymentInfo.orderNumber}`,
+        image: '/Main_logo.png',
         order_id: paymentInfo.providerOrderId,
         prefill: paymentInfo.prefill,
-        theme: { color: '#f97316' },
+        theme: { color: '#FF541F' },
         handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           try {
-            await apiClient.post(`/payments/verify/${orderId}`, {
+            const verifyUrl = guestEmail
+              ? `/payments/guest/verify/${orderId}`
+              : `/payments/verify/${orderId}`;
+            await apiClient.post(verifyUrl, {
               providerPaymentId: response.razorpay_payment_id,
               providerOrderId: response.razorpay_order_id,
               providerSignature: response.razorpay_signature,
+              ...(guestEmail ? { guestEmail } : {}),
             });
             resolve();
           } catch (err) { reject(err); }
@@ -189,7 +238,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">Checkout</h1>
 
       {error && <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
@@ -202,151 +251,124 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <div className="space-y-4">
-        {/* Contact Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Contact Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isGuestCheckout ? (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Enter your details to receive the tickets</p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Full Name *</Label>
-                    <Input
-                      placeholder="John Doe"
-                      value={guestInfo.name}
-                      onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email *</Label>
-                    <Input
-                      type="email"
-                      placeholder="john@example.com"
-                      value={guestInfo.email}
-                      onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone (Optional)</Label>
-                  <Input
-                    type="tel"
-                    placeholder="+91 9876543210"
-                    value={guestInfo.phone}
-                    onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
-                  />
-                </div>
-              </div>
-            ) : (
+      <div className="flex flex-col gap-6 lg:flex-row">
+        {/* Left Column — Order Details */}
+        <div className="flex-1 min-w-0 space-y-4">
+          {/* Contact Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Contact Details</CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Name</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{user?.firstName} {user?.lastName}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{isGuestCheckout ? guestInfo.name : `${user?.firstName} ${user?.lastName}`}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{isGuestCheckout ? guestInfo.email : user?.email}</p>
                 </div>
-                {user?.phone && (
+                {(isGuestCheckout ? guestInfo.phone : user?.phone) && (
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Phone</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{user.phone}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{isGuestCheckout ? guestInfo.phone : user?.phone}</p>
                   </div>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Order Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Order Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.event.title}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{item.ticketType.name} x {item.quantity}</p>
-                  </div>
-                  <p className="font-medium text-gray-900 dark:text-gray-100 shrink-0">₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Attendee Info */}
-        {attendees.length > 0 && (
+          {/* Order Items */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Attendee Details</CardTitle>
+              <CardTitle className="text-lg">Order Items</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {attendees.map((att: AttendeeInfo, i: number) => (
-                  <div key={i} className="flex items-start gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/20 text-xs font-bold text-orange-600 shrink-0">
-                      {i + 1}
+                {items.map((item) => (
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.event.title}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{item.ticketType.name} x {item.quantity}</p>
                     </div>
-                    <div className="text-sm">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{att.name}</p>
-                      <p className="text-gray-500 dark:text-gray-400">{att.email} · {att.phone}</p>
-                      <p className="text-xs text-orange-500">{att.ticketName}</p>
-                    </div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100 shrink-0">₹{(item.ticketType.price * item.quantity).toLocaleString('en-IN')}</p>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Payment */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Payment Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                <span>Subtotal</span>
-                <span>₹{(priceBreakdown?.subtotal ?? total).toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between text-gray-600 dark:text-gray-300">
-                <span>Platform Fee</span>
-                {priceBreakdown && priceBreakdown.platformFee > 0 ? (
-                  <span>₹{priceBreakdown.platformFee.toLocaleString('en-IN')}</span>
-                ) : (
-                  <span className="text-green-600">Free</span>
-                )}
-              </div>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-gray-100 text-lg">
-                <span>Total</span>
-                <span>₹{(priceBreakdown?.totalAmount ?? total).toLocaleString('en-IN')}</span>
-              </div>
-            </div>
+          {/* Attendee Info */}
+          {attendees.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Attendee Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {attendees.map((att: AttendeeInfo, i: number) => (
+                    <div key={i} className="flex items-start gap-3 rounded-lg border border-gray-100 dark:border-gray-800 p-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/20 text-xs font-bold text-orange-600 shrink-0">
+                        {i + 1}
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{att.name}</p>
+                        <p className="text-gray-500 dark:text-gray-400">{att.email} · {att.phone}</p>
+                        <p className="text-xs text-orange-500">{att.ticketName}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-            <Button
-              className="w-full mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
-              size="lg"
-              onClick={handlePlaceOrder}
-              disabled={placing || (isGuestCheckout && (!guestInfo.email || !guestInfo.name))}
-            >
-              {placing ? 'Processing...' : `Pay ₹${(priceBreakdown?.totalAmount ?? total).toLocaleString('en-IN')}`}
-            </Button>
+        {/* Right Column — Payment Summary (sticky) */}
+        <div className="w-full lg:w-[360px] shrink-0">
+          <div className="sticky top-20">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Payment Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                    <span>Subtotal</span>
+                    <span>₹{(priceBreakdown?.subtotal ?? total).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                    <span>Platform Fee</span>
+                    {priceBreakdown && priceBreakdown.platformFee > 0 ? (
+                      <span>₹{priceBreakdown.platformFee.toLocaleString('en-IN')}</span>
+                    ) : (
+                      <span className="text-green-600">Free</span>
+                    )}
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-gray-900 dark:text-gray-100 text-lg">
+                    <span>Total</span>
+                    <span>₹{(priceBreakdown?.totalAmount ?? total).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
 
-            <div className="mt-3 flex items-center justify-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-              <ShieldCheck className="h-3 w-3" />
-              Secure payment processing
-            </div>
-          </CardContent>
-        </Card>
+                <Button
+                  className="w-full mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                  size="lg"
+                  onClick={handlePlaceOrder}
+                  disabled={placing}
+                >
+                  {placing ? 'Processing...' : `Pay ₹${(priceBreakdown?.totalAmount ?? total).toLocaleString('en-IN')}`}
+                </Button>
+
+                <div className="mt-3 flex items-center justify-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                  <ShieldCheck className="h-3 w-3" />
+                  Secure payment processing
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

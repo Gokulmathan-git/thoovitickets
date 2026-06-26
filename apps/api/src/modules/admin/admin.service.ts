@@ -142,6 +142,8 @@ export class AdminService {
           avatarUrl: true,
           statusReason: true,
           idDocumentType: true,
+          aadharDocumentUrl: true,
+          panDocumentUrl: true,
           profileCompleted: true,
           orgCommissionPercent: true,
           createdAt: true,
@@ -246,6 +248,25 @@ export class AdminService {
     }
 
     return updated;
+  }
+
+  async getEventDetail(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        category: true,
+        ticketTypes: { orderBy: { sortOrder: 'asc' } },
+        organiser: {
+          select: {
+            id: true, firstName: true, lastName: true, email: true,
+            phone: true, orgName: true, orgDescription: true, avatarUrl: true,
+            aadharDocumentUrl: true, panDocumentUrl: true,
+          },
+        },
+      },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+    return event;
   }
 
   async getEvents(query: { status?: string; search?: string; page?: number; limit?: number }) {
@@ -561,5 +582,62 @@ export class AdminService {
     if (!slab) throw new NotFoundException('Convenience fee slab not found');
     await this.prisma.convenienceFeeSlab.delete({ where: { id } });
     return { message: 'Convenience fee slab deleted' };
+  }
+
+  // ─── HOME BANNERS ─────────────────────────────────
+
+  async getBanners() {
+    return this.prisma.homeBanner.findMany({
+      orderBy: { sortOrder: 'asc' },
+      include: { event: { select: { id: true, title: true, slug: true } } },
+    });
+  }
+
+  async createBanner(data: {
+    title: string;
+    description?: string;
+    imageUrl: string;
+    linkType?: string;
+    linkUrl?: string;
+    eventId?: string;
+  }) {
+    const maxOrder = await this.prisma.homeBanner.aggregate({ _max: { sortOrder: true } });
+    return this.prisma.homeBanner.create({
+      data: {
+        ...data,
+        sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      },
+    });
+  }
+
+  async updateBanner(id: string, data: {
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+    linkType?: string;
+    linkUrl?: string;
+    eventId?: string | null;
+    isActive?: boolean;
+    sortOrder?: number;
+  }) {
+    const banner = await this.prisma.homeBanner.findUnique({ where: { id } });
+    if (!banner) throw new NotFoundException('Banner not found');
+    return this.prisma.homeBanner.update({ where: { id }, data });
+  }
+
+  async reorderBanners(ids: string[]) {
+    await Promise.all(
+      ids.map((id, index) =>
+        this.prisma.homeBanner.update({ where: { id }, data: { sortOrder: index } }),
+      ),
+    );
+    return { message: 'Banners reordered' };
+  }
+
+  async deleteBanner(id: string) {
+    const banner = await this.prisma.homeBanner.findUnique({ where: { id } });
+    if (!banner) throw new NotFoundException('Banner not found');
+    await this.prisma.homeBanner.delete({ where: { id } });
+    return { message: 'Banner deleted' };
   }
 }

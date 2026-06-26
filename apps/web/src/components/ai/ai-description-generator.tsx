@@ -7,17 +7,16 @@ import apiClient from '@/lib/api-client';
 
 interface AiDescriptionGeneratorProps {
   title: string;
-  category: string;
-  venue: string;
-  city: string;
+  category?: string;
+  venue?: string;
+  city?: string;
   startDate: string;
   endDate?: string;
-  onApply: (data: { description: string; shortDesc: string; tags: string[] }) => void;
+  onApply: (data: { description: string; tags: string[] }) => void;
 }
 
 interface AiResult {
   description: string;
-  shortDesc: string;
   tags: string[];
 }
 
@@ -37,7 +36,7 @@ export function AiDescriptionGenerator({
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const canGenerate = title.length >= 3 && category && venue.length >= 2 && city.length >= 2 && startDate;
+  const canGenerate = title.length >= 3 && startDate;
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -47,14 +46,14 @@ export function AiDescriptionGenerator({
     try {
       const res = await apiClient.post('/ai/generate-description', {
         title,
-        category,
-        venue,
-        city,
+        category: category || undefined,
+        venue: venue || undefined,
+        city: city || undefined,
         startDate,
-        endDate,
+        endDate: endDate || undefined,
         additionalInfo: additionalInfo || undefined,
       });
-      setResult(res.data);
+      setResult(res.data.data || res.data);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       setError(axiosError.response?.data?.error?.message || 'Failed to generate description. Please try again.');
@@ -112,7 +111,7 @@ export function AiDescriptionGenerator({
 
       {!canGenerate && (
         <p className="mb-3 text-xs text-amber-600 dark:text-amber-400">
-          Fill in the title, category, venue, city, and start date above first, then AI can generate a description for you.
+          Fill in the event title and start date above first, then AI can generate a description for you.
         </p>
       )}
 
@@ -177,13 +176,6 @@ export function AiDescriptionGenerator({
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Short Description</span>
-            <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 text-sm text-gray-700 dark:text-gray-300">
-              {result.shortDesc}
-            </div>
-          </div>
-
-          <div className="space-y-1">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Suggested Tags</span>
             <div className="flex flex-wrap gap-1.5">
               {result.tags.map((tag) => (
@@ -204,7 +196,7 @@ export function AiDescriptionGenerator({
               className="flex-1 bg-linear-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800"
               size="sm"
             >
-              Apply to Event
+              Add to Description & Tags
             </Button>
             <Button
               type="button"

@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsString,
   IsOptional,
+  IsBoolean,
   IsDateString,
   IsNumber,
   IsArray,
@@ -41,6 +42,10 @@ export class TicketTypeDto {
   @Min(1)
   @Max(50)
   maxPerOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  saleStartNow?: boolean;
 
   @IsOptional()
   @IsDateString()
@@ -114,8 +119,20 @@ export class CreateEventDto {
   saleCutoffDate?: string;
 
   @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  bannerUrl?: string;
 
   @IsOptional()
   @IsString()

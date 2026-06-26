@@ -134,6 +134,7 @@ export default function AdminCategoriesPage() {
                   <Label>Name *</Label>
                   <Input
                     value={form.name}
+                    maxLength={100}
                     onChange={(e) => setForm({ ...form, name: e.target.value, slug: editingId ? form.slug : generateSlug(e.target.value) })}
                     placeholder="e.g. Music"
                   />
@@ -141,7 +142,7 @@ export default function AdminCategoriesPage() {
                 {!editingId && (
                   <div className="space-y-2">
                     <Label>Slug</Label>
-                    <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto-generated" />
+                    <Input value={form.slug} maxLength={100} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="auto-generated" />
                   </div>
                 )}
               </div>
@@ -229,11 +230,11 @@ export default function AdminCategoriesPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Description</Label>
-                  <Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description" />
+                  <Input value={form.description} maxLength={300} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description" />
                 </div>
                 <div className="space-y-2">
                   <Label>Sort Order</Label>
-                  <Input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} />
+                  <Input type="number" min={0} value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} />
                 </div>
               </div>
 

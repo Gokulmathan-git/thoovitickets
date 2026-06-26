@@ -62,7 +62,8 @@ export async function generateMetadata({
     event.shortDesc ||
     `${event.title} at ${event.venue}, ${event.city} on ${dateStr} at ${timeStr}. ${lowestPrice === 0 ? 'Free entry' : `Tickets from ₹${lowestPrice}`}. Book now on ThooviTickets!`;
   const eventUrl = `${SITE_URL}/events/${event.slug}`;
-  const image = event.imageUrl || `${SITE_URL}/og-default.png`;
+  const rawImage = event.imageUrl || '/Main_logo.png';
+  const image = rawImage.startsWith('http') ? rawImage : `${SITE_URL}${rawImage}`;
 
   return {
     title: event.title,
@@ -72,7 +73,7 @@ export async function generateMetadata({
       description,
       url: eventUrl,
       siteName: 'ThooviTickets',
-      type: 'website',
+      type: 'article',
       images: [
         {
           url: image,

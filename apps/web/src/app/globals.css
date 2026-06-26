@@ -187,3 +187,11 @@ body {
     transform: translateY(-2px);
   }
 }
+
+@media print {
+  .protected-document,
+  .protected-document * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}

@@ -27,6 +27,37 @@ class VerifyPaymentDto {
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @Public()
+  @Post('guest/initiate/:orderId')
+  initiateGuestPayment(
+    @Param('orderId') orderId: string,
+    @Body('guestEmail') guestEmail: string,
+  ) {
+    return this.paymentsService.initiateGuestPayment(orderId, guestEmail);
+  }
+
+  @Public()
+  @Post('guest/verify/:orderId')
+  @HttpCode(HttpStatus.OK)
+  verifyGuestPayment(
+    @Param('orderId') orderId: string,
+    @Body() dto: VerifyPaymentDto & { guestEmail: string },
+  ) {
+    return this.paymentsService.verifyGuestPayment(
+      orderId,
+      dto.guestEmail,
+      dto.providerPaymentId,
+      dto.providerOrderId,
+      dto.providerSignature,
+    );
+  }
+
+  @Public()
+  @Get('provider')
+  getProvider() {
+    return { provider: this.paymentsService.getProviderName() };
+  }
+
   @Post('initiate/:orderId')
   initiatePayment(
     @Param('orderId') orderId: string,
@@ -49,11 +80,5 @@ export class PaymentsController {
       dto.providerOrderId,
       dto.providerSignature,
     );
-  }
-
-  @Public()
-  @Get('provider')
-  getProvider() {
-    return { provider: this.paymentsService.getProviderName() };
   }
 }

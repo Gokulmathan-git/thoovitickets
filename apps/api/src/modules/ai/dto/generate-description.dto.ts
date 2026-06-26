@@ -15,17 +15,17 @@ export class GenerateDescriptionDto {
   @MaxLength(200)
   title: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(2)
-  category: string;
+  category?: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(2)
-  venue: string;
+  venue?: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(2)
-  city: string;
+  city?: string;
 
   @IsDateString()
   startDate: string;

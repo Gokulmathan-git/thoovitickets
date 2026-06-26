@@ -10,7 +10,7 @@ import { useCartStore } from '@/stores/cart-store';
 import apiClient from '@/lib/api-client';
 import { ShoppingCart, Menu, X, Bell, User, ChevronDown, Crown } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
-import { MAIN_LOGO } from '@/lib/logos';
+
 
 const organiserPages: Record<string, string> = {
   '/organiser/dashboard': 'Dashboard',
@@ -71,7 +71,8 @@ export function Header() {
         {/* Left: Logo + Nav */}
         <div className="flex items-center gap-8">
           <Link href={user?.role === 'ORGANISER' ? '/organiser/dashboard' : user?.role === 'ADMIN' ? '/admin/dashboard' : '/'} className="flex items-center" onClick={closeMobile}>
-            <img src={MAIN_LOGO} alt="ThooviTickets" className="h-[70px] w-auto" />
+            <img src="/Main_logo_black.svg" alt="ThooviTickets" className="h-[70px] w-auto block dark:hidden" />
+            <img src="/Main_logo_white.svg" alt="ThooviTickets" className="h-[70px] w-auto hidden dark:block" />
           </Link>
 
           {!isLoading && user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (

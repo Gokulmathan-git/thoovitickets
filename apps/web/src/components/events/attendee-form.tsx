@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { validateName, validateEmail, validatePhone, sanitizeName, sanitizePhone } from '@/lib/validators';
 
 interface TicketSelection {
   ticketTypeId: string;
@@ -52,16 +53,28 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
   }, []);
 
   const updateAttendee = (index: number, field: keyof AttendeeInfo, value: string) => {
-    setAttendees((prev) => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
+    let sanitized = value;
+    if (field === 'name') sanitized = sanitizeName(value);
+    if (field === 'phone') sanitized = sanitizePhone(value);
+    setAttendees((prev) => prev.map((a, i) => i === index ? { ...a, [field]: sanitized } : a));
     setErrors((prev) => { const next = { ...prev }; delete next[`${index}-${field}`]; return next; });
   };
 
   const validate = () => {
     const errs: Record<string, string> = {};
     attendees.forEach((a, i) => {
-      if (!a.name.trim()) errs[`${i}-name`] = 'Name is required';
-      if (!a.email.trim() || !/\S+@\S+\.\S+/.test(a.email)) errs[`${i}-email`] = 'Valid email required';
-      if (!a.phone.trim() || a.phone.replace(/\D/g, '').length < 8) errs[`${i}-phone`] = 'Valid phone required';
+      const nameErr = validateName(a.name, 'Name');
+      if (nameErr) errs[`${i}-name`] = nameErr;
+
+      const emailErr = validateEmail(a.email);
+      if (emailErr) errs[`${i}-email`] = emailErr;
+
+      if (!a.phone.trim()) {
+        errs[`${i}-phone`] = 'Phone is required';
+      } else {
+        const phoneErr = validatePhone(a.phone);
+        if (phoneErr) errs[`${i}-phone`] = phoneErr;
+      }
     });
     setErrors(errs);
     if (Object.keys(errs).length > 0) {
@@ -155,6 +168,7 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
                           errors[`${index}-name`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700 focus:border-orange-400'
                         }`}
                         placeholder="Enter attendee name"
+                        maxLength={50}
                         value={attendee.name}
                         onChange={(e) => updateAttendee(index, 'name', e.target.value)}
                       />
@@ -168,6 +182,7 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
                         }`}
                         type="email"
                         placeholder="attendee@email.com"
+                        maxLength={100}
                         value={attendee.email}
                         onChange={(e) => updateAttendee(index, 'email', e.target.value)}
                       />
@@ -181,6 +196,7 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
                         }`}
                         type="tel"
                         placeholder="+91 9876543210"
+                        maxLength={15}
                         value={attendee.phone}
                         onChange={(e) => updateAttendee(index, 'phone', e.target.value)}
                       />

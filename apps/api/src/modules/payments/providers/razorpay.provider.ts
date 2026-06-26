@@ -37,7 +37,7 @@ export class RazorpayProvider implements PaymentProvider {
       body: JSON.stringify({
         amount: amountInPaise,
         currency: input.currency,
-        receipt: input.orderId,
+        receipt: input.orderId.slice(0, 40),
         notes: {
           orderId: input.orderId,
           description: input.description,

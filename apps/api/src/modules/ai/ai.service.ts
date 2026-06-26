@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import {
   EVENT_DESCRIPTION_PROMPT,
   EVENT_DESCRIPTION_IMPROVE_PROMPT,
@@ -19,43 +19,40 @@ import { EventStatus, OrderStatus, ReviewStatus } from '@thoovitickets/database'
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private readonly genAI: GoogleGenerativeAI;
+  private readonly openai: OpenAI;
   private readonly model: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    const apiKey = this.configService.get<string>('gemini.apiKey');
+    const apiKey = this.configService.get<string>('openai.apiKey');
     if (!apiKey) {
-      this.logger.warn('GEMINI_API_KEY not configured — AI features will be unavailable');
+      this.logger.warn('OPENAI_API_KEY not configured — AI features will be unavailable');
     }
-    this.genAI = new GoogleGenerativeAI(apiKey || '');
-    this.model = this.configService.get<string>('gemini.model') || 'gemini-2.0-flash';
+    this.openai = new OpenAI({ apiKey: apiKey || '' });
+    this.model = this.configService.get<string>('openai.model') || 'gpt-5.4-mini';
   }
 
   async generateEventDescription(input: {
     title: string;
-    category: string;
-    venue: string;
-    city: string;
+    category?: string;
+    venue?: string;
+    city?: string;
     startDate: string;
     endDate?: string;
     additionalInfo?: string;
   }) {
-    const prompt = `${EVENT_DESCRIPTION_PROMPT}
+    const details = [`- Title: ${input.title}`, `- Date: ${input.startDate}${input.endDate ? ` to ${input.endDate}` : ''}`];
+    if (input.category) details.push(`- Category: ${input.category}`);
+    if (input.venue) details.push(`- Venue: ${input.venue}`);
+    if (input.city) details.push(`- City: ${input.city}`);
+    if (input.additionalInfo) details.push(`- Additional Info: ${input.additionalInfo}`);
 
-Event Details:
-- Title: ${input.title}
-- Category: ${input.category}
-- Venue: ${input.venue}
-- City: ${input.city}
-- Date: ${input.startDate}${input.endDate ? ` to ${input.endDate}` : ''}
-${input.additionalInfo ? `- Additional Info: ${input.additionalInfo}` : ''}
-
-Generate the JSON response:`;
-
-    const result = await this.callGemini(prompt);
+    const result = await this.callOpenAI(
+      EVENT_DESCRIPTION_PROMPT,
+      `Event Details:\n${details.join('\n')}\n\nGenerate the JSON response:`,
+    );
     return this.parseJsonResponse(result);
   }
 
@@ -64,15 +61,13 @@ Generate the JSON response:`;
     description: string;
     category?: string;
   }) {
-    const prompt = `${EVENT_DESCRIPTION_IMPROVE_PROMPT}
-
-Event Title: ${input.title}
+    const userPrompt = `Event Title: ${input.title}
 ${input.category ? `Category: ${input.category}` : ''}
 Current Description: ${input.description}
 
 Generate the improved JSON response:`;
 
-    const result = await this.callGemini(prompt);
+    const result = await this.callOpenAI(EVENT_DESCRIPTION_IMPROVE_PROMPT, userPrompt);
     return this.parseJsonResponse(result);
   }
 
@@ -118,30 +113,18 @@ Generate the improved JSON response:`;
     }
 
     const context = buildSupportContext(contextData);
-
-    const prompt = `${SUPPORT_CHAT_SYSTEM_PROMPT}
-
---- Platform Context ---
-${context}
-
---- User Message ---
-${message}
-
-Respond helpfully:`;
-
-    const reply = await this.callGemini(prompt);
+    const systemPrompt = `${SUPPORT_CHAT_SYSTEM_PROMPT}\n\n--- Platform Context ---\n${context}`;
+    const reply = await this.callOpenAI(systemPrompt, message);
     return { reply };
   }
 
   async generateReviewSuggestions(input: { keywords?: string; rating?: number }) {
-    const prompt = `${REVIEW_SUGGESTION_PROMPT}
-
-User's rating: ${input.rating || 'not specified'} out of 5 stars
+    const userPrompt = `User's rating: ${input.rating || 'not specified'} out of 5 stars
 User's keywords/thoughts: ${input.keywords || 'general positive experience'}
 
 Generate the JSON response:`;
 
-    const result = await this.callGemini(prompt);
+    const result = await this.callOpenAI(REVIEW_SUGGESTION_PROMPT, userPrompt);
     return this.parseJsonResponse(result);
   }
 
@@ -166,25 +149,40 @@ Generate the JSON response:`;
       .map((r, i) => `Review ${i + 1} (${r.rating}/5): ${r.content}`)
       .join('\n');
 
-    const prompt = `${REVIEW_SENTIMENT_SUMMARY_PROMPT}
+    const userPrompt = `Reviews to analyze (${reviews.length} total):\n${reviewsText}\n\nGenerate the JSON response:`;
 
-Reviews to analyze (${reviews.length} total):
-${reviewsText}
-
-Generate the JSON response:`;
-
-    const result = await this.callGemini(prompt);
+    const result = await this.callOpenAI(REVIEW_SENTIMENT_SUMMARY_PROMPT, userPrompt);
     return this.parseJsonResponse(result);
   }
 
-  private async callGemini(prompt: string): Promise<string> {
+  private async callOpenAI(systemPrompt: string, userMessage: string): Promise<string> {
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.model });
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      return response.text();
-    } catch (error) {
-      this.logger.error('Gemini API call failed', error);
+      const response = await this.openai.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: 0.7,
+      });
+
+      return response.choices[0]?.message?.content || '';
+    } catch (error: any) {
+      const errorMsg = error?.message || '';
+      this.logger.error('OpenAI API call failed', errorMsg);
+
+      if (errorMsg.includes('429') || errorMsg.includes('quota') || errorMsg.includes('rate')) {
+        throw new BadRequestException(
+          'AI rate limit reached. Please wait a moment and try again.',
+        );
+      }
+
+      if (errorMsg.includes('401') || errorMsg.includes('invalid_api_key')) {
+        throw new BadRequestException(
+          'AI service not configured. Please check your OpenAI API key.',
+        );
+      }
+
       throw new BadRequestException(
         'AI service is temporarily unavailable. Please try again later.',
       );

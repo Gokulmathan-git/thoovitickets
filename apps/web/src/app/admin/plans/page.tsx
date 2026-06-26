@@ -187,46 +187,46 @@ export default function AdminPlansPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Tier ID</Label>
-                  <Input value={form.tier} onChange={(e) => setForm({ ...form, tier: e.target.value.toUpperCase() })} placeholder="e.g. PRO" disabled={!!editingPlan} />
+                  <Input value={form.tier} maxLength={30} onChange={(e) => setForm({ ...form, tier: e.target.value.toUpperCase() })} placeholder="e.g. PRO" disabled={!!editingPlan} />
                 </div>
                 <div className="space-y-2">
                   <Label>Display Name</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Pro" />
+                  <Input value={form.name} maxLength={50} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Pro" />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Price (INR/month)</Label>
-                  <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
+                  <Input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Commission %</Label>
-                  <Input type="number" step="0.5" value={form.commissionPercent} onChange={(e) => setForm({ ...form, commissionPercent: Number(e.target.value) })} />
+                  <Input type="number" min={0} max={100} step="0.5" value={form.commissionPercent} onChange={(e) => setForm({ ...form, commissionPercent: Number(e.target.value) })} />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Events/Month</Label>
-                  <Input type="number" value={form.maxEventsPerMonth} onChange={(e) => setForm({ ...form, maxEventsPerMonth: Number(e.target.value) })} />
+                  <Input type="number" min={0} value={form.maxEventsPerMonth} onChange={(e) => setForm({ ...form, maxEventsPerMonth: Number(e.target.value) })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Ticket Tiers/Event</Label>
-                  <Input type="number" value={form.maxTicketTiers} onChange={(e) => setForm({ ...form, maxTicketTiers: Number(e.target.value) })} />
+                  <Input type="number" min={0} value={form.maxTicketTiers} onChange={(e) => setForm({ ...form, maxTicketTiers: Number(e.target.value) })} />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Tickets/Event</Label>
-                  <Input type="number" value={form.maxTicketsPerEvent} onChange={(e) => setForm({ ...form, maxTicketsPerEvent: Number(e.target.value) })} />
+                  <Input type="number" min={0} value={form.maxTicketsPerEvent} onChange={(e) => setForm({ ...form, maxTicketsPerEvent: Number(e.target.value) })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Staff Accounts</Label>
-                  <Input type="number" value={form.maxStaffAccounts} onChange={(e) => setForm({ ...form, maxStaffAccounts: Number(e.target.value) })} />
+                  <Input type="number" min={0} value={form.maxStaffAccounts} onChange={(e) => setForm({ ...form, maxStaffAccounts: Number(e.target.value) })} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Sort Order</Label>
-                <Input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} />
+                <Input type="number" min={0} value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} />
               </div>
               <div className="space-y-2">
                 <Label>Features (one per line)</Label>
