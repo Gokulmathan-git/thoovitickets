@@ -2,6 +2,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/validation';
 import { PrismaModule } from './prisma/prisma.module';
@@ -25,6 +26,9 @@ import { MobileModule } from './modules/mobile/mobile.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { DiscountsModule } from './modules/discounts/discounts.module';
+import { SettlementsModule } from './modules/settlements/settlements.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -43,6 +47,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
         limit: 60,
       },
     ]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     EmailModule,
     UploadModule,
@@ -64,6 +69,9 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     MobileModule,
     AiModule,
     ReviewsModule,
+    DiscountsModule,
+    SettlementsModule,
+    NotificationsModule,
   ],
   providers: [
     {

@@ -399,4 +399,8 @@ export class EmailService {
     `;
     await this.sendEmail(to, subject, html);
   }
+
+  async sendGenericEmail(to: string, subject: string, html: string) {
+    await this.sendEmail(to, subject, html);
+  }
 }

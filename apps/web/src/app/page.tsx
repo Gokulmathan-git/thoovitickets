@@ -69,6 +69,7 @@ export default function HomePage() {
   const [featured, setFeatured] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -83,16 +84,45 @@ export default function HomePage() {
       setFeatured(featuredRes.data.data);
       setCategories(catsRes.data.data);
       setReviews(Array.isArray(reviewsRes.data) ? reviewsRes.data : reviewsRes.data.data || []);
-    });
+    }).finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="bg-white dark:bg-gray-800">
       {/* Hero Carousel */}
-      <HeroCarousel eventBanners={eventBanners} adminBanners={adminBanners} />
+      {loading ? (
+        <div className="h-[300px] sm:h-[400px] lg:h-[500px] animate-pulse bg-gray-200 dark:bg-gray-700" />
+      ) : (
+        <HeroCarousel eventBanners={eventBanners} adminBanners={adminBanners} />
+      )}
 
       {/* Featured Experiences */}
-      {featured.length > 0 && (
+      {loading ? (
+        <section className="relative overflow-hidden py-10 sm:py-20">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-50 via-white to-white dark:from-orange-900/20 dark:via-gray-800 dark:to-gray-800" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-6 sm:mb-10">
+              <div className="h-8 w-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+              <div className="mt-2 h-4 w-48 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+            </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-2xl border border-gray-200/60 dark:border-gray-700/40 overflow-hidden">
+                  <div className="h-48 animate-pulse bg-gray-200 dark:bg-gray-700" />
+                  <div className="p-5 space-y-3">
+                    <div className="h-5 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                    <div className="flex justify-between">
+                      <div className="h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-4 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : featured.length > 0 ? (
         <section className="relative overflow-hidden py-10 sm:py-20">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-50 via-white to-white dark:from-orange-900/20 dark:via-gray-800 dark:to-gray-800" />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -112,10 +142,28 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* Explore by Interest */}
-      {categories.length > 0 && (
+      {loading ? (
+        <section className="relative overflow-hidden py-10 sm:py-20">
+          <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-8 sm:mb-12 text-center">
+              <div className="mx-auto h-8 w-56 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
+              <div className="mx-auto mt-2 h-4 w-72 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200/60 dark:border-gray-700/40 bg-white/80 dark:bg-gray-800/80 p-6">
+                  <div className="h-14 w-14 animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-700" />
+                  <div className="h-4 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : categories.length > 0 ? (
         <section className="relative overflow-hidden py-10 sm:py-20">
           <div className="absolute inset-0 bg-gray-50 dark:bg-gray-900" />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 bg-linear-to-r from-transparent via-orange-200 to-transparent" />
@@ -140,7 +188,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* Why ThooviTickets */}
       <section className="relative overflow-hidden py-10 sm:py-20">

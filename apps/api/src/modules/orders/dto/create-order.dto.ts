@@ -33,4 +33,8 @@ export class CreateOrderDto {
   @ValidateNested({ each: true })
   @Type(() => AttendeeDto)
   attendees?: AttendeeDto[];
+
+  @IsOptional()
+  @IsString()
+  discountCode?: string;
 }

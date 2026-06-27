@@ -7,7 +7,8 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee, MessageSquare, User, LogOut, Image } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee, MessageSquare, User, LogOut, Image, ShoppingCart, Wallet } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 const sidebarLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,6 +21,8 @@ const sidebarLinks = [
   { href: '/admin/plans', label: 'Plans', icon: CreditCard },
   { href: '/admin/categories', label: 'Categories', icon: Tag },
   { href: '/admin/fees', label: 'Fees', icon: IndianRupee },
+  { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { href: '/admin/settlements', label: 'Settlements', icon: Wallet },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -99,9 +102,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content area */}
       <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        {/* Top bar with notification */}
+        <div className="sticky top-0 z-20 hidden lg:flex items-center justify-end px-4 py-2 border-b border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 lg:px-8">
+          <NotificationBell />
+        </div>
         {/* Mobile top nav */}
-        <div className="sticky top-0 z-10 overflow-x-auto border-b border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 lg:hidden">
-          <nav className="flex gap-1 px-2 py-2">
+        <div className="sticky top-0 z-10 border-b border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 lg:hidden">
+          <div className="flex items-center justify-between px-2 py-2">
+            <nav className="flex gap-1 overflow-x-auto flex-1">
             {sidebarLinks.map((link) => {
               const isActive = pathname === link.href;
               const Icon = link.icon;
@@ -121,7 +129,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </Link>
               );
             })}
-          </nav>
+            </nav>
+            <div className="shrink-0 ml-2">
+              <NotificationBell />
+            </div>
+          </div>
         </div>
         <div className="mx-auto max-w-6xl px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
           {children}

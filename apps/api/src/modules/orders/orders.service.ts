@@ -2,14 +2,17 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PricingService } from '../pricing/pricing.service';
 import { TicketsService } from '../tickets/tickets.service';
+import { DiscountsService } from '../discounts/discounts.service';
 import { OrderStatus, PaymentStatus, Prisma } from '@thoovitickets/database';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CreateGuestOrderDto } from './dto/create-guest-order.dto';
 import { Logger } from '@nestjs/common';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -19,6 +22,8 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly pricingService: PricingService,
     private readonly ticketsService: TicketsService,
+    private readonly discountsService: DiscountsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createFromCart(userId: string, dto: CreateOrderDto) {
@@ -55,11 +60,19 @@ export class OrdersService {
     const organiserId = cart.items[0]?.ticketType.event.organiserId || undefined;
     const eventId = cart.items[0]?.ticketType.event.id || undefined;
 
+    // Validate discount code if provided
+    let discountInfo;
+    if (dto.discountCode && eventId) {
+      const ticketTypeIds = cart.items.map((item) => item.ticketTypeId);
+      discountInfo = await this.discountsService.validateCode(dto.discountCode, eventId, ticketTypeIds);
+    }
+
     // Calculate ALL amounts server-side from DB prices
     const pricing = await this.pricingService.calculatePriceBreakdown(
       cart.items.map((item) => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
       organiserId,
       eventId,
+      discountInfo,
     );
 
     const orderNumber = this.generateOrderNumber();
@@ -80,6 +93,9 @@ export class OrdersService {
           orderNumber,
           userId,
           subtotal: pricing.subtotal,
+          discountId: pricing.discountId,
+          discountCode: pricing.discountCode,
+          discountAmount: pricing.discountAmount,
           platformFee: pricing.platformFee,
           platformFeePercent: 0,
           convenienceFee: 0,
@@ -128,6 +144,25 @@ export class OrdersService {
       return newOrder;
     });
 
+    // Increment discount usage after successful order creation
+    if (pricing.discountId) {
+      await this.discountsService.incrementUsage(pricing.discountId);
+    }
+
+    // Notify organiser about new order
+    if (organiserId) {
+      try {
+        const eventTitle = cart.items[0]?.ticketType.event.title || 'your event';
+        await this.notificationsService.create({
+          userId: organiserId,
+          type: 'NEW_ORDER',
+          title: 'New Order Received',
+          message: `New order #${orderNumber} (₹${pricing.totalAmount}) for "${eventTitle}"`,
+          linkUrl: '/organiser/orders',
+        });
+      } catch { /* non-critical */ }
+    }
+
     return order;
   }
 
@@ -150,17 +185,37 @@ export class OrdersService {
       const item = dto.items[i];
       if (!tt) throw new BadRequestException('Ticket type not found');
       if (tt.event.status !== 'PUBLISHED') throw new BadRequestException(`Event "${tt.event.title}" is no longer available`);
+      if (new Date() > tt.event.startDate) throw new BadRequestException(`Event "${tt.event.title}" has already started`);
       const available = tt.totalQty - tt.soldQty;
       if (item.quantity > available) throw new BadRequestException(`Only ${available} "${tt.name}" tickets available`);
       if (item.quantity > tt.maxPerOrder) throw new BadRequestException(`Maximum ${tt.maxPerOrder} "${tt.name}" tickets per order`);
+
+      const now = new Date();
+      if (tt.saleStart && now < tt.saleStart) throw new BadRequestException(`Sales for "${tt.name}" have not started yet`);
+      if (tt.saleEnd && now > tt.saleEnd) throw new BadRequestException(`Sales for "${tt.name}" have ended`);
+    }
+
+    // Validate all items are from the same event
+    const eventIds = new Set(ticketTypes.filter(Boolean).map((tt) => tt!.event.id));
+    if (eventIds.size > 1) {
+      throw new BadRequestException('All tickets must be from the same event');
     }
 
     const organiserId = ticketTypes[0]?.event.organiserId || undefined;
     const eventId = ticketTypes[0]?.event.id || undefined;
+
+    // Validate discount code if provided
+    let discountInfo;
+    if (dto.discountCode && eventId) {
+      const ticketTypeIds = dto.items.map((item) => item.ticketTypeId);
+      discountInfo = await this.discountsService.validateCode(dto.discountCode, eventId, ticketTypeIds);
+    }
+
     const pricing = await this.pricingService.calculatePriceBreakdown(
       dto.items.map((item) => ({ ticketTypeId: item.ticketTypeId, quantity: item.quantity })),
       organiserId,
       eventId,
+      discountInfo,
     );
 
     const orderNumber = this.generateOrderNumber();
@@ -181,6 +236,9 @@ export class OrdersService {
           orderNumber,
           userId: null,
           subtotal: pricing.subtotal,
+          discountId: pricing.discountId,
+          discountCode: pricing.discountCode,
+          discountAmount: pricing.discountAmount,
           platformFee: pricing.platformFee,
           platformFeePercent: 0,
           convenienceFee: 0,
@@ -224,6 +282,11 @@ export class OrdersService {
 
       return newOrder;
     });
+
+    // Increment discount usage after successful order creation
+    if (pricing.discountId) {
+      await this.discountsService.incrementUsage(pricing.discountId);
+    }
 
     return order;
   }
@@ -303,6 +366,8 @@ export class OrdersService {
       }),
     ]);
 
+    this.generateTicketsAsync(orderId);
+
     return updatedOrder;
   }
 
@@ -320,6 +385,12 @@ export class OrdersService {
       await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.CANCELLED },
+      });
+
+      // Cancel any generated tickets
+      await tx.ticket.updateMany({
+        where: { orderItem: { orderId } },
+        data: { status: 'CANCELLED' },
       });
 
       // Release reserved tickets
@@ -374,6 +445,229 @@ export class OrdersService {
       return { ...order, status: OrderStatus.EXPIRED };
     }
 
+    return order;
+  }
+
+  // ─── ORGANISER METHODS ─────────────────────────────
+
+  async getOrganiserOrders(
+    userId: string,
+    query: { eventId?: string; status?: string; page?: number; limit?: number },
+  ) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    // Find all events belonging to this organiser
+    const organiserEvents = await this.prisma.event.findMany({
+      where: { organiserId: userId },
+      select: { id: true },
+    });
+
+    const eventIds = organiserEvents.map((e) => e.id);
+    if (eventIds.length === 0) {
+      return { orders: [], total: 0, page, limit, totalPages: 0 };
+    }
+
+    const where: Prisma.OrderWhereInput = {
+      items: {
+        some: {
+          eventId: query.eventId ? query.eventId : { in: eventIds },
+        },
+      },
+    };
+
+    // If filtering by a specific event, verify it belongs to the organiser
+    if (query.eventId && !eventIds.includes(query.eventId)) {
+      throw new ForbiddenException('Event does not belong to you');
+    }
+
+    if (query.status) {
+      where.status = query.status as OrderStatus;
+    }
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            include: {
+              ticketType: { select: { name: true, price: true, currency: true } },
+              event: { select: { id: true, title: true, slug: true, venue: true, city: true, startDate: true } },
+            },
+          },
+          payment: { select: { status: true, provider: true } },
+          user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      orders: orders.map((order) => ({
+        ...order,
+        attendeeData: order.attendeeData,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getOrganiserOrderDetail(userId: string, orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            ticketType: { select: { name: true, price: true, currency: true, description: true } },
+            event: { select: { id: true, title: true, slug: true, venue: true, address: true, city: true, state: true, startDate: true, endDate: true, imageUrl: true, organiserId: true } },
+          },
+        },
+        payment: true,
+        tickets: true,
+        user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+      },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    // Verify the order belongs to one of the organiser's events
+    const belongsToOrganiser = order.items.some(
+      (item) => (item.event as any).organiserId === userId,
+    );
+    if (!belongsToOrganiser) {
+      throw new ForbiddenException('This order does not belong to your events');
+    }
+
+    return order;
+  }
+
+  async getEventAttendees(userId: string, eventId: string) {
+    // Verify the event belongs to the organiser
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, title: true, organiserId: true },
+    });
+
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.organiserId !== userId) {
+      throw new ForbiddenException('This event does not belong to you');
+    }
+
+    const tickets = await this.prisma.ticket.findMany({
+      where: {
+        orderItem: { eventId },
+      },
+      select: {
+        id: true,
+        attendeeName: true,
+        attendeeEmail: true,
+        attendeePhone: true,
+        ticketCode: true,
+        qrDataUrl: true,
+        status: true,
+        checkedInAt: true,
+        orderItem: {
+          select: {
+            ticketType: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      event: { id: event.id, title: event.title },
+      attendees: tickets.map((t) => ({
+        id: t.id,
+        attendeeName: t.attendeeName,
+        attendeeEmail: t.attendeeEmail,
+        attendeePhone: t.attendeePhone,
+        ticketCode: t.ticketCode,
+        qrDataUrl: t.qrDataUrl,
+        status: t.status,
+        checkedInAt: t.checkedInAt,
+        ticketTypeName: t.orderItem.ticketType.name,
+      })),
+      total: tickets.length,
+    };
+  }
+
+  // ─── ADMIN METHODS ─────────────────────────────
+
+  async getAdminOrders(query: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {};
+
+    if (query.status) {
+      where.status = query.status as OrderStatus;
+    }
+    if (query.startDate || query.endDate) {
+      where.createdAt = {};
+      if (query.startDate) where.createdAt.gte = new Date(query.startDate);
+      if (query.endDate) where.createdAt.lte = new Date(query.endDate);
+    }
+
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            include: {
+              ticketType: { select: { name: true, price: true, currency: true } },
+              event: { select: { id: true, title: true, slug: true, venue: true, city: true, startDate: true } },
+            },
+          },
+          payment: { select: { status: true, provider: true } },
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return { orders, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getAdminOrderDetail(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            ticketType: { select: { name: true, price: true, currency: true, description: true } },
+            event: {
+              select: {
+                id: true, title: true, slug: true, venue: true, address: true,
+                city: true, state: true, startDate: true, endDate: true, imageUrl: true,
+                organiser: { select: { id: true, firstName: true, lastName: true, orgName: true, email: true } },
+              },
+            },
+          },
+        },
+        payment: true,
+        tickets: true,
+        user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+      },
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
     return order;
   }
 

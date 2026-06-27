@@ -17,6 +17,7 @@ import { ApprovalActionDto } from './dto/approval-action.dto';
 import { EventsService } from '../events/events.service';
 import { EmailService } from '../email/email.service';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AdminService {
@@ -26,6 +27,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly eventsService: EventsService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getDashboardStats() {
@@ -243,9 +245,32 @@ export class AdminService {
         });
       }
     } catch (emailError) {
-      // Log but don't fail the status update if email fails
       this.logger.warn(`Failed to send status change email to ${user.email}: ${emailError}`);
     }
+
+    // Send in-app notification to the user
+    try {
+      if (dto.status === 'ACTIVE' && user.status === UserStatus.PENDING) {
+        await this.notificationsService.create({
+          userId, type: 'ORGANISER_APPROVED',
+          title: 'Account Approved',
+          message: 'Your organiser account has been approved. You can now create events!',
+          linkUrl: '/organiser/dashboard',
+        });
+      } else if (dto.status === 'REJECTED') {
+        await this.notificationsService.create({
+          userId, type: 'ORGANISER_REJECTED',
+          title: 'Account Rejected',
+          message: `Your account has been rejected. Reason: ${dto.reason || 'Not specified'}`,
+        });
+      } else if (dto.status === 'SUSPENDED') {
+        await this.notificationsService.create({
+          userId, type: 'ORGANISER_SUSPENDED',
+          title: 'Account Suspended',
+          message: `Your account has been suspended. Reason: ${dto.reason || 'Not specified'}`,
+        });
+      }
+    } catch { /* non-critical */ }
 
     return updated;
   }
@@ -338,6 +363,19 @@ export class AdminService {
         },
       }),
     ]);
+
+    try {
+      const notifType = dto.action === 'APPROVED' ? 'EVENT_APPROVED' as const : 'EVENT_REJECTED' as const;
+      await this.notificationsService.create({
+        userId: event.organiserId,
+        type: notifType,
+        title: dto.action === 'APPROVED' ? 'Event Published' : 'Event Rejected',
+        message: dto.action === 'APPROVED'
+          ? `Your event "${event.title}" has been approved and is now live!`
+          : `Your event "${event.title}" was rejected. Reason: ${dto.reason || 'Not specified'}`,
+        linkUrl: `/organiser/events/${eventId}`,
+      });
+    } catch { /* non-critical */ }
 
     return updated;
   }

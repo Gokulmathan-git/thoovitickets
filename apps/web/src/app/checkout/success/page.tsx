@@ -18,6 +18,7 @@ export default function SuccessPage() {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email');
+  const orderId = searchParams.get('order');
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 sm:px-6">
@@ -28,6 +29,11 @@ function SuccessContent() {
           <p className="mt-2 text-gray-600 dark:text-gray-300">
             Your tickets have been booked successfully.
           </p>
+          {orderId && (
+            <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+              Order Reference: <span className="font-mono">{orderId}</span>
+            </p>
+          )}
           {email && (
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               A confirmation will be sent to <strong>{email}</strong>

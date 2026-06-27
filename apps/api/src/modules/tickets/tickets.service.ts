@@ -220,6 +220,14 @@ export class TicketsService {
       throw new ForbiddenException('Only the event organiser can check in tickets');
     }
 
+    if (ticket.order.status !== 'CONFIRMED') {
+      throw new BadRequestException('Order is not confirmed');
+    }
+
+    if (new Date() > ticket.orderItem.event.endDate) {
+      throw new BadRequestException('Event has already ended');
+    }
+
     if (ticket.status === TicketStatus.USED) {
       throw new BadRequestException('Ticket already used');
     }

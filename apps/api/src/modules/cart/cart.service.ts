@@ -73,7 +73,7 @@ export class CartService {
   async addItem(userId: string, dto: AddToCartDto) {
     const ticketType = await this.prisma.ticketType.findUnique({
       where: { id: dto.ticketTypeId },
-      include: { event: { select: { status: true, saleCutoffDate: true } } },
+      include: { event: { select: { id: true, status: true, saleCutoffDate: true, startDate: true } } },
     });
 
     if (!ticketType) throw new NotFoundException('Ticket type not found');
@@ -83,7 +83,18 @@ export class CartService {
     if (ticketType.event.saleCutoffDate && new Date() > ticketType.event.saleCutoffDate) {
       throw new BadRequestException('Ticket sales have ended for this event');
     }
+    if (new Date() > ticketType.event.startDate) {
+      throw new BadRequestException('This event has already started');
+    }
     if (!ticketType.isActive) throw new BadRequestException('This ticket type is not available');
+
+    const now = new Date();
+    if (ticketType.saleStart && now < ticketType.saleStart) {
+      throw new BadRequestException('Sales for this ticket type have not started yet');
+    }
+    if (ticketType.saleEnd && now > ticketType.saleEnd) {
+      throw new BadRequestException('Sales for this ticket type have ended');
+    }
 
     const available = ticketType.totalQty - ticketType.soldQty;
     if (dto.quantity > available) {
@@ -98,6 +109,18 @@ export class CartService {
       create: { userId },
       update: {},
     });
+
+    // Ensure all cart items are from the same event
+    const existingCartItems = await this.prisma.cartItem.findMany({
+      where: { cartId: cart.id },
+      include: { ticketType: { select: { eventId: true } } },
+    });
+    const otherEventItem = existingCartItems.find(
+      (item) => item.ticketType.eventId !== ticketType.eventId,
+    );
+    if (otherEventItem) {
+      await this.prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+    }
 
     const existingItem = await this.prisma.cartItem.findUnique({
       where: { cartId_ticketTypeId: { cartId: cart.id, ticketTypeId: dto.ticketTypeId } },

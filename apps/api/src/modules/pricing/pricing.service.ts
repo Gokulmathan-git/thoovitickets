@@ -1,8 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+export interface DiscountInfo {
+  id: string;
+  code: string;
+  discountType: 'FIXED' | 'PERCENTAGE';
+  value: number;
+  applicableTicketTypeIds: string[] | null;
+}
+
 export interface PriceBreakdown {
   subtotal: number;
+  discountAmount: number;
+  discountCode: string | null;
+  discountId: string | null;
   platformFee: number;
   platformFeeType: string | null;
   totalAmount: number;
@@ -65,7 +76,7 @@ export class PricingService {
     return Math.round(subtotal * value) / 100;
   }
 
-  async calculatePlatformFee(subtotal: number): Promise<{ fee: number; type: string | null }> {
+  async calculatePlatformFee(subtotal: number, totalTicketCount: number): Promise<{ fee: number; type: string | null }> {
     const slab = await this.prisma.convenienceFeeSlab.findFirst({
       where: {
         isActive: true,
@@ -82,7 +93,7 @@ export class PricingService {
     const feeValue = Number(slab.feeValue);
 
     if (slab.feeType === 'FIXED') {
-      return { fee: feeValue, type: 'FIXED' };
+      return { fee: feeValue * totalTicketCount, type: 'FIXED' };
     }
 
     if (slab.feeType === 'PERCENTAGE') {
@@ -96,7 +107,10 @@ export class PricingService {
     items: { ticketTypeId: string; quantity: number }[],
     organiserId?: string,
     eventId?: string,
+    discountInfo?: DiscountInfo,
   ): Promise<PriceBreakdown> {
+    // Build per-item totals
+    const itemTotals: { ticketTypeId: string; totalPrice: number }[] = [];
     let subtotal = 0;
     for (const item of items) {
       const ticketType = await this.prisma.ticketType.findUnique({
@@ -104,12 +118,48 @@ export class PricingService {
         select: { price: true },
       });
       if (ticketType) {
-        subtotal += Number(ticketType.price) * item.quantity;
+        const total = Number(ticketType.price) * item.quantity;
+        subtotal += total;
+        itemTotals.push({ ticketTypeId: item.ticketTypeId, totalPrice: total });
       }
     }
 
-    const { fee: platformFee, type: platformFeeType } = await this.calculatePlatformFee(subtotal);
-    const totalAmount = subtotal + platformFee;
+    // Calculate discount
+    let discountAmount = 0;
+    let discountCode: string | null = null;
+    let discountId: string | null = null;
+
+    if (discountInfo) {
+      discountCode = discountInfo.code;
+      discountId = discountInfo.id;
+
+      // Find applicable items
+      const applicableItems = itemTotals.filter((it) =>
+        discountInfo.applicableTicketTypeIds === null
+          ? true
+          : discountInfo.applicableTicketTypeIds.includes(it.ticketTypeId),
+      );
+      const applicableSubtotal = applicableItems.reduce((sum, it) => sum + it.totalPrice, 0);
+
+      if (discountInfo.discountType === 'PERCENTAGE') {
+        discountAmount = applicableItems.reduce(
+          (sum, it) => sum + (it.totalPrice * discountInfo.value) / 100,
+          0,
+        );
+      } else {
+        // FIXED
+        discountAmount = Math.min(discountInfo.value, applicableSubtotal);
+      }
+
+      // Clamp to not exceed subtotal
+      discountAmount = Math.min(discountAmount, subtotal);
+    }
+
+    const discountedSubtotal = subtotal - discountAmount;
+
+    const totalTicketCount = items.reduce((sum, item) => sum + item.quantity, 0);
+    const { fee: platformFee, type: platformFeeType } = await this.calculatePlatformFee(discountedSubtotal, totalTicketCount);
+    const totalAmount = discountedSubtotal + platformFee;
 
     let commissionValue = 4;
     let commissionType = 'PERCENTAGE';
@@ -119,11 +169,14 @@ export class PricingService {
       commissionType = commission.type;
     }
 
-    const orgCommission = this.calculateCommissionAmount(subtotal, commissionValue, commissionType);
-    const orgPayout = subtotal - orgCommission;
+    const orgCommission = this.calculateCommissionAmount(discountedSubtotal, commissionValue, commissionType);
+    const orgPayout = discountedSubtotal - orgCommission;
 
     return {
       subtotal: Math.round(subtotal * 100) / 100,
+      discountAmount: Math.round(discountAmount * 100) / 100,
+      discountCode,
+      discountId,
       platformFee: Math.round(platformFee * 100) / 100,
       platformFeeType,
       totalAmount: Math.round(totalAmount * 100) / 100,

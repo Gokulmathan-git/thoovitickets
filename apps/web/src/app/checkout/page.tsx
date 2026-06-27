@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Tag, X } from 'lucide-react';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -28,7 +28,20 @@ export default function CheckoutPage() {
     convenienceFee: number;
     platformFee: number;
     totalAmount: number;
+    discountAmount?: number;
   } | null>(null);
+
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    discountId: string;
+    type: string;
+    value: number;
+    discountAmount: number;
+  } | null>(null);
+  const [couponExpanded, setCouponExpanded] = useState(false);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const isGuestCheckout = !user;
 
@@ -63,21 +76,64 @@ export default function CheckoutPage() {
     if (!loading && items.length === 0) router.push('/cart');
   }, [loading, items.length, router]);
 
-  useEffect(() => {
+  const fetchPriceBreakdown = (discountCode?: string) => {
     if (items.length === 0) return;
+    const body: Record<string, unknown> = {
+      items: items.map((item) => ({
+        ticketTypeId: item.ticketType.id,
+        quantity: item.quantity,
+      })),
+    };
+    if (discountCode) body.discountCode = discountCode;
+    const eventId = items[0]?.event?.id;
+    if (eventId) body.eventId = eventId;
     apiClient
-      .post('/orders/price-breakdown', {
-        items: items.map((item) => ({
-          ticketTypeId: item.ticketType.id,
-          quantity: item.quantity,
-        })),
-      })
+      .post('/orders/price-breakdown', body)
       .then((res) => setPriceBreakdown(res.data.data))
       .catch(() => {
-        // Fallback: show subtotal as total with zero fees
         setPriceBreakdown({ subtotal: total, convenienceFee: 0, platformFee: 0, totalAmount: total });
       });
+  };
+
+  useEffect(() => {
+    fetchPriceBreakdown(appliedDiscount?.code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, total]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const eventId = items[0]?.event?.id;
+      const res = await apiClient.post('/discounts/validate', {
+        code: couponCode.trim(),
+        eventId,
+      });
+      const discount = res.data.data;
+      setAppliedDiscount({
+        code: couponCode.trim().toUpperCase(),
+        discountId: discount.id,
+        type: discount.type,
+        value: discount.value,
+        discountAmount: discount.discountAmount ?? 0,
+      });
+      fetchPriceBreakdown(couponCode.trim());
+      setCouponCode('');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
+      setCouponError(axiosError.response?.data?.error?.message || 'Invalid coupon code');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedDiscount(null);
+    setCouponError(null);
+    setCouponCode('');
+    fetchPriceBreakdown();
+  };
 
   const handlePlaceOrder = async () => {
     if (isGuestCheckout) {
@@ -109,6 +165,7 @@ export default function CheckoutPage() {
             email: a.email,
             phone: a.phone,
           })),
+          ...(appliedDiscount ? { discountCode: appliedDiscount.code } : {}),
         });
         const order = orderRes.data.data;
         orderId = order.id;
@@ -141,6 +198,7 @@ export default function CheckoutPage() {
             email: a.email,
             phone: a.phone,
           })),
+          ...(appliedDiscount ? { discountCode: appliedDiscount.code } : {}),
         });
         const order = orderRes.data.data;
         orderId = order.id;
@@ -333,11 +391,81 @@ export default function CheckoutPage() {
                 <CardTitle className="text-lg">Payment Summary</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Coupon Code Section */}
+                <div className="mb-4">
+                  {appliedDiscount ? (
+                    <div className="flex items-center justify-between rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <div>
+                          <span className="text-sm font-semibold text-green-700 dark:text-green-300">{appliedDiscount.code}</span>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            {appliedDiscount.type === 'PERCENTAGE' ? `${appliedDiscount.value}% off` : `₹${appliedDiscount.value} off`} applied
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="rounded-full p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-800 transition"
+                        aria-label="Remove coupon"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      {!couponExpanded ? (
+                        <button
+                          onClick={() => setCouponExpanded(true)}
+                          className="flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium transition"
+                        >
+                          <Tag className="h-3.5 w-3.5" />
+                          Have a coupon?
+                        </button>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Enter coupon code"
+                              value={couponCode}
+                              onChange={(e) => {
+                                setCouponCode(e.target.value.toUpperCase());
+                                setCouponError(null);
+                              }}
+                              onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                              className="flex-1 text-sm uppercase"
+                              disabled={couponLoading}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleApplyCoupon}
+                              disabled={couponLoading || !couponCode.trim()}
+                              className="shrink-0 border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                            >
+                              {couponLoading ? 'Checking...' : 'Apply'}
+                            </Button>
+                          </div>
+                          {couponError && (
+                            <p className="text-xs text-red-500 dark:text-red-400">{couponError}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-gray-600 dark:text-gray-300">
                     <span>Subtotal</span>
                     <span>₹{(priceBreakdown?.subtotal ?? total).toLocaleString('en-IN')}</span>
                   </div>
+                  {appliedDiscount && (priceBreakdown?.discountAmount ?? appliedDiscount.discountAmount) > 0 && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400">
+                      <span>Discount ({appliedDiscount.code})</span>
+                      <span>-₹{(priceBreakdown?.discountAmount ?? appliedDiscount.discountAmount).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-gray-600 dark:text-gray-300">
                     <span>Platform Fee</span>
                     {priceBreakdown && priceBreakdown.platformFee > 0 ? (

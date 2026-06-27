@@ -12,6 +12,7 @@ import { QueryEventDto } from './dto/query-event.dto';
 import { EventStatus, OrderStatus, TicketStatus, Prisma } from '@thoovitickets/database';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class EventsService {
@@ -21,6 +22,7 @@ export class EventsService {
     private readonly prisma: PrismaService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(organiserId: string, dto: CreateEventDto) {
@@ -414,11 +416,23 @@ export class EventsService {
       throw new BadRequestException('Event must have at least one ticket type');
     }
 
-    return this.prisma.event.update({
+    const updated = await this.prisma.event.update({
       where: { id },
       data: { status: EventStatus.PENDING_APPROVAL },
       include: { category: true, ticketTypes: true },
     });
+
+    // Notify admins
+    try {
+      await this.notificationsService.createForAdmins({
+        type: 'NEW_APPROVAL_REQUEST',
+        title: 'New Event Awaiting Approval',
+        message: `Event "${event.title}" has been submitted for approval.`,
+        linkUrl: `/admin/events/${id}`,
+      });
+    } catch { /* non-critical */ }
+
+    return updated;
   }
 
   async delete(id: string, organiserId: string) {

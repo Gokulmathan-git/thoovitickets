@@ -60,6 +60,11 @@ export default function EventDetailClient({ slug }: { slug: string }) {
   const [mapCoords, setMapCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showAttendeeForm, setShowAttendeeForm] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [activeDiscount, setActiveDiscount] = useState<{
+    code: string;
+    type: 'PERCENTAGE' | 'FLAT';
+    value: number;
+  } | null>(null);
   const { user } = useAuthStore();
   const { setCart } = useCartStore();
 
@@ -73,6 +78,22 @@ export default function EventDetailClient({ slug }: { slug: string }) {
       .then(async (res) => {
         const ev = res.data.data;
         setEvent(ev);
+
+        // Try to fetch active public discounts for this event
+        apiClient
+          .get(`/events/${ev.id}/discounts`)
+          .then((discountRes) => {
+            const discounts = discountRes.data.data;
+            if (Array.isArray(discounts) && discounts.length > 0) {
+              // Use the first active public discount
+              const d = discounts[0];
+              setActiveDiscount({ code: d.code, type: d.type, value: d.value });
+            }
+          })
+          .catch(() => {
+            // Endpoint may not exist yet — silently ignore
+          });
+
         if (ev.latitude && ev.longitude) {
           setMapCoords({ lat: ev.latitude, lng: ev.longitude });
         } else {
@@ -351,7 +372,26 @@ export default function EventDetailClient({ slug }: { slug: string }) {
                               <p className="mt-1 text-[11px] text-green-600 font-medium">{available} available</p>
                             )}
                           </div>
-                          <p className="text-lg font-bold text-orange-600 whitespace-nowrap">{Number(tt.price) === 0 ? 'Free' : `₹${Number(tt.price).toLocaleString('en-IN')}`}</p>
+                          <div className="text-right shrink-0">
+                            {Number(tt.price) === 0 ? (
+                              <p className="text-lg font-bold text-orange-600">Free</p>
+                            ) : activeDiscount ? (
+                              <>
+                                <p className="text-sm text-gray-400 line-through">₹{Number(tt.price).toLocaleString('en-IN')}</p>
+                                <p className="text-lg font-bold text-orange-600">
+                                  ₹{(activeDiscount.type === 'PERCENTAGE'
+                                    ? Math.round(Number(tt.price) * (1 - activeDiscount.value / 100))
+                                    : Math.max(0, Number(tt.price) - activeDiscount.value)
+                                  ).toLocaleString('en-IN')}
+                                </p>
+                                <span className="inline-block mt-0.5 rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:text-green-400">
+                                  {activeDiscount.type === 'PERCENTAGE' ? `${activeDiscount.value}% OFF` : `₹${activeDiscount.value} OFF`}
+                                </span>
+                              </>
+                            ) : (
+                              <p className="text-lg font-bold text-orange-600">₹{Number(tt.price).toLocaleString('en-IN')}</p>
+                            )}
+                          </div>
                         </div>
                         {!isUnavailable && (
                           <div className="mt-3 flex items-center justify-end">

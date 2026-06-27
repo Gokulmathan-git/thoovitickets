@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { PricingService } from '../pricing/pricing.service';
+import { OrdersService } from '../orders/orders.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@thoovitickets/shared';
@@ -24,6 +25,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly pricingService: PricingService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   @Get('platform-config')
@@ -76,6 +78,30 @@ export class AdminController {
   @Get('dashboard')
   getDashboardStats() {
     return this.adminService.getDashboardStats();
+  }
+
+  // ─── ORDERS ─────────────────────────────────
+
+  @Get('orders')
+  getOrders(
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ordersService.getAdminOrders({
+      status,
+      startDate,
+      endDate,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+  }
+
+  @Get('orders/:id')
+  getOrderDetail(@Param('id') orderId: string) {
+    return this.ordersService.getAdminOrderDetail(orderId);
   }
 
   @Get('users')

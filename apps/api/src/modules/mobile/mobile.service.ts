@@ -151,7 +151,8 @@ export class MobileService {
         ticketType: t.orderItem.ticketType.name, status: t.status, checkedInAt: t.checkedInAt,
       })),
       eventEnded,
-      canCheckIn: !eventEnded && ticket.status === TicketStatus.ACTIVE,
+      orderStatus: ticket.order.status,
+      canCheckIn: !eventEnded && ticket.status === TicketStatus.ACTIVE && ticket.order.status === 'CONFIRMED',
     };
   }
 
@@ -163,7 +164,10 @@ export class MobileService {
     for (const ticketId of ticketIds) {
       const ticket = await this.prisma.ticket.findUnique({
         where: { id: ticketId },
-        include: { orderItem: { include: { event: { select: { organiserId: true, endDate: true } } } } },
+        include: {
+          orderItem: { include: { event: { select: { organiserId: true, endDate: true } } } },
+          order: { select: { status: true } },
+        },
       });
 
       if (!ticket) {
@@ -178,6 +182,11 @@ export class MobileService {
 
       if (new Date() > new Date(ticket.orderItem.event.endDate)) {
         results.push({ ticketId, status: 'EVENT_ENDED', checkedInAt: null, error: 'Event has ended' });
+        continue;
+      }
+
+      if (ticket.order.status !== 'CONFIRMED') {
+        results.push({ ticketId, status: 'ORDER_NOT_CONFIRMED', checkedInAt: null, error: 'Order is not confirmed' });
         continue;
       }
 
