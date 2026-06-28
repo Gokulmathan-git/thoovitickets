@@ -46,7 +46,43 @@ export class AdminService {
       this.prisma.user.count({ where: { role: UserRole.ORGANISER, status: UserStatus.PENDING } }),
       this.prisma.event.count(),
       this.prisma.event.count({ where: { status: EventStatus.PENDING_APPROVAL } }),
-      this.prisma.event.count({ where: { status: EventStatus.PUBLISHED } }),
+      this.prisma.event.count({ where: { status: EventStatus.PUBLISHED, endDate: { gte: new Date() } } }),
+    ]);
+
+    const [
+      totalOrders,
+      totalRevenue,
+      pendingSettlements,
+      recentOrders,
+      recentEvents,
+    ] = await Promise.all([
+      this.prisma.order.count({ where: { status: 'CONFIRMED' } }),
+      this.prisma.order.aggregate({
+        where: { status: 'CONFIRMED' },
+        _sum: { totalAmount: true, platformFee: true },
+      }),
+      this.prisma.settlement.count({ where: { status: { in: ['REQUESTED', 'PENDING'] } } }),
+      this.prisma.order.findMany({
+        where: { status: 'CONFIRMED' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true, orderNumber: true, totalAmount: true, platformFee: true, createdAt: true,
+          user: { select: { firstName: true, lastName: true } },
+          guestName: true,
+          items: { take: 1, select: { event: { select: { title: true } } } },
+        },
+      }),
+      this.prisma.event.findMany({
+        where: { status: EventStatus.PUBLISHED, endDate: { gte: new Date() } },
+        orderBy: { startDate: 'asc' },
+        take: 5,
+        select: {
+          id: true, title: true, slug: true, startDate: true, city: true,
+          organiser: { select: { orgName: true, firstName: true, lastName: true } },
+          ticketTypes: { select: { soldQty: true, totalQty: true } },
+        },
+      }),
     ]);
 
     return {
@@ -57,6 +93,29 @@ export class AdminService {
       totalEvents,
       pendingEvents,
       publishedEvents,
+      totalOrders,
+      totalRevenue: Number(totalRevenue._sum.totalAmount || 0),
+      totalPlatformFee: Number(totalRevenue._sum.platformFee || 0),
+      pendingSettlements,
+      recentOrders: recentOrders.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        customerName: o.user ? `${o.user.firstName} ${o.user.lastName}` : o.guestName || 'Guest',
+        eventTitle: o.items[0]?.event?.title || '-',
+        amount: Number(o.totalAmount),
+        platformFee: Number(o.platformFee),
+        createdAt: o.createdAt,
+      })),
+      recentEvents: recentEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        slug: e.slug,
+        startDate: e.startDate,
+        city: e.city,
+        organiser: e.organiser.orgName || `${e.organiser.firstName} ${e.organiser.lastName}`,
+        ticketsSold: e.ticketTypes.reduce((sum, tt) => sum + tt.soldQty, 0),
+        totalCapacity: e.ticketTypes.reduce((sum, tt) => sum + tt.totalQty, 0),
+      })),
     };
   }
 

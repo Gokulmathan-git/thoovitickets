@@ -54,12 +54,41 @@ export class SubscriptionsService {
     return this.createFreeSubscription(userId);
   }
 
-  async initiateSubscriptionPayment(userId: string, tier: string, activateNow?: boolean) {
+  private getBillingPrice(plan: { price: any; priceQuarterly: any; priceHalfYearly: any; priceYearly: any }, cycle: string): number {
+    const mo = Number(plan.price);
+    switch (cycle) {
+      case 'quarterly': return Number(plan.priceQuarterly || 0) || (mo > 0 ? mo * 3 : 0);
+      case 'half_yearly': return Number(plan.priceHalfYearly || 0) || (mo > 0 ? mo * 6 : 0);
+      case 'yearly': return Number(plan.priceYearly || 0) || (mo > 0 ? mo * 12 : 0);
+      default: return mo;
+    }
+  }
+
+  private getBillingDurationDays(cycle: string): number {
+    switch (cycle) {
+      case 'quarterly': return 90;
+      case 'half_yearly': return 180;
+      case 'yearly': return 365;
+      default: return 30;
+    }
+  }
+
+  private getBillingLabel(cycle: string): string {
+    switch (cycle) {
+      case 'quarterly': return '3 Months';
+      case 'half_yearly': return '6 Months';
+      case 'yearly': return '1 Year';
+      default: return '1 Month';
+    }
+  }
+
+  async initiateSubscriptionPayment(userId: string, tier: string, activateNow?: boolean, billingCycle?: string) {
     const plan = await this.prisma.plan.findUnique({ where: { tier } });
     if (!plan || !plan.isActive) throw new BadRequestException('Invalid subscription plan');
 
-    const planPrice = Number(plan.price);
-    if (planPrice <= 0) throw new BadRequestException('Free plan does not require payment');
+    const cycle = billingCycle || 'monthly';
+    const planPrice = this.getBillingPrice(plan, cycle);
+    if (planPrice <= 0) throw new BadRequestException(`This plan is not available for ${this.getBillingLabel(cycle)} billing. Choose a different billing cycle.`);
 
     const current = await this.getActiveSubscription(userId);
 
@@ -98,7 +127,7 @@ export class SubscriptionsService {
       customerName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
       customerEmail: user?.email || '',
       customerPhone: user?.phone || undefined,
-      description: `${plan.name} Plan Subscription - ₹${planPrice}/month`,
+      description: `${plan.name} Plan - ${this.getBillingLabel(cycle)} (₹${planPrice})`,
     });
 
     await this.prisma.subscriptionPayment.create({
@@ -106,6 +135,7 @@ export class SubscriptionsService {
         userId,
         planId: plan.id,
         tier,
+        billingCycle: cycle,
         amount: planPrice,
         currency: 'INR',
         provider: result.provider,
@@ -181,7 +211,7 @@ export class SubscriptionsService {
         data: { status: SubscriptionStatus.EXPIRED, endDate: new Date(), scheduledPlanId: null, scheduledPlanTier: null },
       });
 
-      const newSub = await this.createSubscriptionFromPlan(userId, subPayment.tier);
+      const newSub = await this.createSubscriptionFromPlan(userId, subPayment.tier, subPayment.billingCycle || undefined);
 
       return {
         message: `${subPayment.plan.name} plan activated successfully!`,
@@ -426,12 +456,15 @@ export class SubscriptionsService {
     };
   }
 
-  private async createSubscriptionFromPlan(userId: string, tier: string) {
+  private async createSubscriptionFromPlan(userId: string, tier: string, billingCycle?: string) {
     const plan = await this.prisma.plan.findUnique({ where: { tier } });
     if (!plan) return this.createFreeSubscription(userId);
 
+    const cycle = billingCycle || 'monthly';
     const startDate = new Date();
-    const endDate = tier === 'FREE' ? null : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const durationDays = this.getBillingDurationDays(cycle);
+    const endDate = tier === 'FREE' ? null : new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    const price = this.getBillingPrice(plan, cycle);
 
     return this.prisma.orgSubscription.create({
       data: {
@@ -444,7 +477,8 @@ export class SubscriptionsService {
         maxTicketTiers: plan.maxTicketTiers,
         maxStaffAccounts: plan.maxStaffAccounts,
         commissionPercent: plan.commissionPercent,
-        price: plan.price,
+        price,
+        billingCycle: cycle,
         startDate,
         endDate,
       },

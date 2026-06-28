@@ -20,6 +20,7 @@ const USER_SELECT = {
   aadharDocumentUrl: true,
   panDocumentUrl: true,
   gstNumber: true,
+  orgTerms: true,
   profileCompleted: true,
   statusReason: true,
   createdAt: true,

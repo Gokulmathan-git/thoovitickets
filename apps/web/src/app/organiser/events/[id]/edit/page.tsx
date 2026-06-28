@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { CategorySelect } from '@/components/ui/category-select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Globe, Clock } from 'lucide-react';
+import { Trash2, Plus, Globe, Clock, ArrowLeft, AlertTriangle, X } from 'lucide-react';
 import { MapPicker } from '@/components/events/map-picker';
 import { AiDescriptionGenerator } from '@/components/ai/ai-description-generator';
 import type { EventCategoryResponse } from '@thoovitickets/shared';
@@ -76,12 +77,14 @@ export default function EditEventPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [eventStatus, setEventStatus] = useState('');
   const [selectedTimezone, setSelectedTimezone] = useState('Asia/Kolkata');
   const [startDateLocal, setStartDateLocal] = useState('');
   const [endDateLocal, setEndDateLocal] = useState('');
@@ -116,6 +119,7 @@ export default function EditEventPage() {
       setLongitude(event.longitude || null);
       setEventImageUrl(event.imageUrl || null);
       setBannerUrl(event.bannerUrl || null);
+      setEventStatus(event.status || '');
 
       if (event.startDate) {
         setStartDateLocal(toLocalDatetimeString(new Date(event.startDate), tz));
@@ -144,6 +148,7 @@ export default function EditEventPage() {
           price: Number(tt.price),
           currency: tt.currency || 'INR',
           totalQty: tt.totalQty,
+          soldQty: tt.soldQty || 0,
           maxPerOrder: tt.maxPerOrder || 5,
         })),
       });
@@ -189,8 +194,38 @@ export default function EditEventPage() {
     if (endDateLocal) setValue('endDate', localInputToUTC(endDateLocal, tz));
   };
 
+  const fieldLabels: Record<string, string> = {
+    title: 'Event Title', description: 'Description', categoryId: 'Category',
+    startDate: 'Start Date & Time', endDate: 'End Date & Time',
+    venue: 'Venue', city: 'City', country: 'Country', ticketTypes: 'Ticket Types',
+  };
+
+  const onInvalid = (fieldErrors: Record<string, any>) => {
+    const messages: string[] = [];
+    for (const [key, err] of Object.entries(fieldErrors)) {
+      if (key === 'ticketTypes' && Array.isArray(err)) {
+        err.forEach((ticketErr: any, i: number) => {
+          if (!ticketErr) return;
+          Object.entries(ticketErr).forEach(([field, e]: [string, any]) => {
+            if (e?.message) messages.push(`Ticket #${i + 1} ${field}: ${e.message}`);
+          });
+        });
+      } else if ((err as any)?.message) {
+        messages.push(`${fieldLabels[key] || key}: ${(err as any).message}`);
+      }
+    }
+    setValidationErrors(messages);
+    const firstKey = Object.keys(fieldErrors)[0];
+    if (firstKey) {
+      const el = document.getElementById(firstKey) || document.querySelector(`[name="${firstKey}"]`);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); (el as HTMLElement).focus?.(); }
+    }
+    setTimeout(() => setValidationErrors([]), 8000);
+  };
+
   const onSubmit = async (data: any) => {
     setError(null);
+    setValidationErrors([]);
     setMessage(null);
     setIsSaving(true);
 
@@ -214,6 +249,16 @@ export default function EditEventPage() {
         imageUrl: eventImageUrl,
         bannerUrl,
       };
+
+      // Include ticket type updates for live/completed events
+      if (['PUBLISHED', 'COMPLETED'].includes(eventStatus) && data.ticketTypes) {
+        payload.ticketTypes = data.ticketTypes.map((tt: any) => ({
+          name: tt.name,
+          description: tt.description || '',
+          price: Number(tt.price),
+          totalQty: Number(tt.totalQty),
+        }));
+      }
 
       await apiClient.patch(`/events/${eventId}`, payload);
       setMessage({ type: 'success', text: 'Event updated successfully!' });
@@ -239,12 +284,38 @@ export default function EditEventPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-center gap-3">
+        <button onClick={() => router.push(`/organiser/events/${eventId}`)} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Edit Event</h1>
-        <Button variant="outline" onClick={() => router.push(`/organiser/events/${eventId}`)}>Back to Event</Button>
       </div>
 
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {validationErrors.length > 0 && (
+        <div style={{ animation: 'fade-in-up 0.3s ease-out' }} className="fixed top-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 shadow-2xl">
+          <div className="flex items-center justify-between gap-2 border-b border-red-100 dark:border-red-900 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Please fix the following</p>
+            </div>
+            <button onClick={() => setValidationErrors([])} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <ul className="max-h-60 overflow-y-auto px-4 py-3 space-y-1.5">
+            {validationErrors.map((msg, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+                {msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         {error && (
           <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>
         )}
@@ -354,12 +425,13 @@ export default function EditEventPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="categoryId">Category *</Label>
-                <Select id="categoryId" error={errors.categoryId?.message as string} {...register('categoryId')}>
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
-                  ))}
-                </Select>
+                <CategorySelect
+                  id="categoryId"
+                  categories={categories}
+                  value={watch('categoryId') || ''}
+                  onChange={(val) => setValue('categoryId', val, { shouldValidate: true })}
+                  error={errors.categoryId?.message as string}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
@@ -524,7 +596,7 @@ export default function EditEventPage() {
           </CardContent>
         </Card>
 
-        {/* Ticket Types (read-only summary) */}
+        {/* Ticket Types */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Ticket Types</CardTitle>
@@ -534,31 +606,58 @@ export default function EditEventPage() {
               <p className="text-sm text-gray-400 py-4 text-center">No ticket types</p>
             ) : (
               <div className="space-y-3">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Name</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{watch(`ticketTypes.${index}.name`)}</p>
+                {fields.map((field, index) => {
+                  const soldQty = watch(`ticketTypes.${index}.soldQty`) || 0;
+                  const hasSales = soldQty > 0;
+                  const isLiveEvent = ['PUBLISHED', 'COMPLETED'].includes(eventStatus);
+
+                  return (
+                    <div key={field.id} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div>
+                          <Label className="text-xs">Name</Label>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{watch(`ticketTypes.${index}.name`)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Price</Label>
+                          {isLiveEvent && hasSales ? (
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">₹{watch(`ticketTypes.${index}.price`)} <span className="text-[10px] text-gray-400">(locked)</span></p>
+                          ) : isLiveEvent ? (
+                            <Input type="number" min={0} className="mt-0.5" {...register(`ticketTypes.${index}.price`, { valueAsNumber: true })} />
+                          ) : (
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">₹{watch(`ticketTypes.${index}.price`)}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label className="text-xs">Quantity {hasSales && <span className="text-orange-500">({soldQty} sold)</span>}</Label>
+                          {isLiveEvent ? (
+                            <Input type="number" min={hasSales ? soldQty : 1} className="mt-0.5" {...register(`ticketTypes.${index}.totalQty`, { valueAsNumber: true })} />
+                          ) : (
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{watch(`ticketTypes.${index}.totalQty`)}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label className="text-xs">Max/Order</Label>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{watch(`ticketTypes.${index}.maxPerOrder`)}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Price</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">₹{watch(`ticketTypes.${index}.price`)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Quantity</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{watch(`ticketTypes.${index}.totalQty`)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Max/Order</p>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{watch(`ticketTypes.${index}.maxPerOrder`)}</p>
-                      </div>
+                      {isLiveEvent && (
+                        <div className="mt-3">
+                          <Label className="text-xs">Description</Label>
+                          <Input className="mt-0.5" placeholder="Ticket description" {...register(`ticketTypes.${index}.description`)} />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-            <p className="mt-3 text-xs text-gray-400">Ticket types cannot be modified after creation. Contact support if you need changes.</p>
+            {['DRAFT', 'REJECTED'].includes(eventStatus) && (
+              <p className="mt-3 text-xs text-gray-400">Ticket types are set during event creation. Edit the event to modify them.</p>
+            )}
+            {['PUBLISHED', 'COMPLETED'].includes(eventStatus) && (
+              <p className="mt-3 text-xs text-gray-400">You can increase quantity and edit descriptions. Price is locked for tickets with sales.</p>
+            )}
           </CardContent>
         </Card>
 

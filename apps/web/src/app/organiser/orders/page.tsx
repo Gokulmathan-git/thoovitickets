@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils';
 import {
   ShoppingCart,
   ChevronDown,
-  ChevronUp,
   Send,
   Eye,
   X,
@@ -29,26 +28,25 @@ interface Event {
 
 interface OrderItem {
   id: string;
-  ticketTierName: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  ticketType: { name: string; price: number; currency: string };
+  event: { id: string; title: string; slug: string; venue: string; city: string; startDate: string };
 }
 
 interface Order {
   id: string;
   orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  event: {
-    id: string;
-    title: string;
-  };
+  guestName: string | null;
+  guestEmail: string | null;
+  user: { id: string; firstName: string; lastName: string; email: string; phone: string | null } | null;
   items: OrderItem[];
   totalAmount: number;
+  orgPayout: number;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-  paymentStatus: string;
+  payment: { status: string; provider: string } | null;
+  attendeeData: unknown;
   createdAt: string;
 }
 
@@ -57,7 +55,7 @@ interface Attendee {
   name: string;
   email: string;
   phone?: string;
-  ticketTierName: string;
+  ticketTypeName: string;
   ticketCode: string;
   qrDataUrl?: string;
   status: 'ACTIVE' | 'CHECKED_IN' | 'CANCELLED';
@@ -89,6 +87,8 @@ export default function OrganiserOrdersPage() {
 
   // Resend loading
   const [resendingOrderId, setResendingOrderId] = useState<string | null>(null);
+  const [resendConfirm, setResendConfirm] = useState<Order | null>(null);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   // Attendees
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -116,7 +116,8 @@ export default function OrganiserOrdersPage() {
       if (filterStatus) params.append('status', filterStatus);
       const query = params.toString();
       const res = await apiClient.get(`/orders/organiser${query ? `?${query}` : ''}`);
-      setOrders(res.data.data || []);
+      const data = res.data.data;
+      setOrders(Array.isArray(data) ? data : data?.orders || []);
     } catch {
       setOrders([]);
       setError('Failed to load orders');
@@ -164,13 +165,20 @@ export default function OrganiserOrdersPage() {
 
   // ---- Actions ----
 
+  const openResendConfirm = (order: Order) => {
+    setResendConfirm(order);
+    setResendSuccess(false);
+  };
+
   const handleResendTickets = async (orderId: string) => {
     setResendingOrderId(orderId);
     try {
       await apiClient.post(`/orders/organiser/${orderId}/resend-tickets`);
+      setResendSuccess(true);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       setError(axiosError.response?.data?.error?.message || 'Failed to resend tickets');
+      setResendConfirm(null);
     } finally {
       setResendingOrderId(null);
     }
@@ -310,17 +318,16 @@ export default function OrganiserOrdersPage() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {orders.map((order) => {
                   const status = getStatusBadge(order.status);
-                  const isExpanded = expandedOrderId === order.id;
                   return (
                     <tr key={order.id} className="group">
                       <td className="py-3 pr-4">
                         <span className="font-mono text-xs font-semibold text-gray-900 dark:text-gray-100">{order.orderNumber}</span>
                       </td>
                       <td className="py-3 pr-4">
-                        <div className="text-gray-900 dark:text-gray-100">{order.customerName}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{order.customerEmail}</div>
+                        <div className="text-gray-900 dark:text-gray-100">{order.user ? `${order.user.firstName} ${order.user.lastName}` : order.guestName || 'Guest'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{order.user?.email || order.guestEmail || ''}</div>
                       </td>
-                      <td className="py-3 pr-4 text-gray-700 dark:text-gray-300 max-w-[160px] truncate">{order.event.title}</td>
+                      <td className="py-3 pr-4 text-gray-700 dark:text-gray-300 max-w-[160px] truncate">{order.items?.[0]?.event?.title || '-'}</td>
                       <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">
                         {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}
                       </td>
@@ -328,24 +335,23 @@ export default function OrganiserOrdersPage() {
                       <td className="py-3 pr-4">
                         <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', status.color)}>{status.label}</span>
                       </td>
-                      <td className="py-3 pr-4 text-xs text-gray-500 dark:text-gray-400">{order.paymentStatus}</td>
+                      <td className="py-3 pr-4 text-xs text-gray-500 dark:text-gray-400">{order.payment?.status || '-'}</td>
                       <td className="py-3 pr-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatDate(order.createdAt)}</td>
                       <td className="py-3">
                         <div className="flex items-center gap-1">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                            onClick={() => setExpandedOrderId(order.id)}
                             title="View details"
                           >
-                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            <Eye className="h-4 w-4" />
                           </Button>
                           {order.status === 'CONFIRMED' && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleResendTickets(order.id)}
-                              disabled={resendingOrderId === order.id}
+                              onClick={() => openResendConfirm(order)}
                               title="Resend tickets"
                               className="text-orange-600 dark:text-orange-400"
                             >
@@ -364,121 +370,30 @@ export default function OrganiserOrdersPage() {
               </tbody>
             </table>
 
-            {/* Expanded order detail (inline) */}
-            {expandedOrderId && (() => {
-              const order = orders.find((o) => o.id === expandedOrderId);
-              if (!order) return null;
-              return (
-                <Card className="mt-2 mb-4 border-orange-200 dark:border-orange-800/40">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">Order {order.orderNumber} - Details</h3>
-                      <button onClick={() => setExpandedOrderId(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Customer</span>
-                        <p className="text-gray-900 dark:text-gray-100">{order.customerName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{order.customerEmail}</p>
-                        {order.customerPhone && <p className="text-xs text-gray-500 dark:text-gray-400">{order.customerPhone}</p>}
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Event</span>
-                        <p className="text-gray-900 dark:text-gray-100">{order.event.title}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Total Amount</span>
-                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(order.totalAmount)}</p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Order Date</span>
-                        <p className="text-gray-900 dark:text-gray-100">{formatDate(order.createdAt)}</p>
-                      </div>
-                    </div>
-                    {order.items && order.items.length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-medium uppercase text-gray-500 dark:text-gray-400 mb-2">Items</h4>
-                        <div className="space-y-1">
-                          {order.items.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm">
-                              <span className="text-gray-700 dark:text-gray-300">{item.ticketTierName} x{item.quantity}</span>
-                              <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(item.totalPrice)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })()}
           </div>
 
           {/* Mobile card layout */}
           <div className="md:hidden space-y-3">
             {orders.map((order) => {
               const status = getStatusBadge(order.status);
-              const isExpanded = expandedOrderId === order.id;
               return (
-                <Card key={order.id}>
+                <Card key={order.id} className="cursor-pointer" onClick={() => setExpandedOrderId(order.id)}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <span className="font-mono text-xs font-semibold text-gray-900 dark:text-gray-100">{order.orderNumber}</span>
                         <span className={cn('ml-2 rounded-full px-2 py-0.5 text-xs font-medium', status.color)}>{status.label}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}>
-                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                        </Button>
-                      </div>
+                      <Eye className="h-4 w-4 text-gray-400" />
                     </div>
-                    <p className="text-sm text-gray-900 dark:text-gray-100">{order.customerName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{order.customerEmail}</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{order.user ? `${order.user.firstName} ${order.user.lastName}` : order.guestName || 'Guest'}</p>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[50%]">{order.event.title}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[50%]">{order.items?.[0]?.event?.title || '-'}</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(order.totalAmount)}</span>
                     </div>
-                    <div className="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                      <span>{order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''} | {order.paymentStatus}</span>
-                      <span>{formatDate(order.createdAt)}</span>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {formatDate(order.createdAt)}
                     </div>
-
-                    {isExpanded && (
-                      <div className="mt-3 border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
-                        {order.customerPhone && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Phone: {order.customerPhone}</p>
-                        )}
-                        {order.items && order.items.length > 0 && (
-                          <div className="space-y-1">
-                            {order.items.map((item) => (
-                              <div key={item.id} className="flex items-center justify-between rounded-md bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs">
-                                <span className="text-gray-700 dark:text-gray-300">{item.ticketTierName} x{item.quantity}</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(item.totalPrice)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {order.status === 'CONFIRMED' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleResendTickets(order.id)}
-                            disabled={resendingOrderId === order.id}
-                            className="w-full text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800"
-                          >
-                            {resendingOrderId === order.id ? (
-                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Send className="mr-2 h-4 w-4" />
-                            )}
-                            Resend Tickets
-                          </Button>
-                        )}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
@@ -487,207 +402,193 @@ export default function OrganiserOrdersPage() {
         </>
       )}
 
-      {/* ---- Attendees Section ---- */}
-      {filterEventId && (
-        <div className="mt-8">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Users className="h-5 w-5 text-orange-500" />
-                Attendees
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {events.find((e) => e.id === filterEventId)?.title || 'Selected event'}
-              </p>
-            </div>
-            {attendees.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    const res = await apiClient.get(`/orders/organiser/event/${filterEventId}/attendees/export`, { responseType: 'blob' });
-                    const url = window.URL.createObjectURL(new Blob([res.data]));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `attendees_${filterEventId}.csv`;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    window.URL.revokeObjectURL(url);
-                  } catch { alert('Failed to export attendees'); }
-                }}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export CSV
-              </Button>
-            )}
-          </div>
-
-          {/* Stats cards */}
-          <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Card>
-              <CardContent className="p-3 text-center">
-                <Ticket className="mx-auto h-5 w-5 text-orange-500 mb-1" />
-                <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{attendeeStats.total}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Total Tickets</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <CheckCircle2 className="mx-auto h-5 w-5 text-green-500 mb-1" />
-                <div className="text-xl font-bold text-green-600 dark:text-green-400">{attendeeStats.checkedIn}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Checked In</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <Ticket className="mx-auto h-5 w-5 text-blue-500 mb-1" />
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{attendeeStats.active}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Active</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-3 text-center">
-                <XCircle className="mx-auto h-5 w-5 text-red-500 mb-1" />
-                <div className="text-xl font-bold text-red-600 dark:text-red-400">{attendeeStats.cancelled}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Cancelled</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Attendees table / cards */}
-          {attendeesLoading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
-              ))}
-            </div>
-          ) : attendees.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <Users className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">No attendees found for this event</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Desktop attendee table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                      <th className="pb-3 pr-4">Attendee</th>
-                      <th className="pb-3 pr-4">Contact</th>
-                      <th className="pb-3 pr-4">Ticket Type</th>
-                      <th className="pb-3 pr-4">Ticket Code</th>
-                      <th className="pb-3 pr-4">QR</th>
-                      <th className="pb-3 pr-4">Status</th>
-                      <th className="pb-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {attendees.map((attendee) => {
-                      const checkinStatus = getCheckinBadge(attendee.status);
-                      return (
-                        <tr key={attendee.id}>
-                          <td className="py-3 pr-4">
-                            <div className="text-gray-900 dark:text-gray-100">{attendee.name}</div>
-                          </td>
-                          <td className="py-3 pr-4">
-                            <div className="text-xs text-gray-600 dark:text-gray-300">{attendee.email}</div>
-                            {attendee.phone && <div className="text-xs text-gray-500 dark:text-gray-400">{attendee.phone}</div>}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-700 dark:text-gray-300">{attendee.ticketTierName}</td>
-                          <td className="py-3 pr-4">
-                            <span className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{attendee.ticketCode}</span>
-                          </td>
-                          <td className="py-3 pr-4">
-                            {attendee.qrDataUrl ? (
-                              <img src={attendee.qrDataUrl} alt="QR" className="h-10 w-10 rounded" />
-                            ) : (
-                              <span className="text-xs text-gray-400">--</span>
-                            )}
-                          </td>
-                          <td className="py-3 pr-4">
-                            <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', checkinStatus.color)}>
-                              {checkinStatus.label}
-                            </span>
-                          </td>
-                          <td className="py-3">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleResendForAttendee(attendee.orderId)}
-                              disabled={resendingAttendeeOrderId === attendee.orderId}
-                              title="Resend tickets"
-                              className="text-orange-600 dark:text-orange-400"
-                            >
-                              {resendingAttendeeOrderId === attendee.orderId ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+      {/* Order Detail Modal */}
+      {expandedOrderId && (() => {
+        const order = orders.find((o) => o.id === expandedOrderId);
+        if (!order) return null;
+        const customerName = order.user ? `${order.user.firstName} ${order.user.lastName}` : order.guestName || 'Guest';
+        const customerEmail = order.user?.email || order.guestEmail || '';
+        const customerPhone = order.user?.phone || '';
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setExpandedOrderId(null)}>
+            <div className="absolute inset-0 bg-black/50" />
+            <div
+              className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-5 py-4 rounded-t-2xl">
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Order Details</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{order.orderNumber}</p>
+                </div>
+                <button onClick={() => setExpandedOrderId(null)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-              {/* Mobile attendee cards */}
-              <div className="md:hidden space-y-3">
-                {attendees.map((attendee) => {
-                  const checkinStatus = getCheckinBadge(attendee.status);
-                  return (
-                    <Card key={attendee.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{attendee.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{attendee.email}</p>
-                            {attendee.phone && <p className="text-xs text-gray-500 dark:text-gray-400">{attendee.phone}</p>}
-                          </div>
-                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', checkinStatus.color)}>
-                            {checkinStatus.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
-                          <span>{attendee.ticketTierName}</span>
-                          <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{attendee.ticketCode}</span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          {attendee.qrDataUrl ? (
-                            <img src={attendee.qrDataUrl} alt="QR" className="h-12 w-12 rounded" />
-                          ) : (
-                            <span className="text-xs text-gray-400">No QR</span>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleResendForAttendee(attendee.orderId)}
-                            disabled={resendingAttendeeOrderId === attendee.orderId}
-                            className="text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800"
-                          >
-                            {resendingAttendeeOrderId === attendee.orderId ? (
-                              <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
-                            ) : (
-                              <Send className="mr-1 h-3 w-3" />
-                            )}
-                            Resend
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+              <div className="px-5 py-4 space-y-5">
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  <span className={cn('rounded-full px-2.5 py-1 text-xs font-medium', getStatusBadge(order.status).color)}>{getStatusBadge(order.status).label}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{order.payment?.status || '-'}</span>
+                </div>
+
+                {/* Customer Info */}
+                <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Customer</h4>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{customerName}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{customerEmail}</p>
+                  {customerPhone && <p className="text-sm text-gray-500 dark:text-gray-400">{customerPhone}</p>}
+                </div>
+
+                {/* Event & Items */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Event</h4>
+                  <p className="font-medium text-gray-900 dark:text-gray-100 mb-3">{order.items?.[0]?.event?.title || '-'}</p>
+
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Items</h4>
+                  <div className="space-y-2">
+                    {order.items?.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">{item.ticketType?.name || 'Ticket'} x{item.quantity}</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(item.totalPrice)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 mb-1">
+                    <span>Total Amount</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(order.totalAmount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                    <span>Your Payout</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">{formatCurrency(order.orgPayout)}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{formatDate(order.createdAt)}</p>
+                </div>
+
+                {/* Actions */}
+                {order.status === 'CONFIRMED' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setExpandedOrderId(null); openResendConfirm(order); }}
+                    className="w-full text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800"
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Resend Tickets
+                  </Button>
+                )}
               </div>
-            </>
-          )}
-        </div>
-      )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Resend Confirmation Modal */}
+      {resendConfirm && (() => {
+        const order = resendConfirm;
+        const customerName = order.user ? `${order.user.firstName} ${order.user.lastName}` : order.guestName || 'Guest';
+        const customerEmail = order.user?.email || order.guestEmail || '';
+        const customerPhone = order.user?.phone || '';
+        const eventTitle = order.items?.[0]?.event?.title || '-';
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => { setResendConfirm(null); setResendSuccess(false); }}>
+            <div className="absolute inset-0 bg-black/50" />
+            <div
+              className="relative w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4">
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    {resendSuccess ? 'Tickets Sent!' : 'Resend Tickets'}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{order.orderNumber}</p>
+                </div>
+                <button onClick={() => { setResendConfirm(null); setResendSuccess(false); }} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="px-5 py-4 space-y-4">
+                {resendSuccess ? (
+                  <div className="text-center py-4">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 mb-3">
+                      <Send className="h-5 w-5 text-green-600" />
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">Tickets have been sent to</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100 mt-1">{customerEmail}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      Ticket confirmation email will be sent with QR codes and event details.
+                    </p>
+
+                    <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Sending To</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{customerName}</p>
+                        <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">{customerEmail}</p>
+                        {customerPhone && <p className="text-xs text-gray-500 dark:text-gray-400">{customerPhone}</p>}
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Event</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{eventTitle}</p>
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Items</p>
+                        <div className="mt-1 space-y-1">
+                          {order.items?.map((item) => (
+                            <div key={item.id} className="flex justify-between text-sm">
+                              <span className="text-gray-700 dark:text-gray-300">{item.ticketType?.name || 'Ticket'} x{item.quantity}</span>
+                              <span className="text-gray-900 dark:text-gray-100 font-medium">₹{Number(item.totalPrice).toLocaleString('en-IN')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <div className="flex justify-between text-sm font-semibold">
+                          <span className="text-gray-700 dark:text-gray-300">Total</span>
+                          <span className="text-gray-900 dark:text-gray-100">₹{Number(order.totalAmount).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 flex justify-end gap-2">
+                {resendSuccess ? (
+                  <Button variant="outline" onClick={() => { setResendConfirm(null); setResendSuccess(false); }}>
+                    Close
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setResendConfirm(null)}>Cancel</Button>
+                    <Button
+                      onClick={() => handleResendTickets(order.id)}
+                      disabled={resendingOrderId === order.id}
+                      className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                    >
+                      {resendingOrderId === order.id ? (
+                        <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                      ) : (
+                        <><Send className="mr-2 h-4 w-4" /> Send Tickets</>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

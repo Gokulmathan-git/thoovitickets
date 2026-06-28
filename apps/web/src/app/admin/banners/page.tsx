@@ -36,6 +36,7 @@ export default function AdminBannersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     title: '',
@@ -143,11 +144,14 @@ export default function AdminBannersPage() {
   };
 
   const handleToggle = async (id: string, isActive: boolean) => {
+    setTogglingId(id);
     try {
       await apiClient.patch(`/admin/banners/${id}`, { isActive: !isActive });
-      fetchBanners();
+      await fetchBanners();
     } catch {
       setMessage({ type: 'error', text: 'Failed to update banner' });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -299,7 +303,7 @@ export default function AdminBannersPage() {
       ) : (
         <div className="space-y-3">
           {banners.map((banner, index) => (
-            <Card key={banner.id} className={!banner.isActive ? 'opacity-50' : ''}>
+            <Card key={banner.id} className={!banner.isActive ? 'border-dashed border-gray-300 dark:border-gray-700' : ''}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   <div className="flex flex-col items-center gap-1 pt-2">
@@ -312,11 +316,23 @@ export default function AdminBannersPage() {
                     </button>
                   </div>
 
-                  <img src={banner.imageUrl} alt={banner.title} className="h-20 w-36 shrink-0 rounded-lg object-cover border border-gray-200 dark:border-gray-700" />
+                  <div className="relative shrink-0">
+                    <img src={banner.imageUrl} alt={banner.title} className={`h-20 w-36 rounded-lg object-cover border border-gray-200 dark:border-gray-700 ${!banner.isActive ? 'grayscale opacity-60' : ''}`} />
+                    {!banner.isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-gray-900/30">
+                        <EyeOff className="h-5 w-5 text-white" />
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{banner.title}</h3>
-                    {banner.description && <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{banner.description}</p>}
+                    <div className="flex items-center gap-2">
+                      <h3 className={`font-semibold truncate ${banner.isActive ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>{banner.title}</h3>
+                      <span className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${banner.isActive ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
+                        {banner.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    {banner.description && <p className={`text-sm truncate ${banner.isActive ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'}`}>{banner.description}</p>}
                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
                       {banner.linkType === 'url' && (
                         <span className="flex items-center gap-1"><ExternalLink className="h-3 w-3" /> External URL</span>
@@ -329,8 +345,13 @@ export default function AdminBannersPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => handleToggle(banner.id, banner.isActive)} className="rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800" title={banner.isActive ? 'Hide' : 'Show'}>
-                      {banner.isActive ? <Eye className="h-4 w-4 text-green-600" /> : <EyeOff className="h-4 w-4 text-gray-400" />}
+                    <button
+                      onClick={() => handleToggle(banner.id, banner.isActive)}
+                      disabled={togglingId === banner.id}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 ${banner.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      title={banner.isActive ? 'Deactivate' : 'Activate'}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${banner.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
                     </button>
                     <Button variant="outline" size="sm" onClick={() => handleEdit(banner)}>Edit</Button>
                     <button onClick={() => handleDelete(banner.id)} className="rounded-md p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">

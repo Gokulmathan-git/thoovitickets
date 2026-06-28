@@ -53,6 +53,7 @@ function EventsContent() {
   const currentPage = Number(searchParams.get('page') || '1');
   const currentSearch = searchParams.get('search') || '';
   const currentSort = searchParams.get('sort') || 'date_asc';
+  const currentDateFilter = searchParams.get('dateFilter') || 'anytime';
 
   useEffect(() => {
     Promise.all([
@@ -76,6 +77,30 @@ function EventsContent() {
         if (currentCity) params.set('city', currentCity);
         if (currentSearch) params.set('search', currentSearch);
 
+        if (currentDateFilter === 'this_weekend') {
+          const now = new Date();
+          const day = now.getDay();
+          const sat = new Date(now);
+          sat.setDate(now.getDate() + (6 - day));
+          sat.setHours(0, 0, 0, 0);
+          const sun = new Date(sat);
+          sun.setDate(sat.getDate() + 1);
+          sun.setHours(23, 59, 59, 999);
+          params.set('dateFrom', sat.toISOString());
+          params.set('dateTo', sun.toISOString());
+        } else if (currentDateFilter === 'next_week') {
+          const now = new Date();
+          const day = now.getDay();
+          const nextMon = new Date(now);
+          nextMon.setDate(now.getDate() + (8 - day));
+          nextMon.setHours(0, 0, 0, 0);
+          const nextSun = new Date(nextMon);
+          nextSun.setDate(nextMon.getDate() + 6);
+          nextSun.setHours(23, 59, 59, 999);
+          params.set('dateFrom', nextMon.toISOString());
+          params.set('dateTo', nextSun.toISOString());
+        }
+
         const res = await apiClient.get(`/events?${params.toString()}`);
         const data = res.data.data;
         setEvents(data.events);
@@ -88,7 +113,7 @@ function EventsContent() {
       }
     };
     fetchEvents();
-  }, [currentCategory, currentCity, currentPage, currentSearch, currentSort]);
+  }, [currentCategory, currentCity, currentPage, currentSearch, currentSort, currentDateFilter]);
 
   const updateParams = (updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -96,7 +121,7 @@ function EventsContent() {
       if (value) params.set(key, value);
       else params.delete(key);
     });
-    if (updates.category !== undefined || updates.search !== undefined || updates.city !== undefined) {
+    if (updates.category !== undefined || updates.search !== undefined || updates.city !== undefined || updates.dateFilter !== undefined) {
       params.delete('page');
     }
     router.push(`/events?${params.toString()}`);
@@ -112,7 +137,7 @@ function EventsContent() {
     updateParams({ search: searchInput });
   };
 
-  const hasFilters = currentCategory || currentCity || currentSearch;
+  const hasFilters = currentCategory || currentCity || currentSearch || currentDateFilter !== 'anytime';
 
   // Sidebar content (shared between desktop and mobile)
   const filterContent = (
@@ -136,10 +161,20 @@ function EventsContent() {
       <div>
         <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Date</h3>
         <div className="space-y-2">
-          {['Anytime', 'This Weekend', 'Next Week'].map((label) => (
-            <label key={label} className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="date" className="h-4 w-4 text-orange-500 accent-orange-500" defaultChecked={label === 'Anytime'} />
-              <span className="text-sm text-gray-600 dark:text-gray-300">{label}</span>
+          {[
+            { label: 'Anytime', value: 'anytime' },
+            { label: 'This Weekend', value: 'this_weekend' },
+            { label: 'Next Week', value: 'next_week' },
+          ].map((opt) => (
+            <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="date"
+                className="h-4 w-4 text-orange-500 accent-orange-500"
+                checked={currentDateFilter === opt.value}
+                onChange={() => updateParams({ dateFilter: opt.value === 'anytime' ? '' : opt.value })}
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-300">{opt.label}</span>
             </label>
           ))}
         </div>
@@ -175,7 +210,11 @@ function EventsContent() {
                 className="h-4 w-4 rounded border-gray-300 text-orange-500 accent-orange-500"
               />
               <span className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">
-                {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                {cat.icon && (
+                  (cat.icon.startsWith('http') || cat.icon.startsWith('/'))
+                    ? <img src={cat.icon} alt="" className="inline-block h-4 w-4 mr-1 object-contain" />
+                    : <span className="mr-1">{cat.icon}</span>
+                )}
                 {cat.name}
               </span>
             </label>

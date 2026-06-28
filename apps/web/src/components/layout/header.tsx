@@ -10,6 +10,7 @@ import { useCartStore } from '@/stores/cart-store';
 import apiClient from '@/lib/api-client';
 import { ShoppingCart, Menu, X, Bell, User, ChevronDown, Crown } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 
 
 const organiserPages: Record<string, string> = {
@@ -157,7 +158,7 @@ export function Header() {
                         <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                       </div>
                       {user.role !== 'ORGANISER' && (
-                        <Link href="/profile" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700">
+                        <Link href={user.role === 'ADMIN' ? '/admin/profile' : '/profile'} onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700">
                           Profile
                         </Link>
                       )}
@@ -195,6 +196,10 @@ export function Header() {
             </>
           )}
 
+          {!isLoading && user && (user.role === 'ORGANISER' || user.role === 'ADMIN') && (
+            <NotificationBell />
+          )}
+
           <ThemeToggle />
 
           {!isLoading && user?.role !== 'ORGANISER' && user?.role !== 'ADMIN' && (
@@ -208,6 +213,9 @@ export function Header() {
 
         {/* Mobile: Cart + Theme + Hamburger */}
         <div className="flex items-center gap-1 md:hidden">
+          {!isLoading && user && (user.role === 'ORGANISER' || user.role === 'ADMIN') && (
+            <NotificationBell />
+          )}
           <ThemeToggle />
           {user?.role === 'CUSTOMER' && (
             <Link href="/cart" className="relative">
@@ -271,7 +279,7 @@ export function Header() {
                   </Link>
                 )}
                 {user.role !== 'ORGANISER' && (
-                  <Link href="/profile" onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <Link href={user.role === 'ADMIN' ? '/admin/profile' : '/profile'} onClick={closeMobile} className="rounded-md px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
                     Profile
                   </Link>
                 )}

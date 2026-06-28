@@ -69,7 +69,14 @@ export default function ApprovalsPage() {
   const viewDocument = async (docPath: string, label: string) => {
     setDocLoading(docPath);
     try {
-      const res = await apiClient.get(`/upload/document-url?path=${encodeURIComponent(docPath)}`);
+      let path = docPath;
+      // Strip full URL prefix if stored as full URL
+      const publicMarker = '/storage/v1/object/public/documents/';
+      const idx = path.indexOf(publicMarker);
+      if (idx !== -1) {
+        path = path.substring(idx + publicMarker.length);
+      }
+      const res = await apiClient.get(`/upload/document-url?path=${encodeURIComponent(path)}`);
       setDocPreview({ url: res.data.data.url, label });
     } catch {
       alert('Failed to load document');
@@ -389,21 +396,44 @@ export default function ApprovalsPage() {
         </div>
       )}
 
-      {/* Document Preview Modal */}
+      {/* Document Preview Modal — View Only, No Download */}
       {docPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDocPreview(null)}>
           <div className="relative max-h-[90vh] max-w-3xl w-full rounded-xl bg-white dark:bg-gray-900 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
               <p className="font-semibold text-gray-900 dark:text-gray-100">{docPreview.label}</p>
+              <p className="text-[10px] text-red-400 font-medium uppercase tracking-wider">Confidential — View Only</p>
               <button onClick={() => setDocPreview(null)} className="rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
                 <X className="h-5 w-5 text-gray-500" />
               </button>
             </div>
-            <div className="flex items-center justify-center overflow-auto p-4" style={{ maxHeight: 'calc(90vh - 56px)' }}>
-              {docPreview.url.endsWith('.pdf') ? (
-                <iframe src={docPreview.url} className="h-[70vh] w-full rounded border" />
+            <div
+              className="relative flex items-center justify-center overflow-auto p-4"
+              style={{ maxHeight: 'calc(90vh - 56px)' }}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              {/* Watermark overlay */}
+              <div className="pointer-events-none absolute inset-0 z-10 flex flex-wrap items-center justify-center gap-16 overflow-hidden opacity-[0.08] rotate-[-25deg] select-none" aria-hidden="true">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <span key={i} className="whitespace-nowrap text-2xl font-bold text-gray-900 dark:text-white">
+                    THOOVITICKETS CONFIDENTIAL
+                  </span>
+                ))}
+              </div>
+
+              {docPreview.url.includes('.pdf') ? (
+                <iframe
+                  src={`${docPreview.url}#toolbar=0&navpanes=0&scrollbar=0`}
+                  className="h-[70vh] w-full rounded border"
+                  sandbox="allow-same-origin"
+                />
               ) : (
-                <img src={docPreview.url} alt={docPreview.label} className="max-h-[70vh] max-w-full rounded object-contain" />
+                <img
+                  src={docPreview.url}
+                  alt={docPreview.label}
+                  className="max-h-[70vh] max-w-full rounded object-contain select-none pointer-events-none"
+                  draggable={false}
+                />
               )}
             </div>
           </div>

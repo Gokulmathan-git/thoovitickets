@@ -22,7 +22,7 @@ export class SettlementsService {
     // Get all events belonging to the organiser
     const events = await this.prisma.event.findMany({
       where: { organiserId },
-      select: { id: true, title: true, slug: true, startDate: true },
+      select: { id: true, title: true, slug: true, startDate: true, endDate: true, status: true },
     });
 
     const eventIds = events.map((e) => e.id);
@@ -110,6 +110,9 @@ export class SettlementsService {
           title: event.title,
           slug: event.slug,
           startDate: event.startDate,
+          endDate: event.endDate,
+          status: event.status,
+          totalOrders: eventOrders.length,
           revenue: evtRevenue,
           platformFee: evtPlatformFee,
           commission: evtCommission,
@@ -198,13 +201,39 @@ export class SettlementsService {
   }
 
   async requestSettlement(organiserId: string, eventId: string) {
-    // Verify event belongs to organiser
     const event = await this.prisma.event.findFirst({
       where: { id: eventId, organiserId },
+      select: { id: true, title: true, organiserId: true, endDate: true, status: true },
     });
 
     if (!event) {
       throw new NotFoundException('Event not found or does not belong to you');
+    }
+
+    // Event must have ended
+    if (new Date() < event.endDate) {
+      throw new BadRequestException(
+        `Settlement can only be requested after the event ends. Event ends on ${event.endDate.toLocaleDateString('en-IN', { dateStyle: 'medium' })}.`,
+      );
+    }
+
+    // Plan-based cooldown after event end
+    const sub = await this.prisma.orgSubscription.findFirst({
+      where: { userId: organiserId, status: 'ACTIVE', OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
+      orderBy: { createdAt: 'desc' },
+    });
+    const tier = sub?.tier || 'FREE';
+    let cooldownHours = 48; // FREE plan: 2 days
+    if (tier === 'PRO') cooldownHours = 24;
+    else if (tier === 'ADVANCE') cooldownHours = 24;
+    else if (tier === 'ENTERPRISE') cooldownHours = 2;
+
+    const cooldownEnd = new Date(event.endDate.getTime() + cooldownHours * 60 * 60 * 1000);
+    if (new Date() < cooldownEnd) {
+      const hoursLeft = Math.ceil((cooldownEnd.getTime() - Date.now()) / (1000 * 60 * 60));
+      throw new BadRequestException(
+        `Settlement available after ${cooldownEnd.toLocaleDateString('en-IN', { dateStyle: 'medium' })} at ${cooldownEnd.toLocaleTimeString('en-IN', { timeStyle: 'short' })} (${hoursLeft}h remaining). ${tier === 'FREE' ? 'Free plan: 48h after event end.' : `${tier} plan: 24h after event end.`}`,
+      );
     }
 
     // Check for existing pending/requested/processing settlement

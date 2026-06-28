@@ -55,8 +55,13 @@ export class UploadController {
     @Query('path') path: string,
   ) {
     if (!path) throw new BadRequestException('Path is required');
-    const url = await this.uploadService.getSignedUrl('documents', path);
-    return { url };
+    try {
+      const url = await this.uploadService.getSignedUrl('documents', path);
+      return { url };
+    } catch {
+      const url = await this.uploadService.getPublicUrl('documents', path);
+      return { url };
+    }
   }
 
   @Delete('document')

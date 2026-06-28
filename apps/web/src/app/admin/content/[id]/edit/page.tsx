@@ -11,6 +11,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
+import 'react-quill-new/dist/quill.snow.css';
+
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 export default function EditContentPage() {

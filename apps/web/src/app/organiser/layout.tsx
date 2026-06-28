@@ -7,11 +7,17 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users, Menu, X, User, LogOut, Ticket, ShoppingCart, Wallet } from 'lucide-react';
+import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users, Menu, X, User, LogOut, Ticket, ShoppingCart, Wallet, Clock, ChevronDown, FileText } from 'lucide-react';
 import { useState } from 'react';
-import { NotificationBell } from '@/components/notifications/notification-bell';
 
-const sidebarLinks = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children?: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
+}
+
+const sidebarLinks: NavItem[] = [
   { href: '/organiser/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/organiser/events', label: 'My Events', icon: List },
   { href: '/organiser/events/create', label: 'Create Event', icon: CalendarPlus },
@@ -19,8 +25,14 @@ const sidebarLinks = [
   { href: '/organiser/staff', label: 'Staff', icon: Users },
   { href: '/organiser/discounts', label: 'Discounts', icon: Ticket },
   { href: '/organiser/orders', label: 'Orders', icon: ShoppingCart },
-  { href: '/organiser/settlements', label: 'Settlements', icon: Wallet },
+  {
+    href: '/organiser/settlements', label: 'Settlements', icon: Wallet,
+    children: [
+      { href: '/organiser/settlements/history', label: 'History', icon: Clock },
+    ],
+  },
   { href: '/organiser/subscriptions', label: 'Subscription', icon: CreditCard },
+  { href: '/organiser/terms-conditions', label: 'Terms & Conditions', icon: FileText },
 ];
 
 const footerLinks = [
@@ -59,10 +71,63 @@ export default function OrganiserLayout({ children }: { children: React.ReactNod
       <nav className="flex-1 space-y-1 px-2">
         {sidebarLinks.map((link) => {
           const hasMoreSpecificMatch = sidebarLinks.some(
-            (other) => other.href !== link.href && other.href.startsWith(link.href + '/') && (pathname === other.href || pathname.startsWith(other.href + '/')),
+            (other) => !other.children && other.href !== link.href && other.href.startsWith(link.href + '/') && (pathname === other.href || pathname.startsWith(other.href + '/')),
           );
           const isActive = !hasMoreSpecificMatch && (pathname === link.href || pathname.startsWith(link.href + '/'));
+          const isChildActive = link.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + '/'));
+          const isParentActive = isActive && !isChildActive;
           const Icon = link.icon;
+
+          if (link.children) {
+            const isOpen = isActive || isChildActive;
+            return (
+              <div key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    'flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isParentActive
+                      ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
+                      : isOpen
+                        ? 'text-orange-600 dark:text-orange-400'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100',
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon className="h-5 w-5" />
+                    {link.label}
+                  </span>
+                  <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
+                </Link>
+                {isOpen && (
+                  <div className="ml-5 mt-1 space-y-0.5 border-l-2 border-orange-200 dark:border-orange-800/40 pl-3">
+                    {link.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const childActive = pathname === child.href || pathname.startsWith(child.href + '/');
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors outline-none',
+                            childActive
+                              ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400'
+                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100',
+                          )}
+                        >
+                          <ChildIcon className="h-4 w-4" />
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={link.href}
@@ -144,10 +209,6 @@ export default function OrganiserLayout({ children }: { children: React.ReactNod
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar with notification */}
-        <div className="shrink-0 flex items-center justify-end px-4 py-2 border-b border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 lg:px-8">
-          <NotificationBell />
-        </div>
         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
             {children}

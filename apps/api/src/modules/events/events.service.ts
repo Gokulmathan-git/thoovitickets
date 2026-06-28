@@ -122,6 +122,7 @@ export class EventsService {
 
     const where: Prisma.EventWhereInput = {
       status: EventStatus.PUBLISHED,
+      endDate: { gte: new Date() },
     };
 
     if (query.category) {
@@ -138,6 +139,14 @@ export class EventsService {
         { description: { contains: query.search, mode: 'insensitive' } },
         { venue: { contains: query.search, mode: 'insensitive' } },
       ];
+    }
+
+    if (query.dateFrom || query.dateTo) {
+      where.startDate = {
+        ...(where.startDate as object || {}),
+        ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+        ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      };
     }
 
     let orderBy: Prisma.EventOrderByWithRelationInput = { startDate: 'asc' };
@@ -264,7 +273,7 @@ export class EventsService {
           orderBy: { sortOrder: 'asc' },
         },
         organiser: {
-          select: { id: true, firstName: true, lastName: true, orgName: true, avatarUrl: true },
+          select: { id: true, firstName: true, lastName: true, orgName: true, avatarUrl: true, orgTerms: true },
         },
       },
     });
@@ -326,24 +335,29 @@ export class EventsService {
       throw new ForbiddenException('You can only edit your own events');
     }
 
-    const allowedStatuses: EventStatus[] = [EventStatus.DRAFT, EventStatus.REJECTED, EventStatus.PUBLISHED];
+    const allowedStatuses = [EventStatus.DRAFT, EventStatus.REJECTED, EventStatus.PUBLISHED, 'COMPLETED' as EventStatus];
     if (!allowedStatuses.includes(event.status)) {
       throw new BadRequestException('This event cannot be edited in its current status');
     }
 
     const hasSales = event.orderItems.length > 0;
+    const isLive = event.status === EventStatus.PUBLISHED || event.status === ('COMPLETED' as EventStatus);
 
-    if (event.status === EventStatus.PUBLISHED) {
+    if (isLive) {
       const lockedFields = ['title', 'categoryId', 'timezone'];
       if (hasSales) {
         lockedFields.push('venue', 'address', 'city', 'state', 'country');
       }
       for (const field of lockedFields) {
         if (dto[field] !== undefined) {
-          throw new BadRequestException(`Cannot change "${field}" for a published event${hasSales ? ' with ticket sales' : ''}`);
+          throw new BadRequestException(`Cannot change "${field}" for a live/completed event${hasSales ? ' with ticket sales' : ''}`);
         }
       }
     }
+
+    // Handle ticket type updates for live events
+    const ticketTypeUpdates = (dto as any).ticketTypes;
+    delete (dto as any).ticketTypes;
 
     const updateData: Record<string, unknown> = { ...dto };
     if (dto.startDate) updateData.startDate = new Date(dto.startDate);
@@ -354,7 +368,7 @@ export class EventsService {
       updateData.slug = await this.generateUniqueSlug(dto.title);
     }
 
-    return this.prisma.event.update({
+    const updated = await this.prisma.event.update({
       where: { id },
       data: updateData,
       include: {
@@ -362,6 +376,38 @@ export class EventsService {
         ticketTypes: { orderBy: { sortOrder: 'asc' } },
       },
     });
+
+    // Update ticket types if provided (for live/completed events)
+    if (isLive && Array.isArray(ticketTypeUpdates)) {
+      for (const tt of updated.ticketTypes) {
+        const update = ticketTypeUpdates.find((u: any) => u.name === tt.name);
+        if (!update) continue;
+
+        const data: Record<string, unknown> = {};
+        if (update.description !== undefined) data.description = update.description;
+
+        // Only increase quantity (never decrease below soldQty)
+        if (update.totalQty !== undefined && update.totalQty > tt.totalQty) {
+          data.totalQty = update.totalQty;
+        }
+
+        // Price can only change if no tickets sold for this type
+        if (update.price !== undefined && tt.soldQty === 0 && Number(update.price) !== Number(tt.price)) {
+          data.price = update.price;
+        }
+
+        if (Object.keys(data).length > 0) {
+          await this.prisma.ticketType.update({ where: { id: tt.id }, data });
+        }
+      }
+
+      return this.prisma.event.findUnique({
+        where: { id },
+        include: { category: true, ticketTypes: { orderBy: { sortOrder: 'asc' } } },
+      });
+    }
+
+    return updated;
   }
 
   async toggleHomeBanner(

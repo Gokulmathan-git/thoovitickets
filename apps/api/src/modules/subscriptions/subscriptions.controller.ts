@@ -1,19 +1,11 @@
 import { Controller, Get, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 import { SubscriptionsService } from './subscriptions.service';
+import { SubscribeDto } from './dto/subscribe.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { UserRole } from '@thoovitickets/shared';
-
-class SubscribeDto {
-  @IsString()
-  tier: string;
-
-  @IsOptional()
-  @IsBoolean()
-  activateNow?: boolean;
-}
 
 class VerifyPaymentDto {
   @IsString()
@@ -63,7 +55,7 @@ export class SubscriptionsController {
     @CurrentUser('id') userId: string,
     @Body() body: SubscribeDto,
   ) {
-    return this.subscriptionsService.initiateSubscriptionPayment(userId, body.tier, body.activateNow);
+    return this.subscriptionsService.initiateSubscriptionPayment(userId, body.tier, body.activateNow, body.billingCycle);
   }
 
   @Roles(UserRole.ORGANISER)

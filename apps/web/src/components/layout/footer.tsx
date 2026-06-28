@@ -1,12 +1,14 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth-store';
 
 
 export function Footer() {
   const pathname = usePathname();
+  const { user } = useAuthStore();
 
-  const isAdmin = pathname.startsWith('/admin');
+  const isAdmin = pathname.startsWith('/admin') || user?.role === 'ADMIN';
   const isOrganiser = pathname.startsWith('/organiser');
 
   if (isAdmin || isOrganiser) return null;
@@ -28,7 +30,6 @@ export function Footer() {
             <ul className="mt-3 space-y-2 text-sm text-gray-500 dark:text-gray-400">
               <li><a href="/events" className="hover:text-gray-700 dark:hover:text-gray-200">Discover</a></li>
               <li><a href="/about" className="hover:text-gray-700 dark:hover:text-gray-200">About Us</a></li>
-              <li><a href="/pricing" className="hover:text-gray-700 dark:hover:text-gray-200">Pricing</a></li>
             </ul>
           </div>
           <div>

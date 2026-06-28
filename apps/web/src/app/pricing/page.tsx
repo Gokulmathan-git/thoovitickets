@@ -11,6 +11,9 @@ interface Plan {
   tier: string;
   name: string;
   price: number;
+  priceQuarterly: number | null;
+  priceHalfYearly: number | null;
+  priceYearly: number | null;
   maxEventsPerMonth: number;
   maxTicketTiers: number;
   maxTicketsPerEvent: number;
@@ -58,7 +61,11 @@ export default function PricingPage() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => {
             const isPopular = plan.tier === 'PRO';
-            const price = Number(plan.price);
+            const mo = Number(plan.price);
+            const q = Number(plan.priceQuarterly || 0);
+            const h = Number(plan.priceHalfYearly || 0);
+            const y = Number(plan.priceYearly || 0);
+            const isFree = mo === 0 && q === 0 && h === 0 && y === 0;
 
             return (
               <Card
@@ -73,12 +80,27 @@ export default function PricingPage() {
                 <CardHeader className="pb-2 pt-6">
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                   <div className="mt-2">
-                    {price === 0 ? (
+                    {isFree ? (
                       <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">Free</span>
+                    ) : mo > 0 ? (
+                      <>
+                        <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">₹{mo.toLocaleString('en-IN')}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
+                      </>
+                    ) : q > 0 ? (
+                      <>
+                        <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">₹{q.toLocaleString('en-IN')}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">/3 months</span>
+                      </>
+                    ) : h > 0 ? (
+                      <>
+                        <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">₹{h.toLocaleString('en-IN')}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">/6 months</span>
+                      </>
                     ) : (
                       <>
-                        <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">₹{price.toLocaleString('en-IN')}</span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
+                        <span className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100">₹{y.toLocaleString('en-IN')}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">/year</span>
                       </>
                     )}
                   </div>

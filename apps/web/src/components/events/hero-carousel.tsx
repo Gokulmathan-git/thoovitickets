@@ -110,68 +110,91 @@ export function HeroCarousel({ eventBanners, adminBanners }: HeroCarouselProps) 
 
   return (
     <div className="relative overflow-hidden bg-gray-900">
-      <div className="relative h-112.5 sm:h-125">
+      <div className={`relative ${slide.type === 'admin' ? 'h-auto max-h-125' : 'h-112.5 sm:h-125'}`}>
         <img
           src={slide.image}
           alt={slide.title}
-          className="h-full w-full object-cover"
+          className={slide.type === 'admin' ? 'w-full object-contain' : 'h-full w-full object-cover'}
         />
-        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/40 to-black/20" />
 
-        <div className="absolute inset-0 flex items-end">
-          <div className="mx-auto w-full max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
-            {slide.badge && (
-              <span className="inline-block rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow">
-                {slide.badge}
-              </span>
-            )}
+        {slide.type !== 'admin' && (
+          <>
+            <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/40 to-black/20" />
 
-            <h2 className="mt-3 max-w-2xl text-3xl font-extrabold leading-tight text-white sm:text-5xl">
-              {slide.type === 'default' && slide.title.includes('Extraordinary') ? (
-                <>Experience the <span className="text-orange-400">Extraordinary</span>.</>
-              ) : slide.type === 'default' && slide.title.includes('Create') ? (
-                <>Create Your Own <span className="text-orange-400">Event</span>.</>
-              ) : (
-                slide.title
-              )}
-            </h2>
+            <div className="absolute inset-0 flex items-end">
+              <div className="mx-auto w-full max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+                {slide.badge && (
+                  <span className="inline-block rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow">
+                    {slide.badge}
+                  </span>
+                )}
 
-            {slide.subtitle && (
-              <p className="mt-3 max-w-xl text-base text-gray-300 sm:text-lg">
-                {slide.subtitle}
-              </p>
-            )}
+                <h2 className="mt-3 max-w-2xl text-3xl font-extrabold leading-tight text-white sm:text-5xl">
+                  {slide.type === 'default' && slide.title.includes('Extraordinary') ? (
+                    <>Experience the <span className="text-orange-400">Extraordinary</span>.</>
+                  ) : slide.type === 'default' && slide.title.includes('Create') ? (
+                    <>Create Your Own <span className="text-orange-400">Event</span>.</>
+                  ) : (
+                    slide.title
+                  )}
+                </h2>
 
-            <div className="mt-5 flex items-center gap-4">
-              {slide.type === 'event' && slide.price !== null && slide.price !== undefined && (
-                <span className="text-xl font-bold text-white">
-                  {slide.price === 0 ? 'Free' : `From ₹${slide.price.toLocaleString('en-IN')}`}
-                </span>
-              )}
-              {slide.link ? (
-                slide.link.startsWith('http') ? (
-                  <a href={slide.link} target="_blank" rel="noopener noreferrer">
-                    <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
-                      {slide.type === 'event' ? 'Get Tickets' : 'Learn More'}
-                    </Button>
-                  </a>
-                ) : (
-                  <Link href={slide.link}>
-                    <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
-                      {slide.type === 'event' ? 'Get Tickets' : 'Learn More'}
-                    </Button>
-                  </Link>
-                )
-              ) : slide.type === 'default' ? (
-                <Link href={slide.title.includes('Create') ? '/register?role=organiser' : '/events'}>
-                  <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
-                    {slide.title.includes('Create') ? 'Start Organising' : 'Find Tickets'}
-                  </Button>
-                </Link>
-              ) : null}
+                {slide.subtitle && (
+                  <p className="mt-3 max-w-xl text-base text-gray-300 sm:text-lg">
+                    {slide.subtitle}
+                  </p>
+                )}
+
+                <div className="mt-5 flex items-center gap-4">
+                  {slide.type === 'event' && slide.price !== null && slide.price !== undefined && (
+                    <span className="text-xl font-bold text-white">
+                      {slide.price === 0 ? 'Free' : `From ₹${slide.price.toLocaleString('en-IN')}`}
+                    </span>
+                  )}
+                  {slide.link ? (
+                    slide.link.startsWith('http') ? (
+                      <a href={slide.link} target="_blank" rel="noopener noreferrer">
+                        <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
+                          {slide.type === 'event' ? 'Get Tickets' : 'Learn More'}
+                        </Button>
+                      </a>
+                    ) : (
+                      <Link href={slide.link}>
+                        <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
+                          {slide.type === 'event' ? 'Get Tickets' : 'Learn More'}
+                        </Button>
+                      </Link>
+                    )
+                  ) : slide.type === 'default' ? (
+                    <Link href={slide.title.includes('Create') ? '/register?role=organiser' : '/events'}>
+                      <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-6">
+                        {slide.title.includes('Create') ? 'Start Organising' : 'Find Tickets'}
+                      </Button>
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
             </div>
+          </>
+        )}
+
+        {slide.type === 'admin' && slide.link && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
+            {slide.link.startsWith('http') ? (
+              <a href={slide.link} target="_blank" rel="noopener noreferrer">
+                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-8 shadow-lg">
+                  Learn More
+                </Button>
+              </a>
+            ) : (
+              <Link href={slide.link}>
+                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-full px-8 shadow-lg">
+                  Learn More
+                </Button>
+              </Link>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       {totalSlides > 1 && (

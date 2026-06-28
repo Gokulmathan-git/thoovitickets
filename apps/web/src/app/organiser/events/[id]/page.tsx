@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Star, Eye, EyeOff, Pencil } from 'lucide-react';
+import { Star, Eye, EyeOff, Pencil, ArrowLeft, Users, CalendarDays, MapPin } from 'lucide-react';
 
 interface EventMetrics {
   totalPurchased: number;
@@ -46,6 +46,8 @@ interface Event {
   endDate: string;
   status: string;
   tags: string[];
+  imageUrl: string | null;
+  bannerUrl: string | null;
   showOnHomeBanner: boolean;
   homeBannerUrl: string | null;
   homeBannerTitle: string | null;
@@ -185,49 +187,74 @@ export default function OrganiserEventDetailPage() {
 
   if (!event) return null;
 
-  const canEdit = event.status === 'DRAFT' || event.status === 'REJECTED';
+  const canEdit = ['DRAFT', 'REJECTED', 'PUBLISHED'].includes(event.status);
   const canSubmit = event.status === 'DRAFT' || event.status === 'REJECTED';
   const canDelete = event.status === 'DRAFT';
   const canCancel = event.status === 'PUBLISHED' || event.status === 'APPROVED';
   const canPostpone = event.status === 'PUBLISHED';
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">{event.title}</h1>
-            <span className={cn('rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap', statusColors[event.status])}>
-              {statusLabels[event.status]}
-            </span>
+    <div className="space-y-6">
+      {/* Header with image */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4 min-w-0">
+          <Link href="/organiser/events" className="mt-1 rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          {(event.bannerUrl || event.imageUrl) ? (
+            <img src={event.bannerUrl || event.imageUrl || ''} alt={event.title} className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl object-cover shrink-0" />
+          ) : (
+            <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-xl bg-linear-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 shrink-0">
+              <CalendarDays className="h-8 w-8 text-orange-300 dark:text-orange-700" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{event.title}</h1>
+              <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold', statusColors[event.status])}>
+                {event.status === 'PUBLISHED' && <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />}
+                {statusLabels[event.status] || event.status}
+              </span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {event.venue}, {event.city}</span>
+              <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {new Date(event.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">{event.category.name}</span>
+            </div>
           </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{event.category.name}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 shrink-0">
+          {(event.status === 'PUBLISHED' || event.status === 'COMPLETED') && (
+            <Link href={`/organiser/events/${event.id}/attendees`}>
+              <Button variant="outline" className="rounded-full">
+                <Users className="mr-1.5 h-4 w-4" /> View Attendees
+              </Button>
+            </Link>
+          )}
           {canEdit && (
             <Link href={`/organiser/events/${event.id}/edit`}>
-              <Button variant="outline">
-                <Pencil className="mr-1.5 h-4 w-4" /> Edit Event
+              <Button variant="outline" className="rounded-full">
+                <Pencil className="mr-1.5 h-4 w-4" /> Edit
               </Button>
             </Link>
           )}
           {canSubmit && (
-            <Button onClick={handleSubmitForApproval} disabled={actionLoading}>
+            <Button onClick={handleSubmitForApproval} disabled={actionLoading} className="rounded-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
               {actionLoading ? 'Submitting...' : 'Submit for Approval'}
             </Button>
           )}
           {canPostpone && (
-            <Button variant="outline" onClick={() => setShowPostponeModal(true)} disabled={actionLoading}>
-              Request Postpone
+            <Button variant="outline" className="rounded-full" onClick={() => setShowPostponeModal(true)} disabled={actionLoading}>
+              Postpone
             </Button>
           )}
           {canCancel && (
-            <Button variant="destructive" onClick={() => setShowCancelModal(true)} disabled={actionLoading}>
-              Request Cancel
+            <Button variant="destructive" className="rounded-full" onClick={() => setShowCancelModal(true)} disabled={actionLoading}>
+              Cancel Event
             </Button>
           )}
           {canDelete && (
-            <Button variant="destructive" onClick={handleDelete} disabled={actionLoading}>
+            <Button variant="destructive" className="rounded-full" onClick={handleDelete} disabled={actionLoading}>
               Delete
             </Button>
           )}
@@ -300,8 +327,8 @@ export default function OrganiserEventDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Event Details</CardTitle>
           </CardHeader>
@@ -321,7 +348,7 @@ export default function OrganiserEventDetailPage() {
                 <span className="font-medium text-gray-500 dark:text-gray-400">Tags</span>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {event.tags.map((tag) => (
-                    <span key={tag} className="rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-xs text-blue-700 dark:text-blue-400">
+                    <span key={tag} className="rounded-full bg-orange-50 dark:bg-orange-900/20 px-2.5 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-400">
                       {tag}
                     </span>
                   ))}
@@ -331,7 +358,7 @@ export default function OrganiserEventDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Date & Location</CardTitle>
           </CardHeader>
@@ -363,7 +390,7 @@ export default function OrganiserEventDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Ticket Types</CardTitle>
           </CardHeader>
@@ -399,7 +426,7 @@ export default function OrganiserEventDetailPage() {
 
         {/* Event Metrics */}
         {metrics && (
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-lg">Event Metrics</CardTitle>
             </CardHeader>

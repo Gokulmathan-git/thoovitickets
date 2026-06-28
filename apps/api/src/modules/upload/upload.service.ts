@@ -71,6 +71,11 @@ export class UploadService {
     return data.signedUrl;
   }
 
+  async getPublicUrl(bucket: BucketName, path: string): Promise<string> {
+    const { data } = this.supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   async uploadBuffer(
     bucket: BucketName,
     buffer: Buffer,

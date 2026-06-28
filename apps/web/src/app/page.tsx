@@ -39,6 +39,7 @@ interface Category {
   name: string;
   slug: string;
   icon: string | null;
+  imageUrl: string | null;
   description: string | null;
 }
 
@@ -179,8 +180,14 @@ export default function HomePage() {
                   href={`/events?category=${cat.slug}`}
                   className="group flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border border-gray-200/60 dark:border-gray-700/40 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-4 sm:p-6 text-center card-3d"
                 >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 text-2xl group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 group-hover:scale-110 transition-all">
-                    {cat.icon || '🎫'}
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-900/20 text-2xl group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 group-hover:scale-110 transition-all overflow-hidden">
+                    {cat.imageUrl ? (
+                      <img src={cat.imageUrl} alt={cat.name} className="h-10 w-10 object-contain" />
+                    ) : cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/')) ? (
+                      <img src={cat.icon} alt={cat.name} className="h-10 w-10 object-contain" />
+                    ) : (
+                      cat.icon || '🎫'
+                    )}
                   </span>
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-orange-600">{cat.name}</span>
                 </Link>

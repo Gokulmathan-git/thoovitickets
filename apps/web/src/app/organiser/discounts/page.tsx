@@ -12,6 +12,7 @@ import { Plus, Pencil, Trash2, Mail, Ticket, X, Send, Copy, Check } from 'lucide
 interface Event {
   id: string;
   title: string;
+  status: string;
   ticketTypes: TicketTier[];
 }
 
@@ -433,8 +434,8 @@ export default function OrganiserDiscountsPage() {
                   className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none dark:bg-gray-900 dark:text-gray-100"
                 >
                   <option value="">Select an event</option>
-                  {events.map((event) => (
-                    <option key={event.id} value={event.id}>{event.title}</option>
+                  {events.filter((e) => ['DRAFT', 'PUBLISHED', 'APPROVED'].includes(e.status)).map((event) => (
+                    <option key={event.id} value={event.id}>{event.title} ({event.status === 'PUBLISHED' ? 'Live' : event.status === 'DRAFT' ? 'Draft' : event.status})</option>
                   ))}
                 </select>
               </div>

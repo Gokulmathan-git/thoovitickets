@@ -41,6 +41,7 @@ const statusColors: Record<string, string> = {
   REJECTED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
   CANCELLED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
   COMPLETED: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+  POSTPONED: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
 };
 
 const statusLabels: Record<string, string> = {
@@ -50,6 +51,7 @@ const statusLabels: Record<string, string> = {
   REJECTED: 'Rejected',
   CANCELLED: 'Cancelled',
   COMPLETED: 'Completed',
+  POSTPONED: 'Postponed',
 };
 
 export default function AdminEventsPage() {
@@ -185,7 +187,7 @@ export default function AdminEventsPage() {
           <Button type="submit" size="sm">Search</Button>
         </form>
         <div className="flex gap-2 flex-wrap">
-          {['', 'DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'REJECTED'].map((s) => (
+          {['', 'DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'COMPLETED', 'CANCELLED', 'POSTPONED', 'REJECTED'].map((s) => (
             <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }} className={cn('rounded-full px-3 py-1 text-xs font-medium', statusFilter === s ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700')}>
               {s ? statusLabels[s] : 'All'}
             </button>

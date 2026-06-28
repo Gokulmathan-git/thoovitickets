@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import {
   IndianRupee, Ticket, CalendarDays, UserCheck, TrendingUp, TrendingDown, Crown,
   ArrowRight, Lock, BarChart3, Shield, AlertTriangle, CheckCircle, User, FileText, Upload,
+  Sparkles, Zap,
 } from 'lucide-react';
 
 interface DashboardData {
@@ -39,11 +40,11 @@ interface DashboardData {
   topSellingEvents: { title: string; revenue: number; ticketsSold: number }[];
 }
 
-const statusBadge: Record<string, { label: string; color: string }> = {
-  PUBLISHED: { label: 'Live', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
-  DRAFT: { label: 'Draft', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' },
-  PENDING_APPROVAL: { label: 'Pending', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
-  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+const statusBadge: Record<string, { label: string; color: string; dot: string }> = {
+  PUBLISHED: { label: 'Live', color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400', dot: 'bg-green-500' },
+  DRAFT: { label: 'Draft', color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300', dot: 'bg-gray-400' },
+  PENDING_APPROVAL: { label: 'Pending', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
+  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400', dot: 'bg-red-500' },
 };
 
 export default function OrganiserDashboard() {
@@ -87,11 +88,11 @@ export default function OrganiserDashboard() {
   const isAdvance = ['ADVANCE', 'ENTERPRISE'].includes(tier);
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Status Banners */}
       {isRejected && (
-        <div className="mb-6 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-5">
-          <h3 className="text-lg font-semibold text-red-800">Registration Rejected</h3>
+        <div className="animate-in fade-in slide-in-from-top-2 rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-5">
+          <h3 className="text-lg font-semibold text-red-800 dark:text-red-300">Registration Rejected</h3>
           {(user as any)?.statusReason && (
             <div className="mt-2 rounded-lg bg-red-100 dark:bg-red-900/30 p-3">
               <p className="text-sm font-medium text-red-700 dark:text-red-400">Reason from Admin:</p>
@@ -114,8 +115,8 @@ export default function OrganiserDashboard() {
       )}
 
       {isSuspended && (
-        <div className="mb-6 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-5">
-          <h3 className="text-lg font-semibold text-red-800">Account Suspended</h3>
+        <div className="animate-in fade-in slide-in-from-top-2 rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-5">
+          <h3 className="text-lg font-semibold text-red-800 dark:text-red-300">Account Suspended</h3>
           {(user as any)?.statusReason && (
             <div className="mt-2 rounded-lg bg-red-100 dark:bg-red-900/30 p-3">
               <p className="text-sm font-medium text-red-700 dark:text-red-400">Reason:</p>
@@ -137,17 +138,13 @@ export default function OrganiserDashboard() {
       )}
 
       {isPending && profileCompleted && (
-        <div className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5">
+        <div className="animate-in fade-in slide-in-from-top-2 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-5">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
             <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-300">Account Under Review</h3>
           </div>
-          <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
-            Your profile is complete. Our admin team is reviewing your documents. You will receive an email once your account is approved.
-          </p>
-          <p className="mt-1 text-xs text-amber-600/70 dark:text-amber-400/60">
-            This usually takes 1-2 business days.
-          </p>
+          <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">Your profile is complete. Our admin team is reviewing your documents. You will receive an email once your account is approved.</p>
+          <p className="mt-1 text-xs text-amber-600/70 dark:text-amber-400/60">This usually takes 1-2 business days.</p>
         </div>
       )}
 
@@ -155,169 +152,205 @@ export default function OrganiserDashboard() {
         <CompleteProfileBanner user={user} />
       )}
 
-      {isBlocked && !loading && <div />}
       {isBlocked && !loading ? null : loading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />)}
+            {[...Array(4)].map((_, i) => <div key={i} className="h-36 animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-700" />)}
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 h-80 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
-            <div className="h-80 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
+            <div className="lg:col-span-2 h-80 animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-700" />
+            <div className="h-80 animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-700" />
           </div>
         </div>
       ) : data && (
         <>
           {/* Header */}
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">
-                Welcome, {(user as any)?.orgName || user?.firstName}
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Welcome back, {(user as any)?.orgName || user?.firstName}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Your performance snapshot</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Here&apos;s how your events are performing</p>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/organiser/subscriptions" className="flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700">
-                <Crown className="h-3.5 w-3.5 text-orange-500" />
+              <Link href="/organiser/subscriptions" className="flex items-center gap-1.5 rounded-full bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 px-3 py-1.5 text-xs font-semibold text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors">
+                <Crown className="h-3.5 w-3.5" />
                 {tier} Plan
               </Link>
               <Link href="/organiser/events/create">
-                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">Create Event</Button>
+                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/20">
+                  <Sparkles className="mr-1.5 h-4 w-4" /> Create Event
+                </Button>
               </Link>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon={<IndianRupee className="h-5 w-5" />}
-              iconBg="bg-green-100 dark:bg-green-900/30 text-green-600"
-              label="Total Revenue"
-              value={`₹${data.summary.totalRevenue.toLocaleString('en-IN')}`}
-              sub={data.summary.revenueThisMonth > 0 ? `₹${data.summary.revenueThisMonth.toLocaleString('en-IN')} this month` : undefined}
-            />
-            <StatCard
-              icon={<Ticket className="h-5 w-5" />}
-              iconBg="bg-blue-100 dark:bg-blue-900/20 text-blue-600"
-              label="Tickets Sold"
-              value={data.summary.totalTicketsSold.toLocaleString('en-IN')}
-            />
-            <StatCard
-              icon={<CalendarDays className="h-5 w-5" />}
-              iconBg="bg-purple-100 text-purple-600"
-              label="Active Events"
-              value={String(data.summary.activeEvents)}
-            />
+          {/* Stat Cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="group relative overflow-hidden rounded-2xl border border-green-200/60 dark:border-green-800/40 bg-white dark:bg-gray-800 p-5 transition-all hover:shadow-lg hover:shadow-green-500/5 hover:-translate-y-0.5">
+              <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-green-50 dark:bg-green-900/20 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-100 dark:bg-green-900/30">
+                  <IndianRupee className="h-5 w-5 text-green-600" />
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Total Revenue</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">₹{data.summary.totalRevenue.toLocaleString('en-IN')}</p>
+                {data.summary.revenueThisMonth > 0 && (
+                  <p className="mt-1 text-xs text-green-600 dark:text-green-400 font-medium">₹{data.summary.revenueThisMonth.toLocaleString('en-IN')} this month</p>
+                )}
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-2xl border border-blue-200/60 dark:border-blue-800/40 bg-white dark:bg-gray-800 p-5 transition-all hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-0.5">
+              <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-blue-50 dark:bg-blue-900/20 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                  <Ticket className="h-5 w-5 text-blue-600" />
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tickets Sold</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{data.summary.totalTicketsSold.toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+
+            <div className="group relative overflow-hidden rounded-2xl border border-purple-200/60 dark:border-purple-800/40 bg-white dark:bg-gray-800 p-5 transition-all hover:shadow-lg hover:shadow-purple-500/5 hover:-translate-y-0.5">
+              <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-purple-50 dark:bg-purple-900/20 transition-transform group-hover:scale-150" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30">
+                  <CalendarDays className="h-5 w-5 text-purple-600" />
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Live Events</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{data.summary.activeEvents}</p>
+              </div>
+            </div>
+
             {isPro ? (
-              <StatCard
-                icon={<UserCheck className="h-5 w-5" />}
-                iconBg="bg-orange-100 dark:bg-orange-900/30 text-orange-600"
-                label="Check-in Rate"
-                value={`${data.summary.checkInRate}%`}
-                sub="Real-time"
-              />
+              <div className="group relative overflow-hidden rounded-2xl border border-orange-200/60 dark:border-orange-800/40 bg-white dark:bg-gray-800 p-5 transition-all hover:shadow-lg hover:shadow-orange-500/5 hover:-translate-y-0.5">
+                <div className="absolute -top-6 -right-6 h-20 w-20 rounded-full bg-orange-50 dark:bg-orange-900/20 transition-transform group-hover:scale-150" />
+                <div className="relative">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/30">
+                    <UserCheck className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Check-in Rate</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">{data.summary.checkInRate}%</p>
+                  <p className="mt-1 text-xs text-orange-600 dark:text-orange-400 font-medium">Real-time</p>
+                </div>
+              </div>
             ) : (
-              <LockedCard label="Check-in Rate" plan="PRO" />
+              <div className="relative overflow-hidden rounded-2xl border border-gray-200/60 dark:border-gray-700/40 bg-white dark:bg-gray-800 p-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700">
+                  <UserCheck className="h-5 w-5 text-gray-400" />
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Check-in Rate</p>
+                <p className="mt-1 text-2xl font-bold text-gray-200 dark:text-gray-700 select-none">--%</p>
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-[1px]">
+                  <Link href="/organiser/subscriptions" className="flex flex-col items-center gap-1">
+                    <Lock className="h-4 w-4 text-gray-400" />
+                    <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">PRO+</span>
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
 
           {/* Middle Section */}
-          <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {/* Active Events */}
-            <Card className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            {/* Live Events */}
+            <Card className="lg:col-span-2 rounded-2xl">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Active Events</CardTitle>
-                  <Link href="/organiser/events" className="flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-600">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    Live Events
+                  </CardTitle>
+                  <Link href="/organiser/events" className="flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors">
                     View All <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
               </CardHeader>
               <CardContent>
                 {data.activeEvents.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">No active events yet</p>
+                  <div className="py-10 text-center">
+                    <CalendarDays className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                    <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">No live events right now</p>
+                    <Link href="/organiser/events/create">
+                      <Button size="sm" variant="outline" className="mt-3 text-xs">Create Your Event</Button>
+                    </Link>
+                  </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-xs text-gray-500 dark:text-gray-400">
-                          <th className="pb-2 font-medium">Event</th>
-                          <th className="pb-2 font-medium">Status</th>
-                          <th className="pb-2 font-medium text-right">Revenue</th>
-                          <th className="pb-2 font-medium text-right">Sales</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.activeEvents.map((event) => {
-                          const badge = statusBadge[event.status] || { label: event.status, color: 'bg-gray-100 text-gray-600' };
-                          return (
-                            <tr key={event.id} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700">
-                              <td className="py-3">
-                                <Link href={`/organiser/events/${event.id}`} className="flex items-center gap-3">
-                                  {event.imageUrl ? (
-                                    <img src={event.imageUrl} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                                  ) : (
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30 text-sm font-bold text-orange-600">
-                                      {event.title[0]}
-                                    </div>
-                                  )}
-                                  <div>
-                                    <p className="font-medium text-gray-900 dark:text-gray-100">{event.title}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500">
-                                      {new Date(event.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} &middot; {event.venue}
-                                    </p>
-                                  </div>
-                                </Link>
-                              </td>
-                              <td className="py-3">
-                                <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', badge.color)}>{badge.label}</span>
-                              </td>
-                              <td className="py-3 text-right font-medium text-gray-900 dark:text-gray-100">₹{event.revenue.toLocaleString('en-IN')}</td>
-                              <td className="py-3 text-right text-gray-600 dark:text-gray-300">
-                                {event.ticketsSold.toLocaleString()}/{event.totalCapacity.toLocaleString()}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div className="space-y-3">
+                    {data.activeEvents.map((event) => {
+                      const badge = statusBadge[event.status] || { label: event.status, color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' };
+                      const pct = event.totalCapacity > 0 ? Math.round((event.ticketsSold / event.totalCapacity) * 100) : 0;
+                      return (
+                        <Link key={event.id} href={`/organiser/events/${event.id}`} className="block rounded-xl border border-gray-100 dark:border-gray-800 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            {event.imageUrl ? (
+                              <img src={event.imageUrl} alt="" className="h-12 w-12 rounded-xl object-cover shrink-0" />
+                            ) : (
+                              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-900/20 text-sm font-bold text-orange-600 shrink-0">
+                                {event.title[0]}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-gray-900 dark:text-gray-100 truncate">{event.title}</p>
+                                <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', badge.color)}>
+                                  <span className={cn('h-1.5 w-1.5 rounded-full', badge.dot)} />
+                                  {badge.label}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                {new Date(event.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} &middot; {event.venue}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-gray-900 dark:text-gray-100">₹{event.revenue.toLocaleString('en-IN')}</p>
+                              <p className="text-[10px] text-gray-400">{event.ticketsSold}/{event.totalCapacity} sold</p>
+                            </div>
+                          </div>
+                          <div className="mt-2 h-1 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                            <div className={cn('h-full rounded-full transition-all', pct >= 80 ? 'bg-green-500' : pct >= 40 ? 'bg-orange-500' : 'bg-blue-500')} style={{ width: `${pct}%` }} />
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Recent Orders */}
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">Recent Orders</CardTitle>
-                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  <Link href="/organiser/orders" className="flex items-center gap-1 text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors">
+                    View All <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
               </CardHeader>
               <CardContent>
                 {data.recentOrders.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">No orders yet</p>
+                  <div className="py-10 text-center">
+                    <Ticket className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+                    <p className="mt-3 text-sm text-gray-400 dark:text-gray-500">No orders yet</p>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
-                    {data.recentOrders.slice(0, 2).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between gap-2">
+                  <div className="space-y-3">
+                    {data.recentOrders.slice(0, 4).map((order, i) => (
+                      <div key={order.id} className="flex items-center justify-between gap-3 rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" style={{ animationDelay: `${i * 100}ms` }}>
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs font-bold text-orange-600">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-sm">
                             {order.customerInitial}
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{order.customerName}</p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{order.eventTitle} &middot; {order.ticketCount} ticket{order.ticketCount > 1 ? 's' : ''}</p>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{order.eventTitle} &middot; {order.ticketCount} ticket{order.ticketCount > 1 ? 's' : ''}</p>
                           </div>
                         </div>
-                        <span className="text-sm font-semibold text-green-600 whitespace-nowrap">+₹{order.amount.toLocaleString('en-IN')}</span>
+                        <span className="text-sm font-bold text-green-600 whitespace-nowrap">+₹{order.amount.toLocaleString('en-IN')}</span>
                       </div>
                     ))}
-                    {data.recentOrders.length > 2 && (
-                      <Link href="/organiser/orders" className="flex items-center justify-center gap-1 rounded-lg py-2 text-sm font-medium text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
-                        View All Orders <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    )}
                   </div>
                 )}
               </CardContent>
@@ -326,8 +359,8 @@ export default function OrganiserDashboard() {
 
           {/* Bottom Section */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {/* Subscription Usage */}
-            <Card>
+            {/* Plan Usage */}
+            <Card className="rounded-2xl">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Shield className="h-5 w-5 text-orange-500" /> Plan Usage
@@ -336,31 +369,26 @@ export default function OrganiserDashboard() {
               <CardContent className="space-y-4">
                 <UsageBar label="Events this month" used={data.subscription.eventsUsed} max={data.subscription.eventsMax} />
                 <UsageBar label="Staff accounts" used={data.subscription.staffUsed} max={data.subscription.staffMax} />
-                <div className="flex items-center justify-between rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3">
-                  <span className="text-sm text-gray-600 dark:text-gray-300">Commission rate</span>
+                <div className="flex items-center justify-between rounded-xl bg-linear-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-3 border border-orange-100 dark:border-orange-800/30">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">Commission</span>
                   <div className="text-right">
                     <span className="text-lg font-bold text-orange-600">{data.subscription.commission}%</span>
-                    <span className="ml-1.5 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-[10px] font-medium text-orange-700 dark:text-orange-300">
+                    <span className="ml-1.5 rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-[10px] font-semibold text-orange-700 dark:text-orange-300">
                       {data.subscription.commissionSource === 'custom' ? 'Custom' : 'Plan'}
                     </span>
-                    {data.subscription.commissionSource === 'custom' && (
-                      <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">
-                        Plan default: {data.subscription.planCommission}%
-                      </p>
-                    )}
                   </div>
                 </div>
                 {data.subscription.expiresAt && (
                   <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
-                    Plan expires: {new Date(data.subscription.expiresAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                    Expires: {new Date(data.subscription.expiresAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            {/* Revenue This Month — PRO+ */}
+            {/* Monthly Revenue */}
             {isPro ? (
-              <Card>
+              <Card className="rounded-2xl">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <BarChart3 className="h-5 w-5 text-blue-500" /> Monthly Revenue
@@ -368,24 +396,19 @@ export default function OrganiserDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-4">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">₹{data.summary.revenueThisMonth.toLocaleString('en-IN')}</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">₹{data.summary.revenueThisMonth.toLocaleString('en-IN')}</p>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">This month</p>
-                    {data.summary.revenueLastMonth > 0 && (
-                      <div className="mt-3 flex items-center justify-center gap-1">
-                        {data.summary.revenueThisMonth >= data.summary.revenueLastMonth ? (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                        )}
-                        <span className={cn('text-sm font-medium', data.summary.revenueThisMonth >= data.summary.revenueLastMonth ? 'text-green-600' : 'text-red-600')}>
-                          {data.summary.revenueLastMonth > 0
-                            ? `${Math.round(((data.summary.revenueThisMonth - data.summary.revenueLastMonth) / data.summary.revenueLastMonth) * 100)}%`
-                            : 'New'
-                          } vs last month
-                        </span>
-                      </div>
-                    )}
-                    <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Last month: ₹{data.summary.revenueLastMonth.toLocaleString('en-IN')}</p>
+                    {data.summary.revenueLastMonth > 0 && (() => {
+                      const change = Math.round(((data.summary.revenueThisMonth - data.summary.revenueLastMonth) / data.summary.revenueLastMonth) * 100);
+                      const isUp = change >= 0;
+                      return (
+                        <div className={cn('mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold', isUp ? 'bg-green-50 dark:bg-green-900/20 text-green-600' : 'bg-red-50 dark:bg-red-900/20 text-red-600')}>
+                          {isUp ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                          {isUp ? '+' : ''}{change}% vs last month
+                        </div>
+                      );
+                    })()}
+                    <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">Last month: ₹{data.summary.revenueLastMonth.toLocaleString('en-IN')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -393,9 +416,9 @@ export default function OrganiserDashboard() {
               <LockedWidget title="Monthly Revenue" plan="PRO" icon={<BarChart3 className="h-5 w-5 text-blue-500" />} />
             )}
 
-            {/* Top Selling — ADVANCE+ */}
+            {/* Top Sellers */}
             {isAdvance ? (
-              <Card>
+              <Card className="rounded-2xl">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <TrendingUp className="h-5 w-5 text-green-500" /> Top Sellers
@@ -409,13 +432,18 @@ export default function OrganiserDashboard() {
                       {data.topSellingEvents.slice(0, 5).map((e, i) => (
                         <div key={i} className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-3 min-w-0">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold text-gray-600 dark:text-gray-300">{i + 1}</span>
+                            <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                              i === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700' :
+                              i === 1 ? 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300' :
+                              i === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700' :
+                              'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                            )}>{i + 1}</span>
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{e.title}</p>
                               <p className="text-xs text-gray-400 dark:text-gray-500">{e.ticketsSold} tickets</p>
                             </div>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">₹{e.revenue.toLocaleString('en-IN')}</span>
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">₹{e.revenue.toLocaleString('en-IN')}</span>
                         </div>
                       ))}
                     </div>
@@ -426,92 +454,55 @@ export default function OrganiserDashboard() {
               <LockedWidget title="Top Sellers" plan="ADVANCE" icon={<TrendingUp className="h-5 w-5 text-green-500" />} />
             )}
           </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { href: '/organiser/events', label: 'My Events', icon: CalendarDays, color: 'group-hover:text-purple-600' },
+              { href: '/organiser/orders', label: 'Orders', icon: Ticket, color: 'group-hover:text-blue-600' },
+              { href: '/organiser/settlements', label: 'Settlements', icon: IndianRupee, color: 'group-hover:text-green-600' },
+              { href: '/organiser/analytics', label: 'Analytics', icon: BarChart3, color: 'group-hover:text-orange-600' },
+            ].map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link key={action.href} href={action.href}>
+                  <div className="group flex items-center gap-3 rounded-xl border border-gray-200/60 dark:border-gray-700/40 bg-white dark:bg-gray-800 p-3.5 hover:border-orange-200 dark:hover:border-orange-800/40 hover:shadow-md transition-all cursor-pointer">
+                    <div className="rounded-lg bg-gray-50 dark:bg-gray-700 p-2 transition-colors group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20">
+                      <Icon className={cn('h-4 w-4 text-gray-400 transition-colors', action.color)} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">{action.label}</span>
+                    <ArrowRight className="ml-auto h-3.5 w-3.5 text-gray-300 dark:text-gray-600 group-hover:text-orange-500 transition-colors" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </>
       )}
     </div>
   );
 }
 
-function StatCard({ icon, iconBg, label, value, sub }: { icon: React.ReactNode; iconBg: string; label: string; value: string; sub?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', iconBg)}>{icon}</div>
-        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-0.5 text-xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
-        {sub && <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
-}
-
-function LockedCard({ label, plan }: { label: string; plan: string }) {
-  return (
-    <Card className="relative overflow-hidden">
-      <CardContent className="p-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600">
-          <UserCheck className="h-5 w-5" />
-        </div>
-        <p className="mt-3 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-gray-300 dark:text-gray-600 blur-[6px] select-none">78.5%</p>
-      </CardContent>
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 dark:bg-gray-900/60 backdrop-blur-[2px]">
-        <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-        <p className="mt-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">{plan}+ Plan</p>
-        <Link href="/organiser/subscriptions">
-          <Button size="sm" className="mt-2 h-7 text-[11px] bg-linear-to-r from-[#ff4a1f] via-[#ff5413] to-[#ff6800] text-white">Upgrade</Button>
-        </Link>
-      </div>
-    </Card>
-  );
-}
-
 function LockedWidget({ title, plan, icon }: { title: string; plan: string; icon: React.ReactNode }) {
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative overflow-hidden rounded-2xl">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">{icon} {title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="blur-[6px] select-none pointer-events-none">
-          {title === 'Monthly Revenue' ? (
-            <div className="text-center py-4">
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">₹24,500</p>
-              <p className="mt-1 text-sm text-gray-500">This month</p>
-              <div className="mt-3 flex items-center justify-center gap-1">
-                <TrendingUp className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-green-600">+12% vs last month</span>
-              </div>
-              <p className="mt-2 text-xs text-gray-400">Last month: ₹21,875</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {['Summer Festival', 'Tech Conference', 'Comedy Night'].map((name, i) => (
-                <div key={i} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold text-gray-600">{i + 1}</span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{name}</p>
-                      <p className="text-xs text-gray-400">{(50 - i * 12)} tickets</p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">₹{(15000 - i * 4000).toLocaleString('en-IN')}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 dark:bg-gray-900/40">
-        <div className="flex flex-col items-center rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-6 py-4 shadow-lg">
-          <Lock className="h-6 w-6 text-gray-400 dark:text-gray-500" />
-          <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300">{plan}+ Feature</p>
-          <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Upgrade to unlock {title.toLowerCase()}</p>
+        <div className="py-6 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800 mb-3">
+            <Lock className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+          </div>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{plan}+ Feature</p>
+          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Upgrade to unlock {title.toLowerCase()}</p>
           <Link href="/organiser/subscriptions">
-            <Button size="sm" className="mt-3 bg-linear-to-r from-[#ff4a1f] via-[#ff5413] to-[#ff6800] text-white">Upgrade to {plan}</Button>
+            <Button size="sm" className="mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/20">
+              <Zap className="mr-1 h-3.5 w-3.5" /> Upgrade to {plan}
+            </Button>
           </Link>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }
@@ -522,11 +513,11 @@ function UsageBar({ label, used, max }: { label: string; used: number; max: numb
     <div>
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-600 dark:text-gray-300">{label}</span>
-        <span className="font-medium text-gray-900 dark:text-gray-100">{used}/{max >= 999 ? '∞' : max}</span>
+        <span className="font-semibold text-gray-900 dark:text-gray-100">{used}/{max >= 999 ? '∞' : max}</span>
       </div>
-      <div className="mt-1.5 h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+      <div className="mt-1.5 h-2 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
         <div
-          className={cn('h-2 rounded-full transition-all', pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-orange-500')}
+          className={cn('h-2 rounded-full transition-all duration-700', pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-linear-to-r from-orange-500 to-amber-500')}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -551,7 +542,7 @@ function CompleteProfileBanner({ user }: { user: any }) {
   const pct = Math.round((completedCount / required.length) * 100);
 
   return (
-    <div className="mb-6 rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/10 p-5">
+    <div className="rounded-2xl border border-orange-200 dark:border-orange-800 bg-linear-to-br from-orange-50 to-amber-50 dark:from-orange-900/10 dark:to-amber-900/10 p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -559,17 +550,14 @@ function CompleteProfileBanner({ user }: { user: any }) {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Complete Your Profile</h3>
           </div>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Complete the steps below. Once done, our admin team will review and approve your account so you can start creating events.
+            Complete the steps below to get your account approved and start creating events.
           </p>
 
           <div className="mt-3 flex items-center gap-3">
-            <div className="h-2 flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
-              <div
-                className="h-2 rounded-full bg-orange-500 transition-all"
-                style={{ width: `${pct}%` }}
-              />
+            <div className="h-2.5 flex-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+              <div className="h-2.5 rounded-full bg-linear-to-r from-orange-500 to-amber-500 transition-all duration-700" style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{completedCount}/{required.length}</span>
+            <span className="text-sm font-bold text-orange-600">{completedCount}/{required.length}</span>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -577,12 +565,12 @@ function CompleteProfileBanner({ user }: { user: any }) {
               <div
                 key={check.label}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm',
+                  'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-colors',
                   check.done
                     ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
                     : check.optional
-                      ? 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700',
+                      ? 'bg-white/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 shadow-sm',
                 )}
               >
                 {check.done ? (
@@ -597,7 +585,7 @@ function CompleteProfileBanner({ user }: { user: any }) {
         </div>
 
         <Link href="/organiser/profile">
-          <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white whitespace-nowrap">
+          <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/20 whitespace-nowrap">
             Go to Profile
           </Button>
         </Link>

@@ -38,4 +38,12 @@ export class QueryEventDto {
   @IsOptional()
   @IsEnum(SortOption)
   sort?: SortOption = SortOption.DATE_ASC;
+
+  @IsOptional()
+  @IsString()
+  dateFrom?: string;
+
+  @IsOptional()
+  @IsString()
+  dateTo?: string;
 }

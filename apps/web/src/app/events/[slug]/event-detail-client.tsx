@@ -47,7 +47,7 @@ interface EventDetail {
   saleCutoffDate: string | null;
   category: { name: string; slug: string };
   ticketTypes: TicketType[];
-  organiser: { id: string; firstName: string; lastName: string; orgName: string | null; avatarUrl: string | null };
+  organiser: { id: string; firstName: string; lastName: string; orgName: string | null; avatarUrl: string | null; orgTerms: string | null };
 }
 
 export default function EventDetailClient({ slug }: { slug: string }) {
@@ -317,6 +317,18 @@ export default function EventDetailClient({ slug }: { slug: string }) {
                 </a>
               </div>
             </section>
+
+            {event.organiser.orgTerms && (
+              <section className="rounded-2xl glass-light p-6 sm:p-8">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Terms & Conditions</h2>
+                <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                  By {event.organiser.orgName || `${event.organiser.firstName} ${event.organiser.lastName}`}
+                </p>
+                <div className="mt-4 text-[14px] leading-relaxed text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                  {event.organiser.orgTerms}
+                </div>
+              </section>
+            )}
 
             <EventReviews eventId={event.id} />
           </div>

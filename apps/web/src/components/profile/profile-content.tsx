@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { AlertTriangle, CheckCircle, Mail, Camera, Upload, FileText, Shield, KeyRound, Eye, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Mail, Camera, Upload, FileText, Shield, KeyRound, Eye, EyeOff, X } from 'lucide-react';
 
 export function ProfileContent() {
   const { user, setUser } = useAuthStore();
@@ -26,6 +26,7 @@ export function ProfileContent() {
     orgName: (user as any)?.orgName || '',
     orgDescription: (user as any)?.orgDescription || '',
     gstNumber: (user as any)?.gstNumber || '',
+    orgTerms: user?.orgTerms || '',
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
@@ -37,6 +38,10 @@ export function ProfileContent() {
   const [uploadingPan, setUploadingPan] = useState(false);
   const [sendingResetEmail, setSendingResetEmail] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
 
   const [aadharPreview, setAadharPreview] = useState<string | null>(null);
   const [panPreview, setPanPreview] = useState<string | null>(null);
@@ -51,6 +56,7 @@ export function ProfileContent() {
   const panInputRef = useRef<HTMLInputElement>(null);
 
   const isOrganiser = user?.role === 'ORGANISER';
+  const isAdmin = user?.role === 'ADMIN';
   const userAny = user as any;
 
   useEffect(() => {
@@ -96,6 +102,7 @@ export function ProfileContent() {
         payload.orgName = form.orgName;
         payload.orgDescription = form.orgDescription;
         payload.gstNumber = form.gstNumber;
+        payload.orgTerms = form.orgTerms;
       }
       const res = await apiClient.patch('/users/profile', payload);
       setUser(res.data.data);
@@ -236,6 +243,34 @@ export function ProfileContent() {
       setMessage({ type: 'error', text: 'Failed to send reset email. Try again later.' });
     } finally {
       setSendingResetEmail(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setMessage({ type: 'error', text: 'All password fields are required' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setMessage({ type: 'error', text: 'New password must be at least 8 characters' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'New password and confirm password do not match' });
+      return;
+    }
+    setChangingPassword(true);
+    setMessage(null);
+    try {
+      await apiClient.post('/auth/change-password', { currentPassword, newPassword });
+      setMessage({ type: 'success', text: 'Password changed successfully' });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      const msg = err.response?.data?.error?.message || 'Failed to change password';
+      setMessage({ type: 'error', text: msg });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -406,6 +441,17 @@ export function ProfileContent() {
                         <Label className="text-xs">GST Number <span className="text-gray-400">(Optional)</span></Label>
                         <Input value={form.gstNumber} maxLength={15} error={fieldErrors.gstNumber ?? undefined} onChange={(e) => { setForm({ ...form, gstNumber: e.target.value.toUpperCase() }); setFieldErrors((prev) => ({ ...prev, gstNumber: null })); }} placeholder="e.g. 22AAAAA0000A1Z5" />
                       </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Terms & Conditions <span className="text-gray-400">(Optional — shown on your event pages)</span></Label>
+                        <textarea
+                          value={form.orgTerms}
+                          onChange={(e) => setForm({ ...form, orgTerms: e.target.value })}
+                          maxLength={5000}
+                          placeholder="Enter your terms and conditions for ticket buyers..."
+                          className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 dark:text-gray-100"
+                          rows={4}
+                        />
+                      </div>
                     </>
                   )}
                   <div className="flex gap-2 pt-1">
@@ -470,64 +516,117 @@ export function ProfileContent() {
               )}
             </CardContent>
           </Card>
-
-          {/* Password + Policies side by side */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Password</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-3 text-xs text-gray-600 dark:text-gray-300">
-                  Reset via email link.
-                </p>
-                {resetEmailSent ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-2.5 text-xs text-green-700 dark:text-green-400">
-                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                    Reset link sent!
-                  </div>
-                ) : (
-                  <Button
-                    onClick={handleForgotPassword}
-                    disabled={sendingResetEmail}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    <KeyRound className="mr-2 h-3.5 w-3.5" />
-                    {sendingResetEmail ? 'Sending...' : 'Send Reset Link'}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {isOrganiser && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Policies</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1.5">
-                    <Link href="/organiser/privacy-policy" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <Shield className="h-4 w-4 text-blue-500" />
-                      Privacy Policy
-                    </Link>
-                    <Link href="/organiser/terms-of-service" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <FileText className="h-4 w-4 text-purple-500" />
-                      Terms of Service
-                    </Link>
-                    <Link href="/organiser/refund-policy" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <KeyRound className="h-4 w-4 text-green-500" />
-                      Refund Policy
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         </div>
 
-        {/* Right column — ID verification (organiser only) */}
+        {/* Right column */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Password</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isAdmin ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Current Password</Label>
+                    <div className="relative">
+                      <Input
+                        type={showCurrentPw ? 'text' : 'password'}
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm(f => ({ ...f, currentPassword: e.target.value }))}
+                        placeholder="Enter current password"
+                      />
+                      <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        type={showNewPw ? 'text' : 'password'}
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
+                        placeholder="Min 8 characters"
+                      />
+                      <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Confirm Password</Label>
+                    <Input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                      placeholder="Re-enter new password"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleChangePassword}
+                    disabled={changingPassword}
+                    size="sm"
+                    className="w-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                  >
+                    <KeyRound className="mr-2 h-3.5 w-3.5" />
+                    {changingPassword ? 'Changing...' : 'Change Password'}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="mb-3 text-xs text-gray-600 dark:text-gray-300">
+                    Reset via email link.
+                  </p>
+                  {resetEmailSent ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-2.5 text-xs text-green-700 dark:text-green-400">
+                      <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                      Reset link sent!
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleForgotPassword}
+                      disabled={sendingResetEmail}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <KeyRound className="mr-2 h-3.5 w-3.5" />
+                      {sendingResetEmail ? 'Sending...' : 'Send Reset Link'}
+                    </Button>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {isOrganiser && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Policies</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
+                  <Link href="/organiser/privacy-policy" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <Shield className="h-4 w-4 text-blue-500" />
+                    Privacy Policy
+                  </Link>
+                  <Link href="/organiser/terms-of-service" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <FileText className="h-4 w-4 text-purple-500" />
+                    Terms of Service
+                  </Link>
+                  <Link href="/organiser/refund-policy" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <KeyRound className="h-4 w-4 text-green-500" />
+                    Refund Policy
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ID verification column (organiser only) */}
         {isOrganiser && (
           <div className="space-y-4">
             <Card>

@@ -13,6 +13,9 @@ interface Plan {
   tier: string;
   name: string;
   price: number;
+  priceQuarterly: number | null;
+  priceHalfYearly: number | null;
+  priceYearly: number | null;
   maxEventsPerMonth: number;
   maxTicketTiers: number;
   maxTicketsPerEvent: number;
@@ -24,7 +27,8 @@ interface Plan {
 }
 
 const emptyForm = {
-  tier: '', name: '', price: 0, maxEventsPerMonth: 2, maxTicketTiers: 2,
+  tier: '', name: '', price: 0, priceQuarterly: 0, priceHalfYearly: 0, priceYearly: 0,
+  maxEventsPerMonth: 2, maxTicketTiers: 2,
   maxTicketsPerEvent: 300, maxStaffAccounts: 1, commissionPercent: 4, features: '', sortOrder: 0,
 };
 
@@ -60,6 +64,9 @@ export default function AdminPlansPage() {
       tier: plan.tier,
       name: plan.name,
       price: Number(plan.price),
+      priceQuarterly: Number(plan.priceQuarterly || 0),
+      priceHalfYearly: Number(plan.priceHalfYearly || 0),
+      priceYearly: Number(plan.priceYearly || 0),
       maxEventsPerMonth: plan.maxEventsPerMonth,
       maxTicketTiers: plan.maxTicketTiers,
       maxTicketsPerEvent: plan.maxTicketsPerEvent,
@@ -136,10 +143,25 @@ export default function AdminPlansPage() {
                     )}
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {Number(plan.price) === 0 ? 'Free' : `₹${Number(plan.price).toLocaleString('en-IN')}`}
-                  {Number(plan.price) > 0 && <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span>}
-                </p>
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {(() => {
+                    const mo = Number(plan.price);
+                    const q = Number(plan.priceQuarterly || 0);
+                    const h = Number(plan.priceHalfYearly || 0);
+                    const y = Number(plan.priceYearly || 0);
+                    if (mo > 0) return <>{`₹${mo.toLocaleString('en-IN')}`}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/mo</span></>;
+                    if (q > 0) return <>{`₹${q.toLocaleString('en-IN')}`}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/3mo</span></>;
+                    if (h > 0) return <>{`₹${h.toLocaleString('en-IN')}`}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/6mo</span></>;
+                    if (y > 0) return <>{`₹${y.toLocaleString('en-IN')}`}<span className="text-sm font-normal text-gray-500 dark:text-gray-400">/yr</span></>;
+                    return 'Free';
+                  })()}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {Number(plan.price) > 0 && <span className="text-[10px] rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-gray-500">mo: ₹{Number(plan.price).toLocaleString('en-IN')}</span>}
+                  {Number(plan.priceQuarterly || 0) > 0 && <span className="text-[10px] rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-gray-500">3mo: ₹{Number(plan.priceQuarterly).toLocaleString('en-IN')}</span>}
+                  {Number(plan.priceHalfYearly || 0) > 0 && <span className="text-[10px] rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-gray-500">6mo: ₹{Number(plan.priceHalfYearly).toLocaleString('en-IN')}</span>}
+                  {Number(plan.priceYearly || 0) > 0 && <span className="text-[10px] rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-gray-500">yr: ₹{Number(plan.priceYearly).toLocaleString('en-IN')}</span>}
+                </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="grid grid-cols-2 gap-2">
@@ -198,6 +220,18 @@ export default function AdminPlansPage() {
                 <div className="space-y-2">
                   <Label>Price (INR/month)</Label>
                   <Input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Price - 3 Months (INR) <span className="text-gray-400 text-xs">optional</span></Label>
+                  <Input type="number" min={0} value={form.priceQuarterly} onChange={(e) => setForm({ ...form, priceQuarterly: Number(e.target.value) })} placeholder={`Default: ${form.price * 3}`} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Price - 6 Months (INR) <span className="text-gray-400 text-xs">optional</span></Label>
+                  <Input type="number" min={0} value={form.priceHalfYearly} onChange={(e) => setForm({ ...form, priceHalfYearly: Number(e.target.value) })} placeholder={`Default: ${form.price * 6}`} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Price - Yearly (INR) <span className="text-gray-400 text-xs">optional</span></Label>
+                  <Input type="number" min={0} value={form.priceYearly} onChange={(e) => setForm({ ...form, priceYearly: Number(e.target.value) })} placeholder={`Default: ${form.price * 12}`} />
                 </div>
                 <div className="space-y-2">
                   <Label>Commission %</Label>

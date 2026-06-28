@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 import { Bell, Check, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ export function NotificationBell() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = useCallback(async () => {
+    if (!useAuthStore.getState().accessToken) return;
     try {
       const res = await apiClient.get('/notifications');
       const data = res.data.data;
@@ -33,12 +35,15 @@ export function NotificationBell() {
     } catch { /* ignore */ }
   }, []);
 
+  const accessToken = useAuthStore((s) => s.accessToken);
+
   const fetchUnreadCount = useCallback(async () => {
+    if (!accessToken) return;
     try {
       const res = await apiClient.get('/notifications/unread-count');
       setUnreadCount(res.data.data || 0);
     } catch { /* ignore */ }
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     fetchUnreadCount();

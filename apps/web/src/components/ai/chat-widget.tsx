@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { MessageCircle, X, Send, Loader2, Bot, User } from 'lucide-react';
 import apiClient from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,6 +19,7 @@ const WELCOME_MESSAGE: Message = {
 };
 
 export function ChatWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
@@ -35,6 +37,8 @@ export function ChatWidget() {
       inputRef.current?.focus();
     }
   }, [isOpen]);
+
+  if (pathname.startsWith('/admin') || user?.role === 'ADMIN') return null;
 
   const sendMessage = async () => {
     const trimmed = input.trim();

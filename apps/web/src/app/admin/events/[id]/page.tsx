@@ -131,16 +131,6 @@ export default function AdminEventDetailPage() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{event.category.name}</p>
         </div>
 
-        {isPending && (
-          <div className="flex gap-2">
-            <Button onClick={() => handleAction('APPROVED')} disabled={actionLoading} className="bg-green-600 hover:bg-green-700 text-white">
-              {actionLoading ? 'Publishing...' : 'Publish Event'}
-            </Button>
-            <Button variant="destructive" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>
-              Reject
-            </Button>
-          </div>
-        )}
       </div>
 
       {message && (
@@ -276,8 +266,25 @@ export default function AdminEventDetailPage() {
           </Card>
         </div>
 
-        {/* Right: Organiser Info */}
+        {/* Right sidebar */}
         <div className="space-y-4">
+          {isPending && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Review the event details, organiser info, and ticket configuration before publishing.
+                </p>
+                <Button onClick={() => handleAction('APPROVED')} disabled={actionLoading} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                  {actionLoading ? 'Publishing...' : 'Publish Event'}
+                </Button>
+                <Button variant="destructive" onClick={() => setShowRejectModal(true)} disabled={actionLoading} className="w-full">
+                  Reject with Reason
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader><CardTitle className="text-base">Organiser</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -320,24 +327,6 @@ export default function AdminEventDetailPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Quick Actions */}
-          {isPending && (
-            <Card>
-              <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Review the event details, organiser info, and ticket configuration before publishing.
-                </p>
-                <Button onClick={() => handleAction('APPROVED')} disabled={actionLoading} className="w-full bg-green-600 hover:bg-green-700 text-white">
-                  {actionLoading ? 'Publishing...' : 'Publish Event'}
-                </Button>
-                <Button variant="destructive" onClick={() => setShowRejectModal(true)} disabled={actionLoading} className="w-full">
-                  Reject with Reason
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>

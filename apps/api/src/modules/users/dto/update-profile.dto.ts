@@ -50,4 +50,8 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   gstNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  orgTerms?: string;
 }

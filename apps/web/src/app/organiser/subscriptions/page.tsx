@@ -9,6 +9,7 @@ import { Crown, Check, AlertTriangle, Clock, X, Star, Loader2 } from 'lucide-rea
 
 interface Plan {
   id: string; tier: string; name: string; price: number;
+  priceQuarterly: number | null; priceHalfYearly: number | null; priceYearly: number | null;
   maxEventsPerMonth: number; maxTicketTiers: number; maxTicketsPerEvent: number;
   maxStaffAccounts: number; commissionPercent: number; features: string[];
 }
@@ -40,7 +41,27 @@ export default function SubscriptionsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [showModal, setShowModal] = useState<Plan | null>(null);
   const [activateOption, setActivateOption] = useState<'schedule' | 'now'>('schedule');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'half_yearly' | 'yearly'>('monthly');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const getCyclePrice = (plan: Plan, cycle: string) => {
+    const mo = Number(plan.price);
+    switch (cycle) {
+      case 'quarterly': return Number(plan.priceQuarterly || 0) || (mo > 0 ? mo * 3 : 0);
+      case 'half_yearly': return Number(plan.priceHalfYearly || 0) || (mo > 0 ? mo * 6 : 0);
+      case 'yearly': return Number(plan.priceYearly || 0) || (mo > 0 ? mo * 12 : 0);
+      default: return mo;
+    }
+  };
+  const getCycleLabel = (cycle: string) => {
+    switch (cycle) {
+      case 'quarterly': return '3 Months';
+      case 'half_yearly': return '6 Months';
+      case 'yearly': return '1 Year';
+      default: return '1 Month';
+    }
+  };
+  const selectedPrice = showModal ? getCyclePrice(showModal, billingCycle) : 0;
 
   const fetchData = async () => {
     try {
@@ -114,10 +135,10 @@ export default function SubscriptionsPage() {
     setMessage(null);
 
     try {
-      const price = Number(showModal.price);
       const isFree = usage.tier === 'FREE';
+      const isFreePlan = Number(showModal.price) === 0 && !Number(showModal.priceQuarterly || 0) && !Number(showModal.priceHalfYearly || 0) && !Number(showModal.priceYearly || 0);
 
-      if (price === 0) {
+      if (isFreePlan) {
         await apiClient.post('/subscriptions', { tier: showModal.tier });
         setMessage({ type: 'success', text: `Switched to ${showModal.name} plan` });
         setShowModal(null);
@@ -128,6 +149,7 @@ export default function SubscriptionsPage() {
       const res = await apiClient.post('/subscriptions/initiate-payment', {
         tier: showModal.tier,
         activateNow: isFree ? true : activateOption === 'now',
+        billingCycle,
       });
 
       const data = res.data.data;
@@ -314,14 +336,17 @@ export default function SubscriptionsPage() {
               <CardHeader className="pb-2 pt-5">
                 <CardTitle className="text-lg">{plan.name}</CardTitle>
                 <div className="mt-1">
-                  {price === 0 ? (
-                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">Free</span>
-                  ) : (
-                    <>
-                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">{'₹'}{price.toLocaleString('en-IN')}</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">/month</span>
-                    </>
-                  )}
+                  {(() => {
+                    const mo = Number(plan.price);
+                    const q = Number(plan.priceQuarterly || 0);
+                    const h = Number(plan.priceHalfYearly || 0);
+                    const y = Number(plan.priceYearly || 0);
+                    if (mo > 0) return <><span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">₹{mo.toLocaleString('en-IN')}</span><span className="text-sm text-gray-500 dark:text-gray-400">/month</span></>;
+                    if (q > 0) return <><span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">₹{q.toLocaleString('en-IN')}</span><span className="text-sm text-gray-500 dark:text-gray-400">/3 months</span></>;
+                    if (h > 0) return <><span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">₹{h.toLocaleString('en-IN')}</span><span className="text-sm text-gray-500 dark:text-gray-400">/6 months</span></>;
+                    if (y > 0) return <><span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">₹{y.toLocaleString('en-IN')}</span><span className="text-sm text-gray-500 dark:text-gray-400">/year</span></>;
+                    return <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">Free</span>;
+                  })()}
                 </div>
                 <p className="text-xs text-orange-600 font-medium">{Number(plan.commissionPercent)}% commission</p>
               </CardHeader>
@@ -334,13 +359,37 @@ export default function SubscriptionsPage() {
                     </li>
                   ))}
                 </ul>
-                <Button
-                  className={cn('w-full mt-4', isCurrentPlan ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400' : 'bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white')}
-                  disabled={isCurrentPlan || actionLoading}
-                  onClick={() => { setShowModal(plan); setActivateOption('schedule'); setMessage(null); }}
-                >
-                  {isCurrentPlan ? 'Current Plan' : price === 0 ? 'Downgrade' : 'Select Plan'}
-                </Button>
+                {(() => {
+                  const mo = Number(plan.price);
+                  const q = Number(plan.priceQuarterly || 0);
+                  const h = Number(plan.priceHalfYearly || 0);
+                  const y = Number(plan.priceYearly || 0);
+                  const isPaidPlan = mo > 0 || q > 0 || h > 0 || y > 0;
+                  const isDowngrade = !isPaidPlan && plan.tier === 'FREE';
+
+                  return isCurrentPlan ? (
+                    <div className="w-full mt-4 flex items-center justify-center rounded-md border-2 border-orange-400 bg-orange-50 dark:bg-orange-900/20 py-2 text-sm font-semibold text-orange-600 dark:text-orange-400">
+                      Current Plan
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full mt-4 bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                      disabled={actionLoading}
+                      onClick={() => {
+                        setShowModal(plan);
+                        setActivateOption('schedule');
+                        if (mo > 0) setBillingCycle('monthly');
+                        else if (q > 0) setBillingCycle('quarterly');
+                        else if (h > 0) setBillingCycle('half_yearly');
+                        else if (y > 0) setBillingCycle('yearly');
+                        else setBillingCycle('monthly');
+                        setMessage(null);
+                      }}
+                    >
+                      {isDowngrade ? 'Downgrade' : 'Select Plan'}
+                    </Button>
+                  );
+                })()}
               </CardContent>
             </Card>
           );
@@ -356,7 +405,7 @@ export default function SubscriptionsPage() {
               <button onClick={() => setShowModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="h-5 w-5" /></button>
             </div>
 
-            {Number(showModal.price) === 0 ? (
+            {(Number(showModal.price) === 0 && !Number(showModal.priceQuarterly || 0) && !Number(showModal.priceHalfYearly || 0) && !Number(showModal.priceYearly || 0)) ? (
               <div>
                 <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-300 mb-4">
                   <p className="font-medium">Downgrading to FREE plan</p>
@@ -393,29 +442,66 @@ export default function SubscriptionsPage() {
                     </div>
                   </label>
                 </div>
+                {/* Billing Cycle Selector */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Billing Cycle</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {([['monthly', '1 Mo', Number(showModal.price)], ['quarterly', '3 Mo', Number(showModal.priceQuarterly || 0) || (Number(showModal.price) > 0 ? Number(showModal.price) * 3 : 0)], ['half_yearly', '6 Mo', Number(showModal.priceHalfYearly || 0) || (Number(showModal.price) > 0 ? Number(showModal.price) * 6 : 0)], ['yearly', '1 Yr', Number(showModal.priceYearly || 0) || (Number(showModal.price) > 0 ? Number(showModal.price) * 12 : 0)]] as [string, string, number][]).filter(([, , p]) => p > 0).map(([val, label, p]) => (
+                      <button
+                        key={val}
+                        onClick={() => setBillingCycle(val as typeof billingCycle)}
+                        className={cn('rounded-lg border px-2 py-2 text-center text-xs font-medium transition-colors', billingCycle === val ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700')}
+                      >
+                        {label}
+                        {billingCycle !== val && <span className="block text-[10px] mt-0.5 text-gray-400">₹{p.toLocaleString('en-IN')}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="rounded-lg bg-gray-50 dark:bg-gray-900 p-3 mb-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{showModal.name} Plan (1 month)</span>
-                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{'₹'}{Number(showModal.price).toLocaleString('en-IN')}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{showModal.name} Plan ({getCycleLabel(billingCycle)})</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">₹{selectedPrice.toLocaleString('en-IN')}</span>
                   </div>
+                  {billingCycle !== 'monthly' && (
+                    <p className="text-[10px] text-green-600 mt-1">Save ₹{(Number(showModal.price) * (billingCycle === 'quarterly' ? 3 : billingCycle === 'half_yearly' ? 6 : 12) - selectedPrice).toLocaleString('en-IN')} compared to monthly</p>
+                  )}
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowModal(null)}>Cancel</Button>
                   <Button onClick={handleSubscribe} disabled={actionLoading} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
-                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Processing...</> : `Pay ₹${Number(showModal.price).toLocaleString('en-IN')}`}
+                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Processing...</> : `Pay ₹${selectedPrice.toLocaleString('en-IN')}`}
                   </Button>
                 </div>
               </div>
             ) : (
               <div>
+                {/* Billing Cycle Selector */}
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Billing Cycle</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {([['monthly', '1 Mo'], ['quarterly', '3 Mo'], ['half_yearly', '6 Mo'], ['yearly', '1 Yr']] as const).map(([val, label]) => (
+                      <button
+                        key={val}
+                        onClick={() => setBillingCycle(val)}
+                        className={cn('rounded-lg border px-2 py-2 text-center text-xs font-medium transition-colors', billingCycle === val ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700')}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="rounded-lg bg-gray-50 dark:bg-gray-900 p-4 mb-4 text-center">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{'₹'}{Number(showModal.price).toLocaleString('en-IN')}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">per month · {Number(showModal.commissionPercent)}% commission</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">₹{selectedPrice.toLocaleString('en-IN')}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{getCycleLabel(billingCycle)} · {Number(showModal.commissionPercent)}% commission</p>
+                  {billingCycle !== 'monthly' && (
+                    <p className="text-xs text-green-600 mt-1">Save ₹{(Number(showModal.price) * (billingCycle === 'quarterly' ? 3 : billingCycle === 'half_yearly' ? 6 : 12) - selectedPrice).toLocaleString('en-IN')} compared to monthly</p>
+                  )}
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setShowModal(null)}>Cancel</Button>
                   <Button onClick={handleSubscribe} disabled={actionLoading} className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
-                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Processing...</> : `Pay ₹${Number(showModal.price).toLocaleString('en-IN')}`}
+                    {actionLoading ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" /> Processing...</> : `Pay ₹${selectedPrice.toLocaleString('en-IN')}`}
                   </Button>
                 </div>
               </div>

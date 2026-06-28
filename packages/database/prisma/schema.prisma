@@ -149,6 +149,7 @@ model User {
   panDocumentUrl       String?    @map("pan_document_url")
   gstNumber            String?    @map("gst_number")
   profileCompleted     Boolean    @default(false) @map("profile_completed")
+  orgTerms             String?    @map("org_terms") @db.Text
   resetToken           String?    @map("reset_token")
   resetTokenExpiry     DateTime?  @map("reset_token_expiry")
   emailVerificationToken       String?    @map("email_verification_token")
@@ -522,6 +523,9 @@ model Plan {
   tier               String   @unique
   name               String
   price              Decimal  @db.Decimal(10, 2)
+  priceQuarterly     Decimal? @db.Decimal(10, 2) @map("price_quarterly")
+  priceHalfYearly    Decimal? @db.Decimal(10, 2) @map("price_half_yearly")
+  priceYearly        Decimal? @db.Decimal(10, 2) @map("price_yearly")
   maxEventsPerMonth  Int      @map("max_events_per_month")
   maxTicketTiers     Int      @map("max_ticket_tiers")
   maxTicketsPerEvent Int      @map("max_tickets_per_event")
@@ -552,6 +556,7 @@ model OrgSubscription {
   commissionPercent  Decimal            @db.Decimal(5, 2) @default(4.00) @map("commission_percent")
   commissionType     String             @default("PERCENTAGE") @map("commission_type")
   price              Decimal            @db.Decimal(10, 2) @default(0)
+  billingCycle       String?            @map("billing_cycle")
   startDate          DateTime           @map("start_date")
   endDate            DateTime?          @map("end_date")
 
@@ -585,6 +590,7 @@ model SubscriptionPayment {
   userId            String        @map("user_id")
   planId            String        @map("plan_id")
   tier              String
+  billingCycle      String?       @map("billing_cycle")
   activateNow       Boolean       @default(true) @map("activate_now")
 
   createdAt         DateTime      @default(now()) @map("created_at")

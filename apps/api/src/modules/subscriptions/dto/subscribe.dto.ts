@@ -1,13 +1,14 @@
-import { IsEnum } from 'class-validator';
-
-enum TierOption {
-  FREE = 'FREE',
-  BASIC = 'BASIC',
-  PREMIUM = 'PREMIUM',
-  ENTERPRISE = 'ENTERPRISE',
-}
+import { IsString, IsOptional, IsBoolean, IsIn } from 'class-validator';
 
 export class SubscribeDto {
-  @IsEnum(TierOption)
-  tier: TierOption;
+  @IsString()
+  tier: string;
+
+  @IsOptional()
+  @IsBoolean()
+  activateNow?: boolean;
+
+  @IsOptional()
+  @IsIn(['monthly', 'quarterly', 'half_yearly', 'yearly'])
+  billingCycle?: string;
 }

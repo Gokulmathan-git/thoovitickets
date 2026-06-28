@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { CategorySelect } from '@/components/ui/category-select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Shield, Globe, Clock } from 'lucide-react';
+import { Trash2, Plus, Shield, Globe, Clock, Sparkles, AlertTriangle, X } from 'lucide-react';
 import { MapPicker } from '@/components/events/map-picker';
 import { AiDescriptionGenerator } from '@/components/ai/ai-description-generator';
 import { useAuthStore } from '@/stores/auth-store';
@@ -94,6 +95,7 @@ export default function CreateEventPage() {
   const [categories, setCategories] = useState<EventCategoryResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
@@ -193,6 +195,7 @@ export default function CreateEventPage() {
 
   const onSubmit = async (data: CreateEventFormValues) => {
     setError(null);
+    setValidationErrors([]);
     setIsSubmitting(true);
 
     try {
@@ -218,6 +221,46 @@ export default function CreateEventPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const fieldLabels: Record<string, string> = {
+    title: 'Event Title',
+    description: 'Description',
+    categoryId: 'Category',
+    startDate: 'Start Date & Time',
+    endDate: 'End Date & Time',
+    venue: 'Venue',
+    city: 'City',
+    country: 'Country',
+    ticketTypes: 'Ticket Types',
+  };
+
+  const onInvalid = (fieldErrors: Record<string, any>) => {
+    const messages: string[] = [];
+    for (const [key, err] of Object.entries(fieldErrors)) {
+      if (key === 'ticketTypes' && Array.isArray(err)) {
+        err.forEach((ticketErr: any, i: number) => {
+          if (!ticketErr) return;
+          Object.entries(ticketErr).forEach(([field, e]: [string, any]) => {
+            if (e?.message) messages.push(`Ticket #${i + 1} ${field}: ${e.message}`);
+          });
+        });
+      } else if ((err as any)?.message) {
+        messages.push(`${fieldLabels[key] || key}: ${(err as any).message}`);
+      }
+    }
+    setValidationErrors(messages);
+
+    const firstKey = Object.keys(fieldErrors)[0];
+    if (firstKey) {
+      const el = document.getElementById(firstKey) || document.querySelector(`[name="${firstKey}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (el as HTMLElement).focus?.();
+      }
+    }
+
+    setTimeout(() => setValidationErrors([]), 8000);
   };
 
   const profileCompleted = (user as any)?.profileCompleted;
@@ -249,16 +292,51 @@ export default function CreateEventPage() {
   }
 
   return (
-    <div>
-      <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Create New Event</h1>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 dark:bg-orange-900/30">
+          <Sparkles className="h-5 w-5 text-orange-600" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create New Event</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Fill in the details to create your event</p>
+        </div>
+      </div>
 
-      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {validationErrors.length > 0 && (
+        <div style={{ animation: 'fade-in-up 0.3s ease-out' }} className="fixed top-20 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 shadow-2xl">
+          <div className="flex items-center justify-between gap-2 border-b border-red-100 dark:border-red-900 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Please fix the following</p>
+            </div>
+            <button onClick={() => setValidationErrors([])} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <ul className="max-h-60 overflow-y-auto px-4 py-3 space-y-1.5">
+            {validationErrors.map((msg, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+                {msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         {error && (
-          <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+            {error}
+          </div>
         )}
 
         {/* Basic Info */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Basic Information</CardTitle>
           </CardHeader>
@@ -269,7 +347,7 @@ export default function CreateEventPage() {
             </div>
 
             {/* Event Date & Time — right below title */}
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 space-y-4">
+            <div className="rounded-xl border border-orange-200/60 dark:border-orange-800/30 bg-orange-50/30 dark:bg-orange-900/10 p-4 space-y-4">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="h-4 w-4 text-orange-500" />
                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Event Date & Time</span>
@@ -375,12 +453,13 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="categoryId">Category *</Label>
-                <Select id="categoryId" error={errors.categoryId?.message} {...register('categoryId')}>
-                  <option value="">Select a category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</option>
-                  ))}
-                </Select>
+                <CategorySelect
+                  id="categoryId"
+                  categories={categories}
+                  value={watch('categoryId') || ''}
+                  onChange={(val) => setValue('categoryId', val, { shouldValidate: true })}
+                  error={errors.categoryId?.message}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
@@ -393,7 +472,7 @@ export default function CreateEventPage() {
         </Card>
 
         {/* Event Image */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Event Image</CardTitle>
           </CardHeader>
@@ -455,7 +534,7 @@ export default function CreateEventPage() {
         </Card>
 
         {/* Event Banner (Detail Page) */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Event Banner (Detail Page)</CardTitle>
           </CardHeader>
@@ -517,7 +596,7 @@ export default function CreateEventPage() {
         </Card>
 
         {/* Location */}
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="text-lg">Location</CardTitle>
           </CardHeader>
@@ -572,7 +651,7 @@ export default function CreateEventPage() {
                 size="sm"
                 onClick={() => append({ name: '', price: 0, totalQty: 50, maxPerOrder: 5, currency: 'INR' })}
               >
-                <Plus className="mr-1 h-4 w-4" /> Add Ticket
+                <Plus className="mr-1 h-4 w-4" /> Add Ticket Type
               </Button>
             </div>
           </CardHeader>
@@ -689,12 +768,13 @@ export default function CreateEventPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
+        <div className="flex justify-end gap-3 sticky bottom-4 z-10">
+          <Button type="button" variant="outline" className="rounded-full shadow-sm" onClick={() => router.back()} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating Event...' : 'Create Event (Draft)'}
+          <Button type="submit" disabled={isSubmitting} className="rounded-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/20 px-6">
+            <Sparkles className="mr-1.5 h-4 w-4" />
+            {isSubmitting ? 'Creating Event...' : 'Create Event'}
           </Button>
         </div>
 

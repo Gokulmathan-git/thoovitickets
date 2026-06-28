@@ -12,6 +12,7 @@ export class AnalyticsService {
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
+    // Split into two batches to stay within Supabase connection pool limits
     const [
       confirmedOrders,
       activeEventsCount,
@@ -19,11 +20,6 @@ export class AnalyticsService {
       recentOrdersRaw,
       topEvents,
       subscription,
-      eventsThisMonth,
-      staffCount,
-      monthlyRevenue,
-      lastMonthRevenue,
-      organiserUser,
     ] = await Promise.all([
       this.prisma.order.aggregate({
         where: { items: { some: { event: { organiserId } } }, status: OrderStatus.CONFIRMED },
@@ -45,7 +41,7 @@ export class AnalyticsService {
         take: 5,
       }),
       this.prisma.event.findMany({
-        where: { organiserId, status: { in: [EventStatus.PUBLISHED, EventStatus.COMPLETED as any] } },
+        where: { organiserId, status: EventStatus.PUBLISHED, endDate: { gte: now } },
         include: {
           ticketTypes: { select: { totalQty: true, soldQty: true } },
           orderItems: { where: { order: { status: OrderStatus.CONFIRMED } }, select: { totalPrice: true, quantity: true } },
@@ -57,6 +53,16 @@ export class AnalyticsService {
         where: { userId: organiserId, status: 'ACTIVE', OR: [{ endDate: null }, { endDate: { gte: now } }] },
         orderBy: { createdAt: 'desc' },
       }),
+    ]);
+
+    const [
+      eventsThisMonth,
+      staffCount,
+      monthlyRevenue,
+      lastMonthRevenue,
+      organiserUser,
+      totalTicketsSold,
+    ] = await Promise.all([
       this.prisma.event.count({ where: { organiserId, createdAt: { gte: startOfMonth } } }),
       this.prisma.staffAccount.count({ where: { organiserId, isActive: true } }),
       this.prisma.order.aggregate({
@@ -71,12 +77,11 @@ export class AnalyticsService {
         where: { id: organiserId },
         select: { orgCommissionPercent: true },
       }),
+      this.prisma.orderItem.aggregate({
+        where: { event: { organiserId }, order: { status: OrderStatus.CONFIRMED } },
+        _sum: { quantity: true },
+      }),
     ]);
-
-    const totalTicketsSold = await this.prisma.orderItem.aggregate({
-      where: { event: { organiserId }, order: { status: OrderStatus.CONFIRMED } },
-      _sum: { quantity: true },
-    });
 
     const usedTickets = ticketStats.find((t) => t.status === TicketStatus.USED)?._count || 0;
     const activeTickets = ticketStats.find((t) => t.status === TicketStatus.ACTIVE)?._count || 0;
