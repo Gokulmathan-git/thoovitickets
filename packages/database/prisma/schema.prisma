@@ -175,6 +175,11 @@ model User {
   notifications        Notification[]
   termsAcceptances     TermsAcceptance[]
   products             Product[]
+  referralCode         String?          @unique @map("referral_code")
+  referredByUserId     String?          @map("referred_by_user_id")
+  referralsMade        Referral[]       @relation("ReferralsMade")
+  referralsReceived    Referral[]       @relation("ReferralsReceived")
+  thoviPointsWallet    ThoviPointsWallet?
 
   @@map("users")
 }
@@ -246,6 +251,7 @@ model Event {
   homeBanners  HomeBanner[]
   discounts    Discount[]
   settlements  Settlement[]
+  referrals    Referral[]
 
   @@index([organiserId])
   @@index([categoryId])
@@ -861,4 +867,93 @@ model GstBill {
   @@index([settlementId])
   @@index([billNumber])
   @@map("gst_bills")
+}
+
+// ─── REFERRAL & THOOVI POINTS ────────────────────────
+
+enum ReferralStatus {
+  PENDING
+  QUALIFIED
+  REWARDED
+  REJECTED
+}
+
+enum PointsTransactionType {
+  REFERRAL_REWARD
+  MILESTONE_BONUS
+  SUBSCRIPTION_REDEMPTION
+  FEATURED_LISTING
+  PLATFORM_FEE_REDEMPTION
+  ADMIN_CREDIT
+  ADMIN_DEBIT
+  EXPIRED
+}
+
+model Referral {
+  id                String         @id @default(cuid())
+  referralCode      String         @map("referral_code")
+  status            ReferralStatus @default(PENDING)
+
+  referrerId        String         @map("referrer_id")
+  referredId        String         @map("referred_id")
+  qualifyingEventId String?        @map("qualifying_event_id")
+
+  grossTicketSales  Decimal?       @db.Decimal(12, 2) @map("gross_ticket_sales")
+  rewardPoints      Int?           @map("reward_points")
+  referralNumber    Int?           @map("referral_number")
+
+  qualifiedAt       DateTime?      @map("qualified_at")
+  rewardedAt        DateTime?      @map("rewarded_at")
+  rejectedAt        DateTime?      @map("rejected_at")
+  rejectionReason   String?        @map("rejection_reason")
+
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  referrer          User           @relation("ReferralsMade", fields: [referrerId], references: [id])
+  referred          User           @relation("ReferralsReceived", fields: [referredId], references: [id])
+  qualifyingEvent   Event?         @relation(fields: [qualifyingEventId], references: [id])
+
+  @@unique([referrerId, referredId])
+  @@index([referrerId])
+  @@index([referredId])
+  @@index([status])
+  @@index([referralCode])
+  @@map("referrals")
+}
+
+model ThoviPointsWallet {
+  id           String   @id @default(cuid())
+  balance      Int      @default(0)
+  totalEarned  Int      @default(0) @map("total_earned")
+  totalSpent   Int      @default(0) @map("total_spent")
+
+  userId       String   @unique @map("user_id")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User     @relation(fields: [userId], references: [id])
+  transactions PointsTransaction[]
+
+  @@map("thovi_points_wallets")
+}
+
+model PointsTransaction {
+  id          String                @id @default(cuid())
+  type        PointsTransactionType
+  points      Int
+  balance     Int
+  description String
+
+  walletId    String                @map("wallet_id")
+  referralId  String?               @map("referral_id")
+
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  wallet      ThoviPointsWallet     @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([type])
+  @@map("points_transactions")
 }

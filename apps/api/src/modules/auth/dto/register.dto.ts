@@ -50,4 +50,8 @@ export class RegisterDto {
   @IsBoolean()
   @Equals(true, { message: 'You must accept the Terms of Service' })
   termsAccepted: boolean;
+
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
 }

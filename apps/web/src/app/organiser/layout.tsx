@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users, Menu, X, User, LogOut, Ticket, ShoppingCart, Wallet, Clock, ChevronDown, FileText, Gift } from 'lucide-react';
+import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users, Menu, X, User, LogOut, Ticket, ShoppingCart, Wallet, Clock, ChevronDown, FileText, Gift, Share2, Coins } from 'lucide-react';
 import { useState } from 'react';
 
 interface NavItem {
@@ -33,6 +33,8 @@ const sidebarLinks: NavItem[] = [
     ],
   },
   { href: '/organiser/subscriptions', label: 'Subscription', icon: CreditCard },
+  { href: '/organiser/referrals', label: 'Referrals', icon: Share2 },
+  { href: '/organiser/thoovi-points', label: 'Thoovi Points', icon: Coins },
   { href: '/organiser/terms-conditions', label: 'Terms & Conditions', icon: FileText },
 ];
 

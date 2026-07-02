@@ -15,6 +15,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserRole, UserStatus } from '@thoovitickets/database';
 import { EmailService } from '../email/email.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly referralsService: ReferralsService,
   ) {
     setInterval(() => {
       const now = Date.now();
@@ -89,6 +91,20 @@ export class AuthService {
           requesterId: user.id,
         },
       });
+
+      if (dto.referralCode) {
+        const referrer = await this.prisma.user.findUnique({
+          where: { referralCode: dto.referralCode },
+          select: { id: true },
+        });
+        if (referrer && referrer.id !== user.id) {
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { referredByUserId: referrer.id },
+          });
+          await this.referralsService.trackReferral(referrer.id, user.id, dto.referralCode);
+        }
+      }
     }
 
     const audience = isOrganiser ? 'organiser' : 'customer';

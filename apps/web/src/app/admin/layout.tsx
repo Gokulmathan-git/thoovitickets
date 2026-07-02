@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee, MessageSquare, User, LogOut, Image, ShoppingCart, Wallet, ClipboardCheck, Receipt } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, ShieldCheck, Tag, CreditCard, FileText, IndianRupee, MessageSquare, User, LogOut, Image, ShoppingCart, Wallet, ClipboardCheck, Receipt, Share2 } from 'lucide-react';
 
 const sidebarLinks = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -22,6 +22,7 @@ const sidebarLinks = [
   { href: '/admin/fees', label: 'Fees', icon: IndianRupee },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/settlements', label: 'Settlements', icon: Wallet },
+  { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
   { href: '/admin/gst-bills', label: 'GST Bills', icon: Receipt },
   { href: '/admin/terms-acceptances', label: 'T&C Accepted', icon: ClipboardCheck },
 ];

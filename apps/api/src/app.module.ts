@@ -31,6 +31,7 @@ import { SettlementsModule } from './modules/settlements/settlements.module';
 import { GstBillsModule } from './modules/gst-bills/gst-bills.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ProductsModule } from './modules/products/products.module';
+import { ReferralsModule } from './modules/referrals/referrals.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -76,6 +77,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
     GstBillsModule,
     NotificationsModule,
     ProductsModule,
+    ReferralsModule,
   ],
   providers: [
     {

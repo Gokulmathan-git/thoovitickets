@@ -28,6 +28,7 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
   const isOrganiser = searchParams.get('role') === 'organiser';
+  const referralCode = searchParams.get('ref') || '';
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', orgName: '', termsAccepted: false,
@@ -89,6 +90,7 @@ export function RegisterForm() {
         role: isOrganiser ? 'ORGANISER' : 'CUSTOMER',
         orgName: isOrganiser ? form.orgName.trim() : undefined,
         termsAccepted: true,
+        ...(isOrganiser && referralCode ? { referralCode } : {}),
       });
       const { user, accessToken } = response.data.data;
 
@@ -125,6 +127,13 @@ export function RegisterForm() {
 
         <form onSubmit={onSubmit} className="space-y-4">
           {error && <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-600 dark:text-red-400">{error}</div>}
+
+          {isOrganiser && referralCode && (
+            <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-700 dark:text-orange-300 flex items-center gap-2">
+              <span className="text-lg">🎉</span>
+              <span>Referred by code <strong>{referralCode}</strong></span>
+            </div>
+          )}
 
           {/* Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
