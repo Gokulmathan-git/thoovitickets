@@ -92,7 +92,7 @@ export default function HomePage() {
     <div className="bg-white dark:bg-gray-800">
       {/* Hero Carousel */}
       {loading ? (
-        <div className="h-[300px] sm:h-[400px] lg:h-[500px] animate-pulse bg-gray-200 dark:bg-gray-700" />
+        <div className="h-[300px] sm:h-[400px] lg:h-[500px] 2xl:h-150 animate-pulse bg-gray-200 dark:bg-gray-700" />
       ) : (
         <HeroCarousel eventBanners={eventBanners} adminBanners={adminBanners} />
       )}

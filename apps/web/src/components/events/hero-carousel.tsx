@@ -110,11 +110,11 @@ export function HeroCarousel({ eventBanners, adminBanners }: HeroCarouselProps) 
 
   return (
     <div className="relative overflow-hidden bg-gray-900">
-      <div className={`relative ${slide.type === 'admin' ? 'h-auto max-h-125' : 'h-112.5 sm:h-125'}`}>
+      <div className={`relative ${slide.type === 'admin' ? 'aspect-21/9 sm:aspect-14/5 2xl:aspect-3/1' : 'h-112.5 sm:h-125 2xl:h-150'}`}>
         <img
           src={slide.image}
           alt={slide.title}
-          className={slide.type === 'admin' ? 'w-full object-contain' : 'h-full w-full object-cover'}
+          className="h-full w-full object-cover"
         />
 
         {slide.type !== 'admin' && (
