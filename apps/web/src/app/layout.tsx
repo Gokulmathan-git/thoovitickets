@@ -48,7 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} h-full`} suppressHydrationWarning>
       <head>
-        <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+        {/* Razorpay disabled — using mock payment provider */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
             try {

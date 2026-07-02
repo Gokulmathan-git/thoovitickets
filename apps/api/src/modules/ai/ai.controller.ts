@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AiService } from './ai.service';
 import {
   GenerateDescriptionDto,
@@ -22,6 +23,7 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Roles(UserRole.ORGANISER)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('generate-description')
   @HttpCode(HttpStatus.OK)
   generateDescription(@Body() dto: GenerateDescriptionDto) {
@@ -29,6 +31,7 @@ export class AiController {
   }
 
   @Roles(UserRole.ORGANISER)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('improve-description')
   @HttpCode(HttpStatus.OK)
   improveDescription(@Body() dto: ImproveDescriptionDto) {
@@ -36,6 +39,7 @@ export class AiController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('chat')
   @HttpCode(HttpStatus.OK)
   chat(

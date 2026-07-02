@@ -21,8 +21,9 @@ export class AnalyticsController {
     return this.analyticsService.getOrganiserAnalytics(organiserId);
   }
 
+  @Roles(UserRole.ORGANISER)
   @Get('event/:eventId')
-  getEventMetrics(@Param('eventId') eventId: string) {
-    return this.analyticsService.getEventMetrics(eventId);
+  getEventMetrics(@CurrentUser('id') organiserId: string, @Param('eventId') eventId: string) {
+    return this.analyticsService.getEventMetrics(eventId, organiserId);
   }
 }

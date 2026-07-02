@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength, Equals } from 'class-validator';
 
 enum RegisterRole {
   CUSTOMER = 'CUSTOMER',
@@ -46,4 +46,8 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   orgDescription?: string;
+
+  @IsBoolean()
+  @Equals(true, { message: 'You must accept the Terms of Service' })
+  termsAccepted: boolean;
 }

@@ -32,6 +32,9 @@ export const registerSchema = z
     role: z.enum([UserRole.CUSTOMER, UserRole.ORGANISER]),
     orgName: z.string().min(2, 'Organisation name must be at least 2 characters').optional(),
     orgDescription: z.string().optional(),
+    termsAccepted: z.literal(true, {
+      errorMap: () => ({ message: 'You must accept the Terms of Service' }),
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

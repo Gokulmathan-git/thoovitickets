@@ -25,7 +25,7 @@ export class ReviewsController {
   @Public()
   @Get('public')
   findPublic(@Query('limit') limit?: string) {
-    return this.reviewsService.findApprovedForHomepage(limit ? parseInt(limit, 10) : 10);
+    return this.reviewsService.findApprovedForHomepage(Math.min(limit ? parseInt(limit, 10) : 10, 50));
   }
 
   @Roles(UserRole.ADMIN)
@@ -40,7 +40,7 @@ export class ReviewsController {
       status,
       search,
       page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 20,
+      limit: Math.min(limit ? parseInt(limit, 10) : 20, 100),
     });
   }
 

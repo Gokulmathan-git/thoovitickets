@@ -33,6 +33,17 @@ export class TicketsService {
     if (existingTickets > 0) return;
 
     const attendees = (order.attendeeData as any[]) || [];
+
+    const allVariantIds = attendees.flatMap((a: any) => (a.goodies || []).map((g: any) => g.variantId)).filter(Boolean);
+    let variantMap = new Map<string, { productName: string; size: string | null }>();
+    if (allVariantIds.length > 0) {
+      const variants = await this.prisma.productVariant.findMany({
+        where: { id: { in: allVariantIds } },
+        include: { product: { select: { name: true } } },
+      });
+      variantMap = new Map(variants.map((v) => [v.id, { productName: v.product.name, size: v.size }]));
+    }
+
     const ticketsToCreate: any[] = [];
 
     for (const item of order.items) {
@@ -47,6 +58,19 @@ export class TicketsService {
           phone: order.user?.phone || order.guestPhone || '',
         };
 
+        let goodiesData: any[] | null = null;
+        if (attendee.goodies?.length) {
+          goodiesData = attendee.goodies.map((g: any) => {
+            const info = variantMap.get(g.variantId);
+            return {
+              productId: g.productId,
+              productName: info?.productName || 'Unknown',
+              variantId: g.variantId,
+              size: info?.size || null,
+            };
+          });
+        }
+
         const ticketCode = this.qrService.generateTicketCode(orgName, eventDate);
         const { qrData, qrDataUrl } = await this.qrService.generateQrDataUrl(ticketCode);
 
@@ -57,6 +81,7 @@ export class TicketsService {
           attendeePhone: attendee.phone,
           qrData,
           qrDataUrl,
+          goodiesData: goodiesData || undefined,
           orderItemId: item.id,
           orderId: order.id,
         });
@@ -72,6 +97,7 @@ export class TicketsService {
       where: { id: orderId },
       include: {
         items: { include: { ticketType: true, event: true } },
+        tickets: true,
         user: true,
         payment: true,
       },
@@ -79,19 +105,34 @@ export class TicketsService {
 
     if (!order) throw new NotFoundException('Order not found');
 
+    const goodiesByItem = new Map<string, string[]>();
+    for (const ticket of order.tickets) {
+      const gd = ticket.goodiesData as any[] | null;
+      if (gd?.length) {
+        const key = ticket.orderItemId;
+        if (!goodiesByItem.has(key)) goodiesByItem.set(key, []);
+        const names = gd.map((g: any) => g.size ? `${g.productName} (${g.size})` : g.productName);
+        goodiesByItem.get(key)!.push(...names);
+      }
+    }
+
     const pdfBuffer = await this.invoiceService.generateInvoice({
       orderNumber: order.orderNumber,
       orderDate: new Date(order.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' }),
       customerName: order.user ? `${order.user.firstName} ${order.user.lastName}` : (order.guestName || 'Guest'),
       customerEmail: order.user?.email || order.guestEmail || '',
       customerPhone: order.user?.phone || order.guestPhone || undefined,
-      items: order.items.map((item) => ({
-        eventTitle: item.event.title,
-        ticketType: item.ticketType.name,
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.totalPrice),
-      })),
+      items: order.items.map((item) => {
+        const goodies = goodiesByItem.get(item.id);
+        return {
+          eventTitle: item.event.title,
+          ticketType: item.ticketType.name,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          totalPrice: Number(item.totalPrice),
+          goodies: goodies?.length ? [...new Set(goodies)].join(', ') : undefined,
+        };
+      }),
       subtotal: Number(order.subtotal),
       convenienceFee: Number(order.convenienceFee),
       platformFee: Number(order.platformFee),

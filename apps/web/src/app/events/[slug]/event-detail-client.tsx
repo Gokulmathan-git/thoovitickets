@@ -11,6 +11,22 @@ import { AttendeeForm, type AttendeeInfo } from '@/components/events/attendee-fo
 import { EventCountdown } from '@/components/events/event-countdown';
 import { EventReviews } from '@/components/reviews/event-reviews';
 
+interface GoodieVariant {
+  id: string;
+  size: string | null;
+}
+
+interface GoodieProduct {
+  id: string;
+  name: string;
+  hasSizeVariant: boolean;
+  variants: GoodieVariant[];
+}
+
+interface TicketGoodie {
+  product: GoodieProduct;
+}
+
 interface TicketType {
   id: string;
   name: string;
@@ -22,6 +38,7 @@ interface TicketType {
   isActive: boolean;
   saleStart: string | null;
   saleEnd: string | null;
+  goodies?: TicketGoodie[];
 }
 
 interface EventDetail {
@@ -383,6 +400,15 @@ export default function EventDetailClient({ slug }: { slug: string }) {
                             ) : (
                               <p className="mt-1 text-[11px] text-green-600 font-medium">{available} available</p>
                             )}
+                            {tt.goodies && tt.goodies.length > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {tt.goodies.map((g) => (
+                                  <span key={g.product.id} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                    🎁 {g.product.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right shrink-0">
                             {Number(tt.price) === 0 ? (
@@ -457,7 +483,7 @@ export default function EventDetailClient({ slug }: { slug: string }) {
 
       {showAttendeeForm && event && (
         <AttendeeForm
-          tickets={event.ticketTypes.filter((tt) => (quantities[tt.id] || 0) > 0).map((tt) => ({ ticketTypeId: tt.id, ticketName: tt.name, price: Number(tt.price), quantity: quantities[tt.id] }))}
+          tickets={event.ticketTypes.filter((tt) => (quantities[tt.id] || 0) > 0).map((tt) => ({ ticketTypeId: tt.id, ticketName: tt.name, price: Number(tt.price), quantity: quantities[tt.id], goodies: tt.goodies?.map((g) => ({ productId: g.product.id, productName: g.product.name, hasSizeVariant: g.product.hasSizeVariant, variants: g.product.variants })) || [] }))}
           loading={addingToCart !== null}
           onClose={() => setShowAttendeeForm(false)}
           onSubmit={(attendees: AttendeeInfo[]) => handleAfterAttendee(attendees)}

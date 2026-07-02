@@ -94,6 +94,4 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   bannerUrl?: string;
-
-  [key: string]: unknown;
 }

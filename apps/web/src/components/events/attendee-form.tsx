@@ -5,11 +5,29 @@ import { Button } from '@/components/ui/button';
 import { X, User, ChevronDown, ChevronUp } from 'lucide-react';
 import { validateName, validateEmail, validatePhone, sanitizeName, sanitizePhone } from '@/lib/validators';
 
+interface GoodieVariant {
+  id: string;
+  size: string | null;
+}
+
+interface GoodieOption {
+  productId: string;
+  productName: string;
+  hasSizeVariant: boolean;
+  variants: GoodieVariant[];
+}
+
 interface TicketSelection {
   ticketTypeId: string;
   ticketName: string;
   price: number;
   quantity: number;
+  goodies?: GoodieOption[];
+}
+
+export interface AttendeeGoodieSelection {
+  productId: string;
+  variantId: string;
 }
 
 export interface AttendeeInfo {
@@ -18,6 +36,7 @@ export interface AttendeeInfo {
   name: string;
   email: string;
   phone: string;
+  goodies?: AttendeeGoodieSelection[];
 }
 
 interface AttendeeFormProps {
@@ -28,16 +47,29 @@ interface AttendeeFormProps {
 }
 
 export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFormProps) {
-  // Build initial attendee list — one entry per ticket
+  const goodiesMap = new Map<string, GoodieOption[]>();
+  tickets.forEach((t) => {
+    if (t.goodies?.length) goodiesMap.set(t.ticketTypeId, t.goodies);
+  });
+
   const initialAttendees: AttendeeInfo[] = [];
   tickets.forEach((t) => {
     for (let i = 0; i < t.quantity; i++) {
+      const autoGoodies: AttendeeGoodieSelection[] = [];
+      if (t.goodies?.length) {
+        for (const g of t.goodies) {
+          if (!g.hasSizeVariant && g.variants.length > 0) {
+            autoGoodies.push({ productId: g.productId, variantId: g.variants[0].id });
+          }
+        }
+      }
       initialAttendees.push({
         ticketTypeId: t.ticketTypeId,
         ticketName: t.ticketName,
         name: '',
         email: '',
         phone: '',
+        goodies: autoGoodies.length > 0 ? autoGoodies : undefined,
       });
     }
   });
@@ -51,6 +83,16 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  const updateGoodie = (attendeeIdx: number, productId: string, variantId: string) => {
+    setAttendees((prev) => prev.map((a, i) => {
+      if (i !== attendeeIdx) return a;
+      const current = a.goodies || [];
+      const updated = current.filter((g) => g.productId !== productId);
+      if (variantId) updated.push({ productId, variantId });
+      return { ...a, goodies: updated.length > 0 ? updated : undefined };
+    }));
+  };
 
   const updateAttendee = (index: number, field: keyof AttendeeInfo, value: string) => {
     let sanitized = value;
@@ -74,6 +116,18 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
       } else {
         const phoneErr = validatePhone(a.phone);
         if (phoneErr) errs[`${i}-phone`] = phoneErr;
+      }
+
+      const ticketGoodies = goodiesMap.get(a.ticketTypeId);
+      if (ticketGoodies) {
+        for (const g of ticketGoodies) {
+          if (g.hasSizeVariant) {
+            const selected = a.goodies?.find((sg) => sg.productId === g.productId);
+            if (!selected?.variantId) {
+              errs[`${i}-goodie-${g.productId}`] = `Please select a size for ${g.productName}`;
+            }
+          }
+        }
       }
     });
     setErrors(errs);
@@ -202,6 +256,42 @@ export function AttendeeForm({ tickets, onSubmit, onClose, loading }: AttendeeFo
                       />
                       {errors[`${index}-phone`] && <p className="mt-1 text-xs text-red-500">{errors[`${index}-phone`]}</p>}
                     </div>
+                    {/* Goodies Selection */}
+                    {goodiesMap.has(attendee.ticketTypeId) && (
+                      <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10 p-3 space-y-2">
+                        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">🎁 Included Goodies</p>
+                        {goodiesMap.get(attendee.ticketTypeId)!.map((goodie) => {
+                          const selectedVariantId = attendee.goodies?.find((g) => g.productId === goodie.productId)?.variantId || '';
+                          const errorKey = `${index}-goodie-${goodie.productId}`;
+
+                          return (
+                            <div key={goodie.productId}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm text-gray-700 dark:text-gray-300">{goodie.productName}</span>
+                                {goodie.hasSizeVariant ? (
+                                  <select
+                                    value={selectedVariantId}
+                                    onChange={(e) => {
+                                      updateGoodie(index, goodie.productId, e.target.value);
+                                      setErrors((prev) => { const next = { ...prev }; delete next[errorKey]; return next; });
+                                    }}
+                                    className={`rounded-md border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100 bg-white dark:bg-gray-800 ${errors[errorKey] ? 'border-red-400' : 'border-gray-300 dark:border-gray-700'}`}
+                                  >
+                                    <option value="">Select size *</option>
+                                    {goodie.variants.map((v) => (
+                                      <option key={v.id} value={v.id}>{v.size || 'Free Size'}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Included</span>
+                                )}
+                              </div>
+                              {errors[errorKey] && <p className="mt-0.5 text-xs text-red-500 text-right">{errors[errorKey]}</p>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     {index < totalTickets - 1 && (
                       <Button
                         type="button"

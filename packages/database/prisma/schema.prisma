@@ -171,7 +171,10 @@ model User {
   subscriptionPayments SubscriptionPayment[]
   discounts            Discount[] @relation("OrganiserDiscounts")
   settlements          Settlement[] @relation("OrganiserSettlements")
+  gstBills             GstBill[]    @relation("OrganiserGstBills")
   notifications        Notification[]
+  termsAcceptances     TermsAcceptance[]
+  products             Product[]
 
   @@map("users")
 }
@@ -275,6 +278,7 @@ model TicketType {
   cartItems   CartItem[]
   orderItems    OrderItem[]
   discountLinks DiscountTicketType[]
+  goodies       TicketGoodie[]
 
   @@index([eventId])
   @@map("ticket_types")
@@ -485,6 +489,7 @@ model Settlement {
 
   organiser       User             @relation("OrganiserSettlements", fields: [organiserId], references: [id])
   event           Event            @relation(fields: [eventId], references: [id])
+  gstBills        GstBill[]
 
   @@index([organiserId])
   @@index([eventId])
@@ -502,6 +507,7 @@ model Ticket {
   qrData        String       @map("qr_data")
   qrDataUrl     String?      @map("qr_data_url") @db.Text
   checkedInAt   DateTime?    @map("checked_in_at")
+  goodiesData   Json?        @map("goodies_data")
 
   orderItemId   String       @map("order_item_id")
   orderId       String       @map("order_id")
@@ -744,4 +750,115 @@ model Notification {
 
   @@index([userId, isRead, createdAt])
   @@map("notifications")
+}
+
+// ─── TERMS ACCEPTANCE ───────────────────────────────
+
+model TermsAcceptance {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  contentPageId   String   @map("content_page_id")
+  contentVersion  DateTime @map("content_version")
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent") @db.Text
+  acceptedAt      DateTime @default(now()) @map("accepted_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([contentPageId])
+  @@map("terms_acceptances")
+}
+
+// ─── PRODUCTS / GOODIES ─────────────────────────────
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  imageUrl       String?  @map("image_url")
+  hasSizeVariant Boolean  @default(false) @map("has_size_variant")
+  isActive       Boolean  @default(true) @map("is_active")
+
+  organiserId    String   @map("organiser_id")
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organiser      User     @relation(fields: [organiserId], references: [id])
+  variants       ProductVariant[]
+  ticketGoodies  TicketGoodie[]
+
+  @@index([organiserId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  size      String?
+
+  productId String  @map("product_id")
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model TicketGoodie {
+  id           String     @id @default(cuid())
+
+  ticketTypeId String     @map("ticket_type_id")
+  productId    String     @map("product_id")
+
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketTypeId, productId])
+  @@map("ticket_goodies")
+}
+
+model GstBill {
+  id              String   @id @default(cuid())
+  billNumber      String   @unique @map("bill_number")
+  billDate        DateTime @map("bill_date")
+
+  companyName     String   @default("ThooviTickets") @map("company_name")
+  companyGst      String?  @map("company_gst")
+  companyPan      String?  @map("company_pan")
+  companyAddress  String?  @map("company_address") @db.Text
+
+  organiserId     String   @map("organiser_id")
+  settlementId    String?  @map("settlement_id")
+
+  orgName         String   @map("org_name")
+  orgGstNumber    String?  @map("org_gst_number")
+  orgAddress      String?  @map("org_address")
+
+  description     String   @db.Text
+  hsnCode         String?  @map("hsn_code")
+  quantity        Int      @default(1)
+  rate            Decimal  @db.Decimal(10, 2)
+  taxableAmount   Decimal  @db.Decimal(10, 2) @map("taxable_amount")
+  cgstPercent     Decimal  @db.Decimal(5, 2) @default(9) @map("cgst_percent")
+  cgstAmount      Decimal  @db.Decimal(10, 2) @map("cgst_amount")
+  sgstPercent     Decimal  @db.Decimal(5, 2) @default(9) @map("sgst_percent")
+  sgstAmount      Decimal  @db.Decimal(10, 2) @map("sgst_amount")
+  igstPercent     Decimal  @db.Decimal(5, 2) @default(0) @map("igst_percent")
+  igstAmount      Decimal  @db.Decimal(10, 2) @default(0) @map("igst_amount")
+  totalAmount     Decimal  @db.Decimal(10, 2) @map("total_amount")
+  amountInWords   String?  @map("amount_in_words")
+
+  notes           String?  @db.Text
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  organiser       User     @relation("OrganiserGstBills", fields: [organiserId], references: [id])
+  settlement      Settlement? @relation(fields: [settlementId], references: [id])
+
+  @@index([organiserId])
+  @@index([settlementId])
+  @@index([billNumber])
+  @@map("gst_bills")
 }

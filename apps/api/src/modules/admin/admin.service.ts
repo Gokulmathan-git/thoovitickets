@@ -167,7 +167,7 @@ export class AdminService {
 
   async getUsers(query: { role?: string; status?: string; search?: string; page?: number; limit?: number }) {
     const page = query.page || 1;
-    const limit = query.limit || 20;
+    const limit = Math.min(query.limit || 20, 100);
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {};
@@ -355,7 +355,7 @@ export class AdminService {
 
   async getEvents(query: { status?: string; search?: string; page?: number; limit?: number }) {
     const page = query.page || 1;
-    const limit = query.limit || 20;
+    const limit = Math.min(query.limit || 20, 100);
     const skip = (page - 1) * limit;
 
     const where: Prisma.EventWhereInput = {};
@@ -489,18 +489,19 @@ export class AdminService {
   }
 
   async getPlans() {
-    return this.prisma.plan.findMany({ orderBy: { sortOrder: 'asc' } });
+    return this.prisma.plan.findMany({ orderBy: { sortOrder: 'asc' }, take: 50 });
   }
 
-  async createPlan(data: {
-    tier: string; name: string; price: number;
-    maxEventsPerMonth: number; maxTicketTiers: number; maxTicketsPerEvent: number;
-    maxStaffAccounts: number; commissionPercent: number; features: string[]; sortOrder?: number;
-  }) {
+  async createPlan(data: any) {
     return this.prisma.plan.create({ data });
   }
 
-  async updatePlan(id: string, data: Record<string, unknown>) {
+  async updatePlan(id: string, data: {
+    name?: string; price?: number; priceQuarterly?: number; priceHalfYearly?: number; priceYearly?: number;
+    maxEventsPerMonth?: number; maxTicketTiers?: number; maxTicketsPerEvent?: number;
+    maxStaffAccounts?: number; commissionPercent?: number; commissionType?: string;
+    features?: string[]; isActive?: boolean; sortOrder?: number;
+  }) {
     const plan = await this.prisma.plan.findUnique({ where: { id } });
     if (!plan) throw new NotFoundException('Plan not found');
     return this.prisma.plan.update({ where: { id }, data });
@@ -521,6 +522,7 @@ export class AdminService {
     return this.prisma.eventCategory.findMany({
       orderBy: { sortOrder: 'asc' },
       include: { _count: { select: { events: true } } },
+      take: 100,
     });
   }
 
@@ -553,7 +555,7 @@ export class AdminService {
   }
 
   async getContentPages() {
-    return this.prisma.contentPage.findMany({ orderBy: [{ slug: 'asc' }, { audience: 'asc' }] });
+    return this.prisma.contentPage.findMany({ orderBy: [{ slug: 'asc' }, { audience: 'asc' }], take: 200 });
   }
 
   async getContentPage(id: string) {
@@ -736,5 +738,80 @@ export class AdminService {
     if (!banner) throw new NotFoundException('Banner not found');
     await this.prisma.homeBanner.delete({ where: { id } });
     return { message: 'Banner deleted' };
+  }
+
+  // ─── TERMS ACCEPTANCES ─────────────────────────────
+
+  async getTermsAcceptances(query: { audience?: string; page?: number; limit?: number }) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = {};
+    if (query.audience) {
+      const contentPages = await this.prisma.contentPage.findMany({
+        where: { slug: 'terms-of-service', audience: query.audience },
+        select: { id: true },
+      });
+      where.contentPageId = { in: contentPages.map((p) => p.id) };
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.termsAcceptance.findMany({
+        where,
+        include: {
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true, role: true, status: true },
+          },
+        },
+        orderBy: { acceptedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.termsAcceptance.count({ where }),
+    ]);
+
+    const contentPageIds = [...new Set(data.map((d) => d.contentPageId))];
+    const contentPages = await this.prisma.contentPage.findMany({
+      where: { id: { in: contentPageIds } },
+      select: { id: true, title: true, audience: true, slug: true, updatedAt: true },
+    });
+    const pageMap = new Map(contentPages.map((p) => [p.id, p]));
+
+    return {
+      data: data.map((record) => ({
+        ...record,
+        contentPage: pageMap.get(record.contentPageId) || null,
+      })),
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async getUserTermsAcceptances(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const acceptances = await this.prisma.termsAcceptance.findMany({
+      where: { userId },
+      orderBy: { acceptedAt: 'desc' },
+    });
+
+    const contentPageIds = [...new Set(acceptances.map((a) => a.contentPageId))];
+    const contentPages = await this.prisma.contentPage.findMany({
+      where: { id: { in: contentPageIds } },
+      select: { id: true, title: true, audience: true, slug: true, updatedAt: true },
+    });
+    const pageMap = new Map(contentPages.map((p) => [p.id, p]));
+
+    return {
+      user,
+      acceptances: acceptances.map((record) => ({
+        ...record,
+        contentPage: pageMap.get(record.contentPageId) || null,
+      })),
+    };
   }
 }

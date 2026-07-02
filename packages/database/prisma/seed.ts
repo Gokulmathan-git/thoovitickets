@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import * as dotenv from 'dotenv';
 
 dotenv.config({ path: '../../.env' });
@@ -22,7 +23,7 @@ const categories = [
 async function main() {
   // Seed admin user
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@thoovitickets.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+  const adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
 
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
@@ -42,6 +43,10 @@ async function main() {
       },
     });
     console.log(`Admin user created: ${admin.email}`);
+    if (!process.env.ADMIN_PASSWORD) {
+      console.log(`Generated admin password: ${adminPassword}`);
+      console.log('IMPORTANT: Save this password — it will not be shown again.');
+    }
   } else {
     console.log('Admin user already exists, skipping.');
   }

@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { IsString } from 'class-validator';
 import { PaymentsService } from './payments.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -24,6 +25,7 @@ class VerifyPaymentDto {
 }
 
 @Controller('payments')
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 

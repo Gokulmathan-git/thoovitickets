@@ -78,7 +78,7 @@ export default function SubscriptionsPage() {
 
   const openRazorpayCheckout = (paymentInfo: PaymentInfo, verifyEndpoint: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
+      const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void; on: (event: string, handler: (...args: any[]) => void) => void } };
       if (!win.Razorpay) {
         reject(new Error('Payment gateway not loaded. Please refresh the page.'));
         return;
@@ -90,6 +90,7 @@ export default function SubscriptionsPage() {
         currency: paymentInfo.currency,
         name: 'ThooviTickets',
         description: `${paymentInfo.planName} Plan Subscription`,
+        image: `${window.location.origin}/Main_logo.png`,
         order_id: paymentInfo.providerOrderId,
         prefill: paymentInfo.prefill,
         theme: { color: '#f97316' },
@@ -109,8 +110,15 @@ export default function SubscriptionsPage() {
         },
         modal: {
           ondismiss: () => reject(new Error('Payment cancelled')),
+          confirm_close: true,
         },
       });
+
+      rzp.on('payment.failed', (response: { error: { code: string; description: string; source: string; step: string; reason: string } }) => {
+        console.error('Razorpay payment failed:', response.error);
+        reject(new Error(response.error.description || 'Payment failed'));
+      });
+
       rzp.open();
     });
   };

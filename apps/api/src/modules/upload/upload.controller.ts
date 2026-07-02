@@ -9,11 +9,13 @@ import {
   UploadedFile,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService, BucketName } from './upload.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('upload')
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 

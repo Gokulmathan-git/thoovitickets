@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { CategorySelect } from '@/components/ui/category-select';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Trash2, Plus, Shield, Globe, Clock, Sparkles, AlertTriangle, X } from 'lucide-react';
+import { Trash2, Plus, Shield, Globe, Clock, Sparkles, AlertTriangle, X, Lock, ArrowUpCircle } from 'lucide-react';
 import { MapPicker } from '@/components/events/map-picker';
 import { AiDescriptionGenerator } from '@/components/ai/ai-description-generator';
 import { useAuthStore } from '@/stores/auth-store';
@@ -96,6 +96,13 @@ export default function CreateEventPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [planUsage, setPlanUsage] = useState<{
+    events: { used: number; max: number };
+    ticketTiers: { max: number };
+    ticketsPerEvent: { max: number };
+    tier: string;
+  } | null>(null);
+  const [planLoading, setPlanLoading] = useState(true);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [eventImageUrl, setEventImageUrl] = useState<string | null>(null);
@@ -132,8 +139,15 @@ export default function CreateEventPage() {
     name: 'ticketTypes',
   });
 
+  const [orgProducts, setOrgProducts] = useState<any[]>([]);
+  const [ticketGoodies, setTicketGoodies] = useState<Record<number, string[]>>({});
+
   useEffect(() => {
     apiClient.get('/categories').then((res) => setCategories(res.data.data));
+    apiClient.get('/subscriptions/usage')
+      .then((res) => setPlanUsage(res.data.data))
+      .finally(() => setPlanLoading(false));
+    apiClient.get('/products').then((res) => setOrgProducts(res.data.data || [])).catch(() => {});
   }, []);
 
   const [minStartDate] = useState(() => getMinStartDate(selectedTimezone));
@@ -199,12 +213,15 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      const ticketTypes = data.ticketTypes.map((t: any) => {
+      const ticketTypes = data.ticketTypes.map((t: any, idx: number) => {
         const ticket = { ...t };
         if (ticket.saleStartNow) {
           ticket.saleStart = new Date().toISOString();
         }
         delete ticket.saleStartNow;
+        if (ticketGoodies[idx]?.length) {
+          ticket.goodieProductIds = ticketGoodies[idx];
+        }
         return ticket;
       });
 
@@ -265,6 +282,57 @@ export default function CreateEventPage() {
 
   const profileCompleted = (user as any)?.profileCompleted;
 
+  if (planLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-200 border-t-orange-600" />
+      </div>
+    );
+  }
+
+  if (planUsage && planUsage.events.used >= planUsage.events.max) {
+    return (
+      <div>
+        <h1 className="mb-6 text-xl font-bold text-gray-900 dark:text-gray-100 sm:text-2xl">Create New Event</h1>
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                <Lock className="h-8 w-8 text-orange-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Event Limit Reached</h2>
+              <p className="max-w-md text-sm text-gray-600 dark:text-gray-300">
+                You&apos;ve used <strong>{planUsage.events.used}/{planUsage.events.max} events</strong> this month on your <strong>{planUsage.tier}</strong> plan.
+                Upgrade your subscription to create more events.
+              </p>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm">
+                <div className="flex items-center gap-6">
+                  <div>
+                    <p className="text-xs text-gray-400">Events Used</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{planUsage.events.used} / {planUsage.events.max}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Max Ticket Tiers</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{planUsage.ticketTiers.max}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Max Tickets/Event</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100">{planUsage.ticketsPerEvent.max}</p>
+                  </div>
+                </div>
+              </div>
+              <Link href="/organiser/subscriptions">
+                <Button className="bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white">
+                  <ArrowUpCircle className="mr-2 h-4 w-4" /> Upgrade Plan
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (user && !profileCompleted) {
     return (
       <div>
@@ -324,6 +392,32 @@ export default function CreateEventPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {planUsage && (
+        <div className="rounded-xl border border-orange-200/60 dark:border-orange-800/30 bg-orange-50/50 dark:bg-orange-900/10 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-4 text-sm">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                <span className="rounded-full bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-xs font-bold text-orange-700 dark:text-orange-400">{planUsage.tier}</span>
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Events: <strong className="text-gray-700 dark:text-gray-200">{planUsage.events.used}/{planUsage.events.max}</strong> this month
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Ticket tiers: <strong className="text-gray-700 dark:text-gray-200">max {planUsage.ticketTiers.max}</strong>
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">
+                Tickets/event: <strong className="text-gray-700 dark:text-gray-200">max {planUsage.ticketsPerEvent.max}</strong>
+              </span>
+            </div>
+            {planUsage.tier === 'FREE' && (
+              <Link href="/organiser/subscriptions" className="text-xs font-semibold text-orange-600 hover:text-orange-700">
+                Upgrade for more →
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
@@ -762,6 +856,45 @@ export default function CreateEventPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Goodies */}
+                  {orgProducts.length > 0 && (
+                    <div className="mt-3 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">Included Goodies</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {(ticketGoodies[index] || []).map((pid: string) => {
+                          const product = orgProducts.find((p: any) => p.id === pid);
+                          return product ? (
+                            <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-900/20 px-2.5 py-1 text-xs font-medium text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                              {product.name}
+                              <button type="button" onClick={() => setTicketGoodies((prev) => ({ ...prev, [index]: (prev[index] || []).filter((id: string) => id !== pid) }))} className="text-orange-400 hover:text-orange-600">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          setTicketGoodies((prev) => {
+                            const current = prev[index] || [];
+                            if (current.includes(e.target.value)) return prev;
+                            return { ...prev, [index]: [...current, e.target.value] };
+                          });
+                        }}
+                        className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 dark:text-gray-100"
+                      >
+                        <option value="">+ Add a goodie...</option>
+                        {orgProducts.filter((p: any) => !(ticketGoodies[index] || []).includes(p.id)).map((p: any) => (
+                          <option key={p.id} value={p.id}>{p.name} {p.hasSizeVariant ? '(Has Sizes)' : '(Free Size)'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               );
             })}

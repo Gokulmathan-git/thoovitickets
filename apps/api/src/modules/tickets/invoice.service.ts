@@ -15,6 +15,7 @@ interface InvoiceData {
     quantity: number;
     unitPrice: number;
     totalPrice: number;
+    goodies?: string;
   }[];
   subtotal: number;
   convenienceFee: number;
@@ -312,8 +313,15 @@ export class InvoiceService {
         .text(`${data.currency} ${item.unitPrice.toFixed(2)}`, 330, y + 4, { width: 80, align: 'right' })
         .text(`${data.currency} ${item.totalPrice.toFixed(2)}`, 430, y + 4, { width: 110, align: 'right' });
 
-      y += 35;
-      doc.moveTo(50, y - 5).lineTo(545, y - 5).strokeColor('#f3f4f6').stroke();
+      y += 26;
+      if (item.goodies) {
+        doc.fillColor('#059669').fontSize(8).font('Helvetica').text(`Goodies: ${item.goodies}`, 80, y, { width: 360 });
+        y += 14;
+      }
+      y += 5;
+      doc.moveTo(50, y).lineTo(545, y).strokeColor('#f3f4f6').stroke();
+      y += 5;
+      doc.fontSize(9);
     });
 
     this.tableBottomY = y;

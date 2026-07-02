@@ -147,8 +147,9 @@ export default function CheckoutPage() {
     setError(null);
     setPaymentStep('paying');
 
+    let orderId: string | null = null;
+
     try {
-      let orderId: string;
 
       if (isGuestCheckout) {
         const orderRes = await apiClient.post('/orders/guest', {
@@ -178,9 +179,13 @@ export default function CheckoutPage() {
           const paymentInfo = payRes.data.data;
 
           if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
-            await openRazorpayCheckout(orderId, paymentInfo, guestInfo.email);
+            await openRazorpayCheckout(orderId!, paymentInfo, guestInfo.email);
           } else {
-            await apiClient.post(`/orders/guest/${orderId}/confirm`, {
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await apiClient.post(`/payments/guest/verify/${orderId}`, {
+              providerPaymentId: `mock_pay_${Date.now()}`,
+              providerOrderId: paymentInfo.providerOrderId,
+              providerSignature: 'mock_valid_signature',
               guestEmail: guestInfo.email,
             });
           }
@@ -210,7 +215,7 @@ export default function CheckoutPage() {
           const paymentInfo = payRes.data.data;
 
           if (paymentInfo.provider === 'razorpay' && paymentInfo.keyId) {
-            await openRazorpayCheckout(orderId, paymentInfo);
+            await openRazorpayCheckout(orderId!, paymentInfo);
           } else {
             await new Promise((resolve) => setTimeout(resolve, 1500));
             await apiClient.post(`/payments/verify/${orderId}`, {
@@ -236,6 +241,18 @@ export default function CheckoutPage() {
       }
     } catch (err: unknown) {
       console.error('Checkout error:', err);
+
+      // Cancel the order to restore ticket stock
+      if (orderId) {
+        try {
+          if (isGuestCheckout) {
+            await apiClient.post(`/orders/guest/${orderId}/cancel`, { guestEmail: guestInfo.email });
+          } else {
+            await apiClient.post(`/orders/${orderId}/cancel`);
+          }
+        } catch { /* best effort */ }
+      }
+
       const axiosError = err as { response?: { data?: { error?: { message?: string } } } };
       const msg = axiosError.response?.data?.error?.message || (err instanceof Error ? err.message : 'Payment failed. Please try again.');
       setError(msg);
@@ -246,7 +263,7 @@ export default function CheckoutPage() {
   };
 
   const openRazorpayCheckout = async (orderId: string, paymentInfo: { providerOrderId: string; amount: number; currency: string; keyId?: string; orderNumber: string; prefill: { name: string; email: string; contact: string } }, guestEmail?: string) => {
-    const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } };
+    const win = window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void; on: (event: string, handler: (...args: any[]) => void) => void } };
 
     // Wait for Razorpay SDK to load (max 5 seconds)
     if (!win.Razorpay) {
@@ -261,13 +278,13 @@ export default function CheckoutPage() {
     }
 
     return new Promise<void>((resolve, reject) => {
-      const rzp = new win.Razorpay!({
+      const options: Record<string, unknown> = {
         key: paymentInfo.keyId,
         amount: paymentInfo.amount * 100,
         currency: paymentInfo.currency,
         name: 'ThooviTickets',
         description: `Order #${paymentInfo.orderNumber}`,
-        image: '/Main_logo.png',
+        image: `${window.location.origin}/Main_logo.png`,
         order_id: paymentInfo.providerOrderId,
         prefill: paymentInfo.prefill,
         theme: { color: '#FF541F' },
@@ -285,8 +302,19 @@ export default function CheckoutPage() {
             resolve();
           } catch (err) { reject(err); }
         },
-        modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
+        modal: {
+          ondismiss: () => reject(new Error('Payment cancelled')),
+          confirm_close: true,
+        },
+      };
+
+      const rzp = new win.Razorpay!(options);
+
+      rzp.on('payment.failed', (response: { error: { code: string; description: string; source: string; step: string; reason: string; metadata: { order_id: string; payment_id: string } } }) => {
+        console.error('Razorpay payment failed:', response.error);
+        reject(new Error(response.error.description || 'Payment failed'));
       });
+
       rzp.open();
     });
   };

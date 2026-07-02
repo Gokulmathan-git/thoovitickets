@@ -381,19 +381,36 @@ export class OrdersService {
       throw new BadRequestException('Order cannot be cancelled');
     }
 
+    await this._cancelOrderTransaction(order);
+    return { message: 'Order cancelled successfully' };
+  }
+
+  async cancelGuestOrder(orderId: string, guestEmail: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, guestEmail, userId: null },
+      include: { items: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('Order cannot be cancelled');
+    }
+
+    await this._cancelOrderTransaction(order);
+    return { message: 'Order cancelled successfully' };
+  }
+
+  private async _cancelOrderTransaction(order: { id: string; items: { ticketTypeId: string; quantity: number }[] }) {
     await this.prisma.$transaction(async (tx) => {
       await tx.order.update({
-        where: { id: orderId },
+        where: { id: order.id },
         data: { status: OrderStatus.CANCELLED },
       });
 
-      // Cancel any generated tickets
       await tx.ticket.updateMany({
-        where: { orderItem: { orderId } },
+        where: { orderItem: { orderId: order.id } },
         data: { status: 'CANCELLED' },
       });
 
-      // Release reserved tickets
       for (const item of order.items) {
         await tx.ticketType.update({
           where: { id: item.ticketTypeId },
@@ -401,8 +418,6 @@ export class OrdersService {
         });
       }
     });
-
-    return { message: 'Order cancelled successfully' };
   }
 
   async getMyOrders(userId: string) {
@@ -455,7 +470,7 @@ export class OrdersService {
     query: { eventId?: string; status?: string; page?: number; limit?: number },
   ) {
     const page = query.page || 1;
-    const limit = query.limit || 20;
+    const limit = Math.min(query.limit || 20, 100);
     const skip = (page - 1) * limit;
 
     // Find all events belonging to this organiser
@@ -559,27 +574,29 @@ export class OrdersService {
       throw new ForbiddenException('This event does not belong to you');
     }
 
-    const tickets = await this.prisma.ticket.findMany({
-      where: {
-        orderItem: { eventId },
-      },
-      select: {
-        id: true,
-        attendeeName: true,
-        attendeeEmail: true,
-        attendeePhone: true,
-        ticketCode: true,
-        qrDataUrl: true,
-        status: true,
-        checkedInAt: true,
-        orderItem: {
-          select: {
-            ticketType: { select: { name: true } },
+    const [tickets, total] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where: { orderItem: { eventId } },
+        select: {
+          id: true,
+          attendeeName: true,
+          attendeeEmail: true,
+          attendeePhone: true,
+          ticketCode: true,
+          qrDataUrl: true,
+          status: true,
+          checkedInAt: true,
+          orderItem: {
+            select: {
+              ticketType: { select: { name: true } },
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+        orderBy: { createdAt: 'asc' },
+        take: 500,
+      }),
+      this.prisma.ticket.count({ where: { orderItem: { eventId } } }),
+    ]);
 
     return {
       event: { id: event.id, title: event.title },
@@ -594,7 +611,7 @@ export class OrdersService {
         checkedInAt: t.checkedInAt,
         ticketTypeName: t.orderItem.ticketType.name,
       })),
-      total: tickets.length,
+      total,
     };
   }
 
@@ -608,7 +625,7 @@ export class OrdersService {
     limit?: number;
   }) {
     const page = query.page || 1;
-    const limit = query.limit || 20;
+    const limit = Math.min(query.limit || 20, 100);
     const skip = (page - 1) * limit;
 
     const where: Prisma.OrderWhereInput = {};

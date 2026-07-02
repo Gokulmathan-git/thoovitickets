@@ -18,6 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@thoovitickets/shared';
 import { ApprovalActionDto } from './dto/approval-action.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto';
 
 @Controller('admin')
 @Roles(UserRole.ADMIN)
@@ -210,13 +211,13 @@ export class AdminController {
   }
 
   @Post('plans')
-  createPlan(@Body() body: any) {
+  createPlan(@Body() body: CreatePlanDto) {
     return this.adminService.createPlan(body);
   }
 
   @Patch('plans/:id')
   @HttpCode(HttpStatus.OK)
-  updatePlan(@Param('id') id: string, @Body() body: any) {
+  updatePlan(@Param('id') id: string, @Body() body: UpdatePlanDto) {
     return this.adminService.updatePlan(id, body);
   }
 
@@ -300,5 +301,25 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   deleteBanner(@Param('id') id: string) {
     return this.adminService.deleteBanner(id);
+  }
+
+  // ─── TERMS ACCEPTANCES ─────────────────────────────
+
+  @Get('terms-acceptances')
+  getTermsAcceptances(
+    @Query('audience') audience?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.getTermsAcceptances({
+      audience,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
+  }
+
+  @Get('terms-acceptances/:userId')
+  getUserTermsAcceptances(@Param('userId') userId: string) {
+    return this.adminService.getUserTermsAcceptances(userId);
   }
 }

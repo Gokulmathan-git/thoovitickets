@@ -18,14 +18,25 @@ import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
+  private loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+  private readonly MAX_ATTEMPTS = 5;
+  private readonly LOCKOUT_MS = 15 * 60 * 1000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
-  ) {}
+  ) {
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, val] of this.loginAttempts) {
+        if (now - val.lastAttempt > this.LOCKOUT_MS) this.loginAttempts.delete(key);
+      }
+    }, 5 * 60 * 1000);
+  }
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
@@ -80,6 +91,23 @@ export class AuthService {
       });
     }
 
+    const audience = isOrganiser ? 'organiser' : 'customer';
+    const termsPage = await this.prisma.contentPage.findUnique({
+      where: { slug_audience: { slug: 'terms-of-service', audience } },
+    });
+
+    if (termsPage) {
+      await this.prisma.termsAcceptance.create({
+        data: {
+          userId: user.id,
+          contentPageId: termsPage.id,
+          contentVersion: termsPage.updatedAt,
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+        },
+      });
+    }
+
     await this.emailService.sendVerificationEmail(
       user.email,
       user.firstName,
@@ -100,18 +128,29 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    const email = dto.email.toLowerCase().trim();
+    const attempt = this.loginAttempts.get(email);
+    if (attempt && attempt.count >= this.MAX_ATTEMPTS && Date.now() - attempt.lastAttempt < this.LOCKOUT_MS) {
+      const minutesLeft = Math.ceil((this.LOCKOUT_MS - (Date.now() - attempt.lastAttempt)) / 60000);
+      throw new ForbiddenException(`Too many failed login attempts. Please try again in ${minutesLeft} minutes.`);
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase().trim() },
+      where: { email },
     });
 
     if (!user) {
+      this.recordFailedAttempt(email);
       throw new UnauthorizedException('This email is not registered.\nPlease create an account first.');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
+      this.recordFailedAttempt(email);
       throw new UnauthorizedException('Incorrect password. Please try again or use "Forgot password" to reset it.');
     }
+
+    this.loginAttempts.delete(email);
 
     if (!user.emailVerified && user.role === UserRole.ORGANISER) {
       throw new ForbiddenException('Please verify your email before logging in. Check your inbox for the verification link.');
@@ -351,5 +390,13 @@ export class AuthService {
   private sanitizeUser(user: Record<string, unknown>) {
     const { passwordHash, refreshToken, ...sanitized } = user;
     return sanitized;
+  }
+
+  private recordFailedAttempt(email: string) {
+    const existing = this.loginAttempts.get(email);
+    this.loginAttempts.set(email, {
+      count: (existing?.count || 0) + 1,
+      lastAttempt: Date.now(),
+    });
   }
 }

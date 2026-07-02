@@ -70,58 +70,63 @@ export class SettlementsService {
     const totalSettled = settledAgg._sum.netPayout ?? new Decimal(0);
     const pendingSettlement = totalPayout.sub(totalSettled);
 
-    // Breakdown by event
-    const eventBreakdown = await Promise.all(
-      events.map(async (event) => {
-        const eventOrders = await this.prisma.order.findMany({
-          where: {
-            status: 'CONFIRMED',
-            items: { some: { eventId: event.id } },
-          },
-          select: {
-            subtotal: true,
-            platformFee: true,
-            orgCommission: true,
-            orgPayout: true,
-          },
-        });
+    // Breakdown by event — batch queries instead of N+1
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: { eventId: { in: eventIds }, order: { status: 'CONFIRMED' } },
+      select: {
+        eventId: true,
+        order: { select: { id: true, subtotal: true, platformFee: true, orgCommission: true, orgPayout: true } },
+      },
+    });
 
-        let evtRevenue = new Decimal(0);
-        let evtPlatformFee = new Decimal(0);
-        let evtCommission = new Decimal(0);
-        let evtPayout = new Decimal(0);
+    const eventSettlements = await this.prisma.settlement.groupBy({
+      by: ['eventId'],
+      where: { eventId: { in: eventIds }, status: 'COMPLETED' },
+      _sum: { netPayout: true },
+    });
 
-        for (const o of eventOrders) {
-          evtRevenue = evtRevenue.add(o.subtotal);
-          evtPlatformFee = evtPlatformFee.add(o.platformFee);
-          evtCommission = evtCommission.add(o.orgCommission);
-          evtPayout = evtPayout.add(o.orgPayout);
-        }
+    const settledByEvent = new Map(eventSettlements.map((s) => [s.eventId, s._sum.netPayout ?? new Decimal(0)]));
 
-        const evtSettled = await this.prisma.settlement.aggregate({
-          where: { eventId: event.id, status: 'COMPLETED' },
-          _sum: { netPayout: true },
-        });
+    const eventOrderMap = new Map<string, { orderIds: Set<string>; revenue: Decimal; platformFee: Decimal; commission: Decimal; payout: Decimal }>();
+    for (const item of orderItems) {
+      const eid = item.eventId;
+      if (!eventOrderMap.has(eid)) {
+        eventOrderMap.set(eid, { orderIds: new Set(), revenue: new Decimal(0), platformFee: new Decimal(0), commission: new Decimal(0), payout: new Decimal(0) });
+      }
+      const entry = eventOrderMap.get(eid)!;
+      if (!entry.orderIds.has(item.order.id)) {
+        entry.orderIds.add(item.order.id);
+        entry.revenue = entry.revenue.add(item.order.subtotal);
+        entry.platformFee = entry.platformFee.add(item.order.platformFee);
+        entry.commission = entry.commission.add(item.order.orgCommission);
+        entry.payout = entry.payout.add(item.order.orgPayout);
+      }
+    }
 
-        const settledAmount = evtSettled._sum.netPayout ?? new Decimal(0);
+    const eventBreakdown = events.map((event) => {
+      const data = eventOrderMap.get(event.id);
+      const evtRevenue = data?.revenue ?? new Decimal(0);
+      const evtPlatformFee = data?.platformFee ?? new Decimal(0);
+      const evtCommission = data?.commission ?? new Decimal(0);
+      const evtPayout = data?.payout ?? new Decimal(0);
+      const settledAmount = settledByEvent.get(event.id) ?? new Decimal(0);
 
-        return {
-          eventId: event.id,
-          title: event.title,
-          slug: event.slug,
-          startDate: event.startDate,
-          endDate: event.endDate,
-          status: event.status,
-          totalOrders: eventOrders.length,
-          revenue: evtRevenue,
-          platformFee: evtPlatformFee,
-          commission: evtCommission,
-          payout: evtPayout,
-          settled: settledAmount,
-          available: evtPayout.sub(settledAmount),
-        };
-      }),
-    );
+      return {
+        eventId: event.id,
+        title: event.title,
+        slug: event.slug,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        status: event.status,
+        totalOrders: data?.orderIds.size ?? 0,
+        revenue: evtRevenue,
+        platformFee: evtPlatformFee,
+        commission: evtCommission,
+        payout: evtPayout,
+        settled: settledAmount,
+        available: evtPayout.sub(settledAmount),
+      };
+    });
 
     return {
       totalRevenue,

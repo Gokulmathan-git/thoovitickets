@@ -68,6 +68,13 @@ export class OrdersController {
     return this.ordersService.confirmOrder(orderId, userId);
   }
 
+  @Public()
+  @Post('guest/:id/cancel')
+  @HttpCode(HttpStatus.OK)
+  cancelGuestOrder(@Param('id') orderId: string, @Body('guestEmail') guestEmail: string) {
+    return this.ordersService.cancelGuestOrder(orderId, guestEmail);
+  }
+
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
   cancelOrder(@Param('id') orderId: string, @CurrentUser('id') userId: string) {

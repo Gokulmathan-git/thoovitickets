@@ -1,5 +1,15 @@
-import { IsOptional, IsString, IsEmail, IsArray, ValidateNested } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsArray, ValidateNested, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export class AttendeeGoodieDto {
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  variantId: string;
+}
 
 export class AttendeeDto {
   @IsString()
@@ -13,6 +23,12 @@ export class AttendeeDto {
 
   @IsString()
   phone: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttendeeGoodieDto)
+  goodies?: AttendeeGoodieDto[];
 }
 
 export class CreateOrderDto {

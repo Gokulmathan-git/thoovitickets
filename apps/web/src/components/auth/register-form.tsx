@@ -30,7 +30,7 @@ export function RegisterForm() {
   const isOrganiser = searchParams.get('role') === 'organiser';
 
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', orgName: '',
+    firstName: '', lastName: '', email: '', password: '', confirmPassword: '', phone: '', orgName: '', termsAccepted: false,
   });
   const [countryCode, setCountryCode] = useState('+91');
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +68,7 @@ export function RegisterForm() {
     else if (form.phone.replace(/\D/g, '').length !== selectedCountry.maxLen) errs.phone = `Must be ${selectedCountry.maxLen} digits`;
     else if (phoneErr) errs.phone = phoneErr;
     if (isOrganiser && !form.orgName.trim()) errs.orgName = 'Organisation name is required';
+    if (!form.termsAccepted) errs.termsAccepted = 'You must accept the Terms of Service';
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -87,6 +88,7 @@ export function RegisterForm() {
         phone: `${countryCode}${form.phone.replace(/\D/g, '')}`,
         role: isOrganiser ? 'ORGANISER' : 'CUSTOMER',
         orgName: isOrganiser ? form.orgName.trim() : undefined,
+        termsAccepted: true,
       });
       const { user, accessToken } = response.data.data;
 
@@ -201,6 +203,37 @@ export function RegisterForm() {
               </button>
             </div>
             {fieldErrors.confirmPassword && <p className="mt-1 text-xs text-red-500">{fieldErrors.confirmPassword}</p>}
+          </div>
+
+          {/* Terms & Conditions */}
+          <div>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.termsAccepted}
+                onChange={(e) => { setForm({ ...form, termsAccepted: e.target.checked }); clearFieldError('termsAccepted'); }}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400 accent-orange-500"
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                I agree to the{' '}
+                <Link
+                  href={`/terms-of-service?audience=${isOrganiser ? 'organiser' : 'customer'}`}
+                  target="_blank"
+                  className="font-semibold text-orange-500 hover:text-orange-600 underline"
+                >
+                  Terms of Service
+                </Link>
+                {' '}and{' '}
+                <Link
+                  href={`/privacy-policy?audience=${isOrganiser ? 'organiser' : 'customer'}`}
+                  target="_blank"
+                  className="font-semibold text-orange-500 hover:text-orange-600 underline"
+                >
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+            {fieldErrors.termsAccepted && <p className="mt-1 text-xs text-red-500">{fieldErrors.termsAccepted}</p>}
           </div>
 
           {/* Submit */}

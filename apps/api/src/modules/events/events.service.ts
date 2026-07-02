@@ -79,7 +79,7 @@ export class EventsService {
 
     const { ticketTypes, saleCutoffDate, shortDesc, ...eventData } = dto;
 
-    return this.prisma.event.create({
+    const event = await this.prisma.event.create({
       data: {
         ...eventData as any,
         slug,
@@ -113,11 +113,26 @@ export class EventsService {
         },
       },
     });
+
+    const goodieLinks: { ticketTypeId: string; productId: string }[] = [];
+    for (let i = 0; i < ticketTypes.length; i++) {
+      const tt = ticketTypes[i] as any;
+      if (tt.goodieProductIds?.length) {
+        for (const productId of tt.goodieProductIds) {
+          goodieLinks.push({ ticketTypeId: event.ticketTypes[i].id, productId });
+        }
+      }
+    }
+    if (goodieLinks.length > 0) {
+      await this.prisma.ticketGoodie.createMany({ data: goodieLinks, skipDuplicates: true });
+    }
+
+    return event;
   }
 
   async findAllPublic(query: QueryEventDto) {
     const page = query.page || 1;
-    const limit = query.limit || 12;
+    const limit = Math.min(query.limit || 12, 100);
     const skip = (page - 1) * limit;
 
     const where: Prisma.EventWhereInput = {
@@ -271,6 +286,17 @@ export class EventsService {
         ticketTypes: {
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
+          include: {
+            goodies: {
+              include: {
+                product: {
+                  include: {
+                    variants: true,
+                  },
+                },
+              },
+            },
+          },
         },
         organiser: {
           select: { id: true, firstName: true, lastName: true, orgName: true, avatarUrl: true, orgTerms: true },
@@ -309,7 +335,10 @@ export class EventsService {
       where: { id },
       include: {
         category: true,
-        ticketTypes: { orderBy: { sortOrder: 'asc' } },
+        ticketTypes: {
+          orderBy: { sortOrder: 'asc' },
+          include: { goodies: { include: { product: { include: { variants: true } } } } },
+        },
         organiser: {
           select: { id: true, firstName: true, lastName: true, orgName: true },
         },
@@ -348,8 +377,9 @@ export class EventsService {
       if (hasSales) {
         lockedFields.push('venue', 'address', 'city', 'state', 'country');
       }
+      const dtoAny = dto as Record<string, unknown>;
       for (const field of lockedFields) {
-        if (dto[field] !== undefined) {
+        if (dtoAny[field] !== undefined) {
           throw new BadRequestException(`Cannot change "${field}" for a live/completed event${hasSales ? ' with ticket sales' : ''}`);
         }
       }

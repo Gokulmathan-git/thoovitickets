@@ -11,7 +11,7 @@ export class NotificationsController {
     @CurrentUser('id') userId: string,
     @Query('limit') limit?: string,
   ) {
-    return this.notificationsService.getForUser(userId, limit ? parseInt(limit, 10) : 30);
+    return this.notificationsService.getForUser(userId, Math.min(limit ? parseInt(limit, 10) : 30, 100));
   }
 
   @Get('unread-count')

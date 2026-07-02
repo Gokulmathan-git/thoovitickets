@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
-import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users, Menu, X, User, LogOut, Ticket, ShoppingCart, Wallet, Clock, ChevronDown, FileText } from 'lucide-react';
+import { LayoutDashboard, CalendarPlus, List, BarChart3, CreditCard, Users, Menu, X, User, LogOut, Ticket, ShoppingCart, Wallet, Clock, ChevronDown, FileText, Gift } from 'lucide-react';
 import { useState } from 'react';
 
 interface NavItem {
@@ -23,6 +23,7 @@ const sidebarLinks: NavItem[] = [
   { href: '/organiser/events/create', label: 'Create Event', icon: CalendarPlus },
   { href: '/organiser/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/organiser/staff', label: 'Staff', icon: Users },
+  { href: '/organiser/products', label: 'Products', icon: Gift },
   { href: '/organiser/discounts', label: 'Discounts', icon: Ticket },
   { href: '/organiser/orders', label: 'Orders', icon: ShoppingCart },
   {

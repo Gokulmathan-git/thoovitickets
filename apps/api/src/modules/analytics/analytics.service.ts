@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderStatus, EventStatus, TicketStatus } from '@thoovitickets/database';
 
@@ -141,7 +141,13 @@ export class AnalyticsService {
     };
   }
 
-  async getEventMetrics(eventId: string) {
+  async getEventMetrics(eventId: string, organiserId: string) {
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, organiserId },
+      select: { id: true },
+    });
+    if (!event) throw new ForbiddenException('Event not found or not yours');
+
     const [ticketStats, orderStats, ticketTypeStats] = await Promise.all([
       this.prisma.ticket.groupBy({
         by: ['status'],

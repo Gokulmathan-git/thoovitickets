@@ -54,6 +54,11 @@ export class TicketTypeDto {
   @IsOptional()
   @IsDateString()
   saleEnd?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  goodieProductIds?: string[];
 }
 
 export class CreateEventDto {

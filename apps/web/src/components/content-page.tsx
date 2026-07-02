@@ -18,6 +18,7 @@ export function ContentPageView({ slug, forceAudience, backHref, backLabel }: Co
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [updatedAt, setUpdatedAt] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export function ContentPageView({ slug, forceAudience, backHref, backLabel }: Co
       .then((res) => {
         setTitle(res.data.data.title);
         setContent(res.data.data.content);
+        if (res.data.data.updatedAt) setUpdatedAt(res.data.data.updatedAt);
       })
       .catch(() => setContent('<p>Page not found.</p>'))
       .finally(() => setLoading(false));
@@ -54,6 +56,11 @@ export function ContentPageView({ slug, forceAudience, backHref, backLabel }: Co
         </button>
       )}
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">{title}</h1>
+      {updatedAt && (
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+          Last updated: {new Date(updatedAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}
+        </p>
+      )}
       <div
         className="prose dark:prose-invert mt-8 max-w-none prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-600 dark:prose-p:text-gray-300 prose-li:text-gray-600 dark:prose-li:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-a:text-orange-500"
         dangerouslySetInnerHTML={{ __html: content }}
